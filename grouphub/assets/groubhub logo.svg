@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1000" viewBox="0 0 2000 1000">
+  <!-- Transparent background (none) -->
+  <!-- Left circular emblem with three swooshes -->
+  <defs>
+    <style type="text/css">
+      .brand { fill: #f47b00; } /* Orange color matching the provided logo */
+      .wordmark { font-family: "Georgia", "Times New Roman", serif; font-weight: 700; fill: #f47b00; }
+    </style>
+  </defs>
+
+  <!-- Circle -->
+  <g transform="translate(200,200) scale(1.4)">
+    <circle cx="0" cy="150" r="200" class="brand" />
+    <!-- top swoosh (cutout) -->
+    <path d="M -170 110 C -120 40, 120 40, 170 110 L 170 80 C 120 20, -120 20, -170 80 Z" fill="white" />
+    <!-- middle swoosh (cutout) -->
+    <path d="M -170 210 C -90 160, 90 160, 170 210 L 170 180 C 90 140, -90 140, -170 180 Z" fill="white" />
+    <!-- bottom swoosh (cutout) -->
+    <path d="M -130 300 C -80 240, 80 240, 130 300 L 130 280 C 80 240, -80 240, -130 280 Z" fill="white" />
+  </g>
+
+  <!-- Wordmark: GROUP HUB stacked -->
+  <g transform="translate(520,160)">
+    <text x="0" y="160" font-size="200" class="wordmark">GROUP</text>
+    <text x="0" y="430" font-size="320" class="wordmark">HUB</text>
+  </g>
+</svg>
