@@ -1,0 +1,19 @@
+# Environment files
+.env
+**/ .env
+
+# Python and Virtual Environment
+__pycache__/
+*.py[cod]
+env/
+
+# Local database
+db.sqlite3
+
+# Logs
+logs/*.log
+
+# Frontend build and dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/.expo/
