@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 import json
 import logging
@@ -359,6 +359,61 @@ class LoginView(APIView):
             })
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class AdminUsersView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        users = User.objects.order_by('last_name', 'first_name', 'username')
+        role = request.query_params.get('role')
+        search = request.query_params.get('search', '').strip()
+        active = request.query_params.get('is_active')
+
+        if role in {'student', 'lecturer'}:
+            users = users.filter(user_type=role)
+        if search:
+            users = users.filter(
+                models.Q(username__icontains=search)
+                | models.Q(email__icontains=search)
+                | models.Q(first_name__icontains=search)
+                | models.Q(last_name__icontains=search)
+            )
+        if active in {'true', 'false'}:
+            users = users.filter(is_active=active == 'true')
+
+        return Response([
+            {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'name': user.get_full_name() or user.username,
+                'user_type': user.user_type,
+                'is_active': user.is_active,
+                'is_staff': user.is_staff,
+                'date_joined': user.date_joined,
+            }
+            for user in users
+        ])
+
+
+class AdminUserStatusView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, user_id, action):
+        if action not in {'activate', 'deactivate'}:
+            return Response({'error': 'Unsupported account action.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.pk == request.user.pk and action == 'deactivate':
+            return Response({'error': 'You cannot deactivate your own account.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_active = action == 'activate'
+        user.save(update_fields=['is_active'])
+        return Response({'id': user.id, 'is_active': user.is_active})
 
 
 @api_view(['GET'])

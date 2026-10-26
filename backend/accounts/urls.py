@@ -14,6 +14,8 @@ urlpatterns = [
 
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
+    path('admin/users/', views.AdminUsersView.as_view(), name='admin_users'),
+    path('admin/users/<int:user_id>/<str:action>/', views.AdminUserStatusView.as_view(), name='admin_user_status'),
 
     # JWT endpoints (frontend expects this at /api/accounts/jwt/login/)
     path('jwt/login/', views.LoginView.as_view(), name='api_jwt_login'),
@@ -45,4 +47,3 @@ urlpatterns = [
     path('groups/<int:group_id>/chat-room/', views.get_group_chat_room, name='get_group_chat_room'),
     path('groups/join/', views.join_group_view, name='join_group'),
 ]
-

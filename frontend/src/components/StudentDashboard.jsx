@@ -553,7 +553,7 @@ const StudentDashboard = () => {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-400 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#159A9C] mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -567,7 +567,7 @@ const StudentDashboard = () => {
           <p className="text-red-400 mb-4">{error}</p>
           <button
             onClick={fetchDashboardData}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-[#159A9C] text-white px-4 py-2 rounded hover:bg-[#117d7f]"
           >
             Retry
           </button>
@@ -579,15 +579,15 @@ const StudentDashboard = () => {
   return (
     <div className={`min-h-screen flex ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Sidebar */}
-      <aside className="w-64 bg-green-800 shadow-lg">
+      <aside className="w-64 bg-[#123B5D] shadow-lg">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-white mb-2">GroupHub</h1>
-          <p className="text-green-200 text-sm">Student Portal</p>
+          <p className="text-teal-200 text-sm">Student Portal</p>
         </div>
 
         <nav className="mt-6">
           <div className="px-6 mb-4">
-            <p className="text-green-300 text-sm font-medium uppercase tracking-wider">Welcome back</p>
+            <p className="text-teal-200 text-sm font-medium uppercase tracking-wider">Welcome back</p>
             <p className="text-white font-semibold">{dashboardData?.user?.first_name} {dashboardData?.user?.last_name}</p>
           </div>
 
@@ -596,8 +596,8 @@ const StudentDashboard = () => {
               onClick={() => setActiveTab('dashboard')}
               className={`w-full flex items-center px-6 py-3 text-left ${
                 activeTab === 'dashboard'
-                  ? 'bg-green-700 text-white border-r-4 border-green-400'
-                  : 'text-green-300 hover:text-white hover:bg-green-700'
+                  ? 'bg-[#159A9C] text-white border-r-4 border-teal-200'
+                  : 'text-teal-200 hover:text-white hover:bg-[#159A9C]'
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -610,8 +610,8 @@ const StudentDashboard = () => {
               onClick={() => setActiveTab('tasks')}
               className={`w-full flex items-center px-6 py-3 text-left ${
                 activeTab === 'tasks'
-                  ? 'bg-green-700 text-white border-r-4 border-green-400'
-                  : 'text-green-300 hover:text-white hover:bg-green-700'
+                  ? 'bg-[#159A9C] text-white border-r-4 border-teal-200'
+                  : 'text-teal-200 hover:text-white hover:bg-[#159A9C]'
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -624,8 +624,8 @@ const StudentDashboard = () => {
               onClick={() => setActiveTab('notifications')}
               className={`w-full flex items-center px-6 py-3 text-left relative ${
                 activeTab === 'notifications'
-                  ? 'bg-green-700 text-white border-r-4 border-green-400'
-                  : 'text-green-300 hover:text-white hover:bg-green-700'
+                  ? 'bg-[#159A9C] text-white border-r-4 border-teal-200'
+                  : 'text-teal-200 hover:text-white hover:bg-[#159A9C]'
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -643,8 +643,8 @@ const StudentDashboard = () => {
               onClick={() => setActiveTab('profile')}
               className={`w-full flex items-center px-6 py-3 text-left ${
                 activeTab === 'profile'
-                  ? 'bg-green-700 text-white border-r-4 border-green-400'
-                  : 'text-green-300 hover:text-white hover:bg-green-700'
+                  ? 'bg-[#159A9C] text-white border-r-4 border-teal-200'
+                  : 'text-teal-200 hover:text-white hover:bg-[#159A9C]'
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -657,8 +657,8 @@ const StudentDashboard = () => {
               onClick={() => setActiveTab('settings')}
               className={`w-full flex items-center px-6 py-3 text-left ${
                 activeTab === 'settings'
-                  ? 'bg-green-700 text-white border-r-4 border-green-400'
-                  : 'text-green-300 hover:text-white hover:bg-green-700'
+                  ? 'bg-[#159A9C] text-white border-r-4 border-teal-200'
+                  : 'text-teal-200 hover:text-white hover:bg-[#159A9C]'
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -671,8 +671,8 @@ const StudentDashboard = () => {
               onClick={() => setActiveTab('chat')}
               className={`w-full flex items-center px-6 py-3 text-left ${
                 activeTab === 'chat'
-                  ? 'bg-green-700 text-white border-r-4 border-green-400'
-                  : 'text-green-300 hover:text-white hover:bg-green-700'
+                  ? 'bg-[#159A9C] text-white border-r-4 border-teal-200'
+                  : 'text-teal-200 hover:text-white hover:bg-[#159A9C]'
               }`}
             >
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -989,7 +989,7 @@ const StudentDashboard = () => {
                             <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Join or create a group to get started with collaborative projects</p>
                             <button
                               onClick={() => setShowCreateGroupModal(true)}
-                              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                              className="bg-[#159A9C] text-white px-6 py-3 rounded-lg hover:bg-[#117d7f] transition-colors font-medium"
                             >
                               Create/Join Group
                             </button>
@@ -1514,7 +1514,7 @@ const StudentDashboard = () => {
                   />
                   <button
                     onClick={createGroup}
-                    className="w-full mt-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    className="w-full mt-2 px-4 py-2 bg-[#159A9C] text-white rounded-md hover:bg-[#117d7f]"
                   >
                     Create Group
                   </button>

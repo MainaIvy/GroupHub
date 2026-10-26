@@ -31,5 +31,14 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise self.fail("no_active_account")
 
         data = super().validate({"username": email, "password": password})
+        data['user'] = {
+            'id': user.id,
+            'email': user.email,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'user_type': user.user_type,
+            'is_staff': user.is_staff,
+            'is_active': user.is_active,
+        }
         return data
-

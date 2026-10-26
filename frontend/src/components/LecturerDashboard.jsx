@@ -266,7 +266,7 @@ const LecturerDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#159A9C] mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -280,7 +280,7 @@ const LecturerDashboard = () => {
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={fetchDashboardData}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-[#159A9C] text-white px-4 py-2 rounded hover:bg-[#117d7f]"
           >
             Retry
           </button>
@@ -298,7 +298,7 @@ const LecturerDashboard = () => {
       }}
     >
       {/* Sidebar */}
-      <aside className="w-52" style={{ backgroundColor: '#16162a', minHeight: '100vh' }}>
+      <aside className="w-52" style={{ backgroundColor: '#123B5D', minHeight: '100vh' }}>
         <div className="p-5">
           <button
             onClick={() => setActiveTab('profile')}
@@ -307,9 +307,9 @@ const LecturerDashboard = () => {
           >
             <div
               className="h-9 w-9 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: '#F57D67' }}
+              style={{ backgroundColor: '#159A9C' }}
             >
-              <span className="font-bold text-lg" style={{ color: '#16162a' }}>
+              <span className="font-bold text-lg" style={{ color: '#123B5D' }}>
                 G
               </span>
             </div>
@@ -335,7 +335,7 @@ const LecturerDashboard = () => {
                     onClick={() => setActiveTab(id)}
                     className={`w-full flex items-center px-3 py-2.5 mb-1 text-left rounded-lg transition-colors ${
                       activeTab === id
-                        ? 'bg-[rgba(245,125,103,0.15)] text-[#F57D67]'
+                        ? 'bg-[rgba(21,154,156,0.18)] text-[#159A9C]'
                         : 'text-[rgba(255,255,255,0.45)] hover:bg-white/5'
                     }`}
                   >
@@ -363,7 +363,7 @@ const LecturerDashboard = () => {
                     onClick={() => setActiveTab(id)}
                     className={`w-full flex items-center px-3 py-2.5 mb-1 text-left rounded-lg transition-colors ${
                       activeTab === id
-                        ? 'bg-[rgba(245,125,103,0.15)] text-[#F57D67]'
+                        ? 'bg-[rgba(21,154,156,0.18)] text-[#159A9C]'
                         : 'text-[rgba(255,255,255,0.45)] hover:bg-white/5'
                     }`}
                   >
@@ -374,8 +374,8 @@ const LecturerDashboard = () => {
                       <span
                         className={`ml-auto text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full ${
                           activeTab === id
-                            ? 'bg-[#F57D67] text-[#16162a]'
-                            : 'bg-[#F57D67] text-[#16162a] opacity-90'
+                            ? 'bg-[#159A9C] text-[#123B5D]'
+                            : 'bg-[#159A9C] text-[#123B5D] opacity-90'
                         }`}
                       >
                         {pillValue}
@@ -398,7 +398,7 @@ const LecturerDashboard = () => {
                     onClick={() => setActiveTab(id)}
                     className={`w-full flex items-center px-3 py-2.5 mb-1 text-left rounded-lg transition-colors ${
                       activeTab === id
-                        ? 'bg-[rgba(245,125,103,0.15)] text-[#F57D67]'
+                        ? 'bg-[rgba(21,154,156,0.18)] text-[#159A9C]'
                         : 'text-[rgba(255,255,255,0.45)] hover:bg-white/5'
                     }`}
                   >
@@ -412,11 +412,11 @@ const LecturerDashboard = () => {
         </nav>
 
         {/* Bottom user card */}
-        <div className="absolute bottom-0 w-52 p-4" style={{ backgroundColor: '#16162a' }}>
-          <div className="flex items-center gap-3 rounded-xl p-3" style={{ backgroundColor: '#16162a' }}>
+        <div className="absolute bottom-0 w-52 p-4" style={{ backgroundColor: '#123B5D' }}>
+          <div className="flex items-center gap-3 rounded-xl p-3" style={{ backgroundColor: '#123B5D' }}>
             <div
               className="h-10 w-10 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: '#1F2633' }}
+              style={{ backgroundColor: '#159A9C' }}
             >
               <span className="text-white font-semibold text-sm">
                 {dashboardData?.user?.first_name?.[0] || 'U'}
@@ -433,7 +433,7 @@ const LecturerDashboard = () => {
               </div>
             </div>
 
-            <button onClick={handleLogout} className="text-[#F57D67] hover:text-white transition-colors" aria-label="Logout">
+            <button onClick={handleLogout} className="text-[#159A9C] hover:text-white transition-colors" aria-label="Logout">
               <LogoutOutlined />
             </button>
           </div>
@@ -467,7 +467,7 @@ const LecturerDashboard = () => {
                       darkMode
                         ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    } focus:outline-none focus:ring-2 focus:ring-[#159A9C]`}
                   />
                 </div>
               )}
@@ -644,7 +644,7 @@ const LecturerDashboard = () => {
                     <button
                       onClick={toggleDarkMode}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        darkMode ? 'bg-blue-600' : 'bg-gray-200'
+                        darkMode ? 'bg-[#159A9C]' : 'bg-gray-200'
                       }`}
                     >
                       <span
@@ -697,11 +697,11 @@ const LecturerDashboard = () => {
                       onClick={() => selectChatRoom(room)}
                       className={`w-full p-3 flex items-center space-x-3 hover:bg-gray-100 transition-colors ${
                         selectedChatRoom?.id === room.id
-                          ? darkMode ? 'bg-gray-700' : 'bg-blue-50'
+                          ? darkMode ? 'bg-gray-700' : 'bg-teal-50'
                           : darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
                       }`}
                     >
-                      <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">👥</div>
+                      <div className="w-12 h-12 bg-[#159A9C] rounded-full flex items-center justify-center text-white font-semibold">👥</div>
                       <div className="flex-1 min-w-0">
                         <div className={`font-medium truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{room.name}</div>
                       </div>
@@ -714,11 +714,11 @@ const LecturerDashboard = () => {
                       onClick={() => selectChatRoom(room)}
                       className={`w-full p-3 flex items-center space-x-3 hover:bg-gray-100 transition-colors ${
                         selectedChatRoom?.id === room.id
-                          ? darkMode ? 'bg-gray-700' : 'bg-blue-50'
+                          ? darkMode ? 'bg-gray-700' : 'bg-teal-50'
                           : darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
                       }`}
                     >
-                      <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="w-12 h-12 bg-[#159A9C] rounded-full flex items-center justify-center text-white font-semibold">
                         {room.name?.split(' ').map((n) => n[0]).join('').toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -733,7 +733,7 @@ const LecturerDashboard = () => {
                 {selectedChatRoom ? (
                   <>
                     <div className={`p-4 border-b flex items-center space-x-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">💬</div>
+                      <div className="w-10 h-10 bg-[#159A9C] rounded-full flex items-center justify-center text-white font-semibold">💬</div>
                       <div>
                         <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{selectedChatRoom.name}</h3>
                         <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -753,7 +753,7 @@ const LecturerDashboard = () => {
                               <div
                                 className={`px-4 py-2 rounded-2xl shadow-sm ${
                                   isOwn
-                                    ? 'bg-blue-600 text-white rounded-br-md'
+                                    ? 'bg-[#159A9C] text-white rounded-br-md'
                                     : darkMode
                                       ? 'bg-gray-700 text-white rounded-bl-md'
                                       : 'bg-white text-gray-900 rounded-bl-md'
@@ -783,12 +783,12 @@ const LecturerDashboard = () => {
                             darkMode
                               ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                               : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          } focus:outline-none focus:ring-2 focus:ring-[#159A9C]`}
                         />
                         <button
                           onClick={sendMessage}
                           disabled={!newMessage.trim()}
-                          className="px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-6 py-3 bg-[#159A9C] text-white rounded-full hover:bg-[#117d7f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           Send
                         </button>
@@ -808,4 +808,3 @@ const LecturerDashboard = () => {
 };
 
 export default LecturerDashboard;
-

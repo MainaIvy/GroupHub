@@ -37,10 +37,13 @@ const GoogleLoginButton = ({ googleClientId, onLoadingChange, onError }) => {
           user_type: data?.user?.user_type || data?.user_type || 'student',
           first_name: data?.user?.first_name || 'User',
           last_name: data?.user?.last_name || 'Account',
+          is_staff: Boolean(data?.user?.is_staff),
         };
         localStorage.setItem('user', JSON.stringify(localizedUser));
 
-        if (localizedUser.user_type === 'lecturer') {
+        if (localizedUser.is_staff) {
+          window.location.href = '/admin/dashboard';
+        } else if (localizedUser.user_type === 'lecturer') {
           window.location.href = '/lecturer/dashboard';
         } else {
           window.location.href = '/student/dashboard';
@@ -153,6 +156,7 @@ const Login = () => {
 
         const emailTrimmedLower = emailTrimmed.toLowerCase();
         let calculatedUserType = data.user?.user_type || data.user_type;
+        const isAdmin = Boolean(data.user?.is_staff);
 
         if (!calculatedUserType) {
           calculatedUserType = emailTrimmedLower.includes('lecturer') ? 'lecturer' : 'student';
@@ -163,10 +167,16 @@ const Login = () => {
           JSON.stringify({
             email: emailTrimmedLower,
             user_type: calculatedUserType,
+            is_staff: isAdmin,
             first_name: 'User',
             last_name: 'Account',
           })
         );
+
+        if (isAdmin) {
+          window.location.href = '/admin/dashboard';
+          return;
+        }
 
         if (calculatedUserType === 'lecturer') {
           window.location.href = '/lecturer/dashboard';
@@ -371,4 +381,3 @@ const Login = () => {
 };
 
 export default Login;
-
