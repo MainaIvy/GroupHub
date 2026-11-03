@@ -92,6 +92,9 @@ const Login = ({ googleEnabled = false }) => {
     setError('');
     setSuccessMessage('');
     setValidationError('');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
 
     const username = (formData.username || '').trim();
     const passwordTrimmed = formData.password || '';

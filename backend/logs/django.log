@@ -1,0 +1,12 @@
+INFO 2026-11-03 06:45:55,294 views 43906 133371194753024 Dashboard request for user 2: lecturer.demo@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:45:55,309 views 43906 133371194753024 Dashboard data returned for user 2
+INFO 2026-11-03 06:46:09,152 views 44104 131710757302272 Dashboard request for user 2: lecturer.demo@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,172 views 44104 131710757302272 Dashboard data returned for user 2
+INFO 2026-11-03 06:46:09,173 views 44104 131710757302272 Dashboard request for user 7: ken2@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,186 views 44104 131710757302272 Dashboard data returned for user 7
+INFO 2026-11-03 06:46:09,187 views 44104 131710757302272 Dashboard request for user 8: mark2@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,199 views 44104 131710757302272 Dashboard data returned for user 8
+INFO 2026-11-03 06:46:09,200 views 44104 131710757302272 Dashboard request for user 9: isaac@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,211 views 44104 131710757302272 Dashboard data returned for user 9
+INFO 2026-11-03 06:46:09,213 views 44104 131710757302272 Dashboard request for user 10: mwalimu@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,226 views 44104 131710757302272 Dashboard data returned for user 10

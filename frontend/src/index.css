@@ -1,254 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --gh-navy: #123B5D;
-  --gh-teal: #159A9C;
+  font-family: 'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #12294a;
+  background: #eef3fa;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
 }
 
 body {
-  margin: 0;
-  background: #f5f7f9;
-  color: var(--gh-navy);
+  min-height: 100vh;
 }
 
-/* Student dashboard palette sampled from the provided school dashboard reference. */
-[data-dashboard-theme="school"] {
-	color: #29384a !important;
-	background-color: #eef1f4 !important;
-	accent-color: #4a6079;
-}
-
-[data-dashboard-theme="school"] [class*="bg-[#F3F6F4]"],
-[data-dashboard-theme="school"] [class*="bg-[#F7F9F8]"],
-[data-dashboard-theme="school"] [class*="bg-[#FBFCFB]"],
-[data-dashboard-theme="school"] [class*="bg-[#F3F7F5]"],
-[data-dashboard-theme="school"] [class*="bg-[#FAFBFA]"] {
-	background-color: #eef1f4 !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-[#163F3A]"],
-[data-dashboard-theme="school"] [class*="bg-[#1F6B5C]"] {
-	background-color: #35475c !important;
-}
-
-[data-dashboard-theme="school"] [class*="hover:bg-[#24564F]"],
-[data-dashboard-theme="school"] [class*="hover:bg-[#18584B]"] {
-	--tw-bg-opacity: 1;
-	background-color: #4a6079 !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-[#B7E3D4]"],
-[data-dashboard-theme="school"] [class*="bg-[#EAF4F0]"],
-[data-dashboard-theme="school"] [class*="bg-[#E6F3EE]"],
-[data-dashboard-theme="school"] [class*="bg-[#DCEFE7]"],
-[data-dashboard-theme="school"] [class*="bg-[#DDEBE5]"],
-[data-dashboard-theme="school"] [class*="bg-[#E3F0EB]"],
-[data-dashboard-theme="school"] [class*="bg-[#EEF3F1]"] {
-	background-color: #dfe6ee !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-[#E8E8F4]"] {
-	background-color: #f5e5e8 !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-[#FFF3D9]"],
-[data-dashboard-theme="school"] [class*="bg-[#EAF2FA]"],
-[data-dashboard-theme="school"] [class*="bg-[#F9ECE8]"],
-[data-dashboard-theme="school"] [class*="bg-[#FFF2D6]"],
-[data-dashboard-theme="school"] [class*="bg-[#F9E8E5]"],
-[data-dashboard-theme="school"] [class*="bg-[#FBEFED]"] {
-	background-color: #dfe6ee !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-[#17332F]"],
-[data-dashboard-theme="school"] [class*="text-[#163F3A]"],
-[data-dashboard-theme="school"] [class*="text-[#1F6B5C]"] {
-	color: #354b63 !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-[#68817A]"],
-[data-dashboard-theme="school"] [class*="text-[#789089]"],
-[data-dashboard-theme="school"] [class*="text-[#91A39D]"],
-[data-dashboard-theme="school"] [class*="text-[#8CA59D]"],
-[data-dashboard-theme="school"] [class*="text-[#A6C3BC]"],
-[data-dashboard-theme="school"] [class*="text-[#B9D0CA]"],
-[data-dashboard-theme="school"] [class*="text-[#C2D6D1]"] {
-	color: #718094 !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-[#96620C]"],
-[data-dashboard-theme="school"] [class*="text-[#3D6F9F]"],
-[data-dashboard-theme="school"] [class*="text-[#A64F3E]"],
-[data-dashboard-theme="school"] [class*="text-[#80550A]"],
-[data-dashboard-theme="school"] [class*="text-[#A54136]"],
-[data-dashboard-theme="school"] [class*="text-[#B77A10]"] {
-	color: #435b76 !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-[#F8E3ED]"] {
-	background-color: #f5e5e8 !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-[#A64F70]"] {
-	color: #9c6276 !important;
-}
-
-[data-dashboard-theme="school"] [class*="border-[#DDE7E2]"],
-[data-dashboard-theme="school"] [class*="border-[#E6ECE9]"],
-[data-dashboard-theme="school"] [class*="border-[#E6E9E7]"],
-[data-dashboard-theme="school"] [class*="border-[#E8EFEC]"],
-[data-dashboard-theme="school"] [class*="border-[#E0E8E4]"],
-[data-dashboard-theme="school"] [class*="border-[#C7DAD1]"] {
-	border-color: #d7dee6 !important;
-}
-
-[data-dashboard-theme="school"] [class*="focus:border-[#1F6B5C]"],
-[data-dashboard-theme="school"] [class*="focus-within:border-[#78A99A]"] {
-	--tw-border-opacity: 1;
-	border-color: #7189a3 !important;
-}
-
-[data-dashboard-theme="school"] [class*="ring-[#1F6B5C]"] {
-	--tw-ring-color: #7189a3 !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-stone-900"],
-[data-dashboard-theme="school"] [class*="dark:bg-stone-900"],
-[data-dashboard-theme="school"] [class*="bg-[#1C1C1E]"] {
-	background-color: #35475c !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-stone-800"],
-[data-dashboard-theme="school"] [class*="dark:bg-stone-800"],
-[data-dashboard-theme="school"] [class*="bg-stone-700"],
-[data-dashboard-theme="school"] [class*="dark:bg-stone-700"] {
-	background-color: #e4e9ef !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-stone-900"],
-[data-dashboard-theme="school"] [class*="dark:bg-stone-900"] {
-	background-color: #ffffff !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-stone-950"] {
-	background-color: rgb(53 71 92 / 42%) !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-stone-200"],
-[data-dashboard-theme="school"] [class*="bg-[#F3F6F4]"],
-[data-dashboard-theme="school"] [class*="bg-[#F7F9F8]"],
-[data-dashboard-theme="school"] [class*="bg-[#FBFCFB]"],
-[data-dashboard-theme="school"] [class*="bg-[#F3F7F5]"],
-[data-dashboard-theme="school"] [class*="bg-[#FAFBFA]"],
-[data-dashboard-theme="school"] [class*="bg-stone-800"],
-[data-dashboard-theme="school"] [class*="dark:bg-stone-800"],
-[data-dashboard-theme="school"] [class*="bg-stone-700"],
-[data-dashboard-theme="school"] [class*="dark:bg-stone-700"] {
-	background-color: #e4e9ef !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-[#1C1C1E]"] {
-	background-color: #35475c !important;
-}
-[data-dashboard-theme="school"] [class*="bg-[#EAF4F0]"],
-[data-dashboard-theme="school"] [class*="bg-[#E6F3EE]"],
-[data-dashboard-theme="school"] [class*="bg-[#DCEFE7]"],
-[data-dashboard-theme="school"] [class*="bg-[#DDEBE5]"],
-[data-dashboard-theme="school"] [class*="bg-[#E3F0EB]"],
-[data-dashboard-theme="school"] [class*="bg-[#EEF3F1]"],
-[data-dashboard-theme="school"] [class*="bg-[#E8E8F4]"] {
-	background-color: #eef1f4 !important;
-}
-
-[data-dashboard-theme="school"] [class*="hover:bg-stone-"],
-[data-dashboard-theme="school"] [class*="hover:bg-[#EAF4F0]"],
-[data-dashboard-theme="school"] [class*="hover:bg-[#F3F6F4]"],
-[data-dashboard-theme="school"] [class*="hover:bg-[#DDEFE8]"],
-[data-dashboard-theme="school"] [class*="hover:bg-[#E2EBF4]"] {
-	background-color: #e4e9ef !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-stone-100"],
-[data-dashboard-theme="school"] [class*="text-stone-200"],
-[data-dashboard-theme="school"] [class*="text-stone-300"],
-[data-dashboard-theme="school"] [class*="text-stone-400"],
-[data-dashboard-theme="school"] [class*="text-stone-500"],
-[data-dashboard-theme="school"] [class*="text-stone-600"],
-[data-dashboard-theme="school"] [class*="text-stone-700"],
-[data-dashboard-theme="school"] [class*="text-[#1C1C1E]"],
-[data-dashboard-theme="school"] [class*="text-[#29443E]"],
-[data-dashboard-theme="school"] [class*="text-[#47645D]"],
-[data-dashboard-theme="school"] [class*="text-[#B89775]"] {
-	color: #354b63 !important;
-}
-
-[data-dashboard-theme="school"] [class*="border-stone-"],
-[data-dashboard-theme="school"] [class*="border-[#EDE7D8]"],
-[data-dashboard-theme="school"] [class*="border-[#DDE7E2]"],
-[data-dashboard-theme="school"] [class*="border-[#E6ECE9]"],
-[data-dashboard-theme="school"] [class*="border-[#C7DAD1]"] {
-	border-color: #d7dee6 !important;
-}
-
-[data-dashboard-theme="school"] [class*="bg-emerald-"],
-[data-dashboard-theme="school"] [class*="bg-amber-"],
-[data-dashboard-theme="school"] [class*="bg-red-"] {
-	background-color: #dfe6ee !important;
-	color: #435b76 !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-emerald-"],
-[data-dashboard-theme="school"] [class*="text-amber-"],
-[data-dashboard-theme="school"] [class*="text-red-"] {
-	color: #435b76 !important;
-}
-
-[data-dashboard-theme="school"] [class*="border-emerald-"],
-[data-dashboard-theme="school"] [class*="border-amber-"],
-[data-dashboard-theme="school"] [class*="border-red-"] {
-	border-color: #cbd5e1 !important;
-}
-
-[data-dashboard-theme="school"] [class*="from-[#efe4f9]"],
-[data-dashboard-theme="school"] [class*="via-[#f5d8cf]"],
-[data-dashboard-theme="school"] [class*="to-[#cadbf3]"] {
-	--tw-gradient-from: #dbe3ec var(--tw-gradient-from-position) !important;
-	--tw-gradient-via: #cbd6e3 var(--tw-gradient-via-position) !important;
-	--tw-gradient-to: #e4e9ef var(--tw-gradient-to-position) !important;
-}
-
-[data-dashboard-theme="school"] [class*="border-emerald-"],
-[data-dashboard-theme="school"] [class*="border-amber-"],
-[data-dashboard-theme="school"] [class*="border-red-"] {
-	border-color: #cbd5e1 !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-[9px]"],
-[data-dashboard-theme="school"] [class*="text-[10px]"],
-[data-dashboard-theme="school"] [class*="text-[11px]"] {
-	font-size: 12px !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-xs"] {
-	font-size: 13px !important;
-}
-
-[data-dashboard-theme="school"] [class*="text-[#718094]"],
-[data-dashboard-theme="school"] [class*="text-[#68817A]"],
-[data-dashboard-theme="school"] [class*="text-[#789089]"],
-[data-dashboard-theme="school"] [class*="text-[#91A39D]"],
-[data-dashboard-theme="school"] [class*="text-[#8895A5]"],
-[data-dashboard-theme="school"] [class*="text-stone-400"],
-[data-dashboard-theme="school"] [class*="text-stone-500"],
-[data-dashboard-theme="school"] [class*="text-stone-600"] {
-	color: #596579 !important;
-}
-
-[data-dashboard-theme="school"] aside[class*="bg-[#163F3A]"] [class*="text-[#A6C3BC]"],
-[data-dashboard-theme="school"] aside[class*="bg-[#163F3A]"] [class*="text-[#B9D0CA]"],
-[data-dashboard-theme="school"] aside[class*="bg-[#163F3A]"] [class*="text-[#C2D6D1]"] {
-	color: #d5e4e0 !important;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }

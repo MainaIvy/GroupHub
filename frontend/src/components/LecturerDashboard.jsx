@@ -1,194 +1,190 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { io } from 'socket.io-client';
+import {
+  BarChart3,
+  Bell,
+  BookOpen,
+  CheckSquare,
+  ChevronRight,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+  Users,
+  X
+} from 'lucide-react';
 
-const navItems = [
-  { id: 'overview', label: 'Overview', icon: '▣' },
-  { id: 'projects', label: 'Projects', icon: '◫' },
-  { id: 'groups', label: 'Groups', icon: '◌' },
-  { id: 'submissions', label: 'Submissions', icon: '▤' },
-  { id: 'chat', label: 'Chat', icon: '◍' },
-  { id: 'schedule', label: 'Schedule', icon: '☰' },
-  { id: 'profile', label: 'Profile', icon: '◐' },
+const navigation = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'MAIN' },
+  { id: 'progress', label: 'Analytics', icon: BarChart3, section: 'MAIN' },
+  { id: 'groups', label: 'My Units', icon: BookOpen, section: 'MAIN' },
+  { id: 'submissions', label: 'Assessments', icon: ClipboardList, section: 'WORK' },
+  { id: 'chat', label: 'Students', icon: Users, section: 'WORK' },
+  { id: 'settings', label: 'Settings', icon: Settings, section: 'ACCOUNT' }
 ];
 
-const emptyDashboardState = {
-  metrics: [],
-  projectTree: [],
-  workload: [],
-  groups: [],
-  groupMembers: [],
-  activityLog: [],
-  submissions: [],
-  schedule: [],
-  units: [],
-  profile: {},
+const statCards = [
+  { label: 'Total Students', key: 'total_students', icon: Users, tone: 'blue' },
+  { label: 'Active Units', key: 'total_groups', icon: BookOpen, tone: 'pink' },
+  { label: 'Pending to Grade', key: 'pending_submissions', icon: CheckSquare, tone: 'yellow' },
+  { label: 'Assessments Created', key: 'projects', icon: ClipboardList, tone: 'green' },
+  { label: 'Avg. Class Performance', value: '—', icon: BarChart3, tone: 'lavender' }
+];
+
+const toneStyles = {
+  pink: 'bg-[#FDEDEE] dark:bg-[#30202a]',
+  blue: 'bg-[#E8EFFB] dark:bg-[#202c45]',
+  yellow: 'bg-[#FFF5DB] dark:bg-[#352d1d]',
+  green: 'bg-[#E6F5EC] dark:bg-[#1d3329]',
+  lavender: 'bg-[#F3ECFA] dark:bg-[#302840]'
 };
 
-const getProgressColor = (value) => {
-  if (value >= 75) return '#22C55E';
-  if (value >= 50) return '#F59E0B';
-  return '#EF4444';
-};
+const apiHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
 
-const statusTagStyles = {
-  'On track': 'bg-[#DCFCE7] text-[#166534]',
-  'At risk': 'bg-[#FDECC8] text-[#92400E]',
-  Watch: 'bg-[#FDECC8] text-[#92400E]',
-  Critical: 'bg-[#FDE2DC] text-[#9A3412]',
-  Submitted: 'bg-[#DCFCE7] text-[#166534]',
-  'Needs sign-off': 'bg-[#FDECC8] text-[#92400E]',
-  'Awaiting revision': 'bg-[#FDE2DC] text-[#9A3412]',
-  'In progress': 'bg-[#EAF3FF] text-[#2E5C8A]',
-};
-
-const statusPill = (status) =>
-  `inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
-    statusTagStyles[status] || 'bg-[#F0EDE4] text-[#57534E]'
-  }`;
-
-const formatInitials = (user) => {
-  const first = String(user?.first_name || user?.firstName || '').trim().split(/\s+/)[0] || '';
-  const last = String(user?.last_name || user?.lastName || '').trim().split(/\s+/)[0] || '';
-  return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase() || 'U';
-};
-
-function LecturerDashboard() {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [greeting, setGreeting] = useState('Good morning');
-  const [storedUser, setStoredUser] = useState(null);
-  const [dashboardData, setDashboardData] = useState(emptyDashboardState);
+const LecturerDashboard = () => {
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [chatRooms, setChatRooms] = useState([]);
+  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const [isFetchingDashboard, setIsFetchingDashboard] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('user');
+  const user = dashboardData?.user;
+  const groups = useMemo(() => dashboardData?.groups || [], [dashboardData]);
+  const submissions = useMemo(() => dashboardData?.recent_submissions || [], [dashboardData]);
+  const firstName = user?.first_name || 'Lecturer';
+  const initials = `${user?.first_name?.[0] || 'U'}${user?.last_name?.[0] || ''}`;
+
+  const fetchDashboardData = async () => {
+    if (isFetchingDashboard) return;
+    setIsFetchingDashboard(true);
+    setLoading(true);
+    setError('');
     try {
-      setStoredUser(stored ? JSON.parse(stored) : null);
-    } catch {
-      setStoredUser(null);
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+      const response = await axios.get('/api/accounts/dashboard/lecturer/', { headers: apiHeaders() });
+      setDashboardData(response.data);
+    } catch (requestError) {
+      if (requestError?.response?.status === 401) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
+      const detail = requestError?.response?.data?.error || requestError?.response?.data?.detail;
+      setError(detail || `Failed to load dashboard data${requestError?.response?.status ? ` (HTTP ${requestError.response.status})` : ''}`);
+    } finally {
+      setLoading(false);
+      setIsFetchingDashboard(false);
     }
+  };
 
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good morning');
-    else if (hour < 18) setGreeting('Good afternoon');
-    else setGreeting('Good evening');
+  const fetchChatRooms = async () => {
+    try {
+      const response = await axios.get('/api/accounts/chat/rooms/', { headers: apiHeaders() });
+      setChatRooms(response.data);
+    } catch (requestError) {
+      console.error('Error fetching chat rooms:', requestError);
+    }
+  };
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const response = await axios.get('/api/accounts/chat/unread-counts/', { headers: apiHeaders() });
+      setUnreadCounts(response.data);
+    } catch (requestError) {
+      console.error('Error fetching unread counts:', requestError);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    // The request function intentionally runs once when the dashboard mounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (activeTab === 'chat') {
+      fetchChatRooms();
+      fetchUnreadCounts();
+    }
+  }, [activeTab]);
 
-    const loadDashboard = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('access_token');
-        const response = await fetch('/api/accounts/dashboard/lecturer/', {
-          signal: controller.signal,
-          headers: {
-            Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return undefined;
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:8000', {
+      auth: { token },
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 5
+    });
+    socket.on('new_message', (message) => {
+      if (selectedChatRoom?.id === message.room_id) setMessages((current) => [...current, message]);
+      else setUnreadCounts((current) => ({ ...current, [message.room_id]: (current[message.room_id] || 0) + 1 }));
+    });
+    return () => socket.disconnect();
+  }, [selectedChatRoom]);
 
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-            return;
-          }
-          throw new Error('Dashboard endpoint unavailable');
-        }
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('darkMode', String(darkMode));
+  }, [darkMode]);
 
-        const payload = await response.json();
-        const units = payload.assigned_units || payload.department_units || payload.units || [];
-        const groups = [
-          ...(payload.active_groups || []),
-          ...(payload.archived_groups || []),
-          ...(payload.groups || []),
-        ];
-        const profile = payload.lecturer || payload.user || {};
-        const projects = groups.flatMap((group) => (group.projects || []).map((project) => ({
-          ...project,
-          group_name: group.name,
-          course: group.course,
-        })));
-
-        const nextDashboard = {
-          ...emptyDashboardState,
-          profile,
-          groups,
-          units,
-          metrics: [
-            { label: 'Assigned units', value: units.length, change: '+0%' },
-            { label: 'Active groups', value: groups.length, change: '+0%' },
-            { label: 'Students tracked', value: groups.reduce((sum, group) => sum + Number(group.members_count || 0), 0), change: '+0%' },
-            { label: 'Department', value: profile.department || 'Faculty', change: 'Live' },
-          ],
-          projectTree: projects.map((project, index) => ({
-            id: project.id || index,
-            title: project.title || project.name || `Project ${index + 1}`,
-            milestone: project.group_name || project.description || 'Group project',
-            tasks: project.tasks || [],
-          })),
-          workload: groups.slice(0, 4).map((group, index) => ({
-            name: group.name || `Group ${index + 1}`,
-            value: 35 + (index * 16) % 55,
-          })),
-          activityLog: groups.slice(0, 4).map((group, index) => ({
-            time: `${index + 1}h ago`,
-            event: group.name || `Group ${index + 1}`,
-            target: `${group.members_count || 0} members active`,
-          })),
-          submissions: (payload.recent_submissions || payload.submissions || []).map((submission, index) => ({
-            id: submission.id || index,
-            group: submission.project_title || submission.group || 'Group submission',
-            repo: submission.submitted_by || submission.repo || '',
-            status: submission.status || 'Submitted',
-          })),
-          schedule: [
-            { day: 'Mon', items: ['Unit brief', 'Group check-in'] },
-            { day: 'Tue', items: ['Progress review'] },
-            { day: 'Wed', items: ['Mentor session'] },
-            { day: 'Thu', items: ['Submission check'] },
-            { day: 'Fri', items: ['Portfolio review'] },
-            { day: 'Sat', items: [] },
-            { day: 'Sun', items: [] },
-          ],
-        };
-
-        setDashboardData(nextDashboard);
-      } catch {
-        setDashboardData(emptyDashboardState);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboard();
-    return () => controller.abort();
-  }, []);
-
-  const filteredGroups = useMemo(() => {
-    const groups = dashboardData.groups || [];
-    if (!searchQuery.trim()) return groups;
+  const filteredGroups = useMemo(() => groups.filter((group) => {
     const query = searchQuery.toLowerCase();
-    return groups.filter((group) => (
-      (group.name || '').toLowerCase().includes(query)
-      || (group.unit_code || group.course || '').toLowerCase().includes(query)
-    ));
-  }, [dashboardData.groups, searchQuery]);
+    return group.name?.toLowerCase().includes(query) || group.course?.toLowerCase().includes(query);
+  }), [groups, searchQuery]);
 
-  const filteredMembers = useMemo(() => {
-    const members = dashboardData.groupMembers || [];
-    if (!searchQuery.trim()) return members;
+  const filteredSubmissions = useMemo(() => submissions.filter((submission) => {
     const query = searchQuery.toLowerCase();
-    return members.filter((member) => (
-      (member.name || '').toLowerCase().includes(query)
-      || (member.role || '').toLowerCase().includes(query)
-    ));
-  }, [dashboardData.groupMembers, searchQuery]);
+    return submission.project_title?.toLowerCase().includes(query) || submission.submitted_by?.toLowerCase().includes(query);
+  }), [submissions, searchQuery]);
+
+  const selectChatRoom = async (room) => {
+    setSelectedChatRoom(room);
+    setChatLoading(true);
+    try {
+      const response = await axios.get(`/api/accounts/chat/messages/${room.id}/`, { headers: apiHeaders() });
+      setMessages(response.data);
+    } catch (requestError) {
+      console.error('Error fetching messages:', requestError);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedChatRoom) return;
+    try {
+      const response = await axios.post(
+        `/api/accounts/chat/send/${selectedChatRoom.id}/`,
+        { content: newMessage },
+        { headers: apiHeaders() }
+      );
+      setMessages((current) => [...current, response.data]);
+      setNewMessage('');
+    } catch (requestError) {
+      console.error('Error sending message:', requestError);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -197,475 +193,161 @@ function LecturerDashboard() {
     window.location.href = '/login';
   };
 
-  const goToGroupChat = (groupId) => navigate(`/groups/${groupId}/chat`);
-
-  const renderEmptyState = (title, subtitle) => (
-    <div className="flex min-h-[280px] items-center justify-center rounded-3xl border border-dashed border-[#E5DFD0] bg-[#FAF7EF] p-8 text-center">
-      <div>
-        <div className="text-lg font-semibold text-[#1A1A1A]">{title}</div>
-        <div className="mt-2 text-sm text-[#8A8374]">{subtitle}</div>
-      </div>
-    </div>
-  );
-
-  const renderOverview = () => {
-    const metrics = dashboardData.metrics || [];
-    const projectTree = dashboardData.projectTree || [];
-    const workload = dashboardData.workload || [];
-    const activityLog = dashboardData.activityLog || [];
-
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {metrics.length ? (
-            metrics.map((metric) => (
-              <div key={metric.label} className="rounded-3xl border border-[#EDE7D8] bg-white p-5 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-                <div className="text-xs font-medium text-[#9C9484]">{metric.label}</div>
-                <div className="mt-4 flex items-end justify-between gap-3">
-                  <div className="text-3xl font-bold text-[#1A1A1A]">{metric.value}</div>
-                  <span className="rounded-full bg-[#FDECC8] px-2.5 py-1 text-[10px] font-semibold text-[#92400E]">{metric.change}</span>
-                </div>
-              </div>
-            ))
-          ) : (
-            renderEmptyState('No overview metrics', 'The dashboard is ready to receive academic data from the backend.')
-          )}
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
-          <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-medium text-[#9C9484]">Task decomposition</div>
-                <h2 className="mt-1 text-xl font-bold text-[#1A1A1A]">Unit and project oversight</h2>
-              </div>
-              <button type="button" className="rounded-full bg-[#141414] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2A2A2A]">
-                + Add milestone
-              </button>
-            </div>
-
-            {projectTree.length ? (
-              <div className="space-y-4">
-                {projectTree.map((project) => (
-                  <div key={project.id} className="rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-bold text-[#1A1A1A]">{project.title}</div>
-                        <div className="text-xs text-[#9C9484]">{project.milestone}</div>
-                      </div>
-                      <span className="rounded-full bg-[#F0EDE4] px-3 py-1 text-[10px] font-semibold text-[#57534E]">Project</span>
-                    </div>
-                    <div className="space-y-2.5">
-                      {(project.tasks || []).map((task) => (
-                        <div key={task.id} className="rounded-xl border border-[#EDE7D8] bg-white p-3">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="font-semibold text-[#1A1A1A]">{task.title}</div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-[#9C9484]">{task.assignee}</span>
-                              <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-semibold text-[#2E5C8A]">{task.weight} pts</span>
-                              <span className={statusPill(task.status)}>{task.status}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              renderEmptyState('No project data yet', 'The backend will populate the project tree for your units.')
-            )}
-          </div>
-
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-              <div className="mb-1 text-xs font-medium text-[#9C9484]">Workload balance</div>
-              <h3 className="text-xl font-bold text-[#1A1A1A]">Group distribution</h3>
-              {workload.length ? (
-                <div className="mt-5 space-y-4">
-                  {workload.map((person) => (
-                    <div key={person.name}>
-                      <div className="mb-1.5 flex items-center justify-between text-sm">
-                        <span className="font-medium text-[#1A1A1A]">{person.name}</span>
-                        <span className="text-[#9C9484]">{person.value}%</span>
-                      </div>
-                      <div className="h-2.5 overflow-hidden rounded-full bg-[#F0EDE4]">
-                        <div className="h-full rounded-full" style={{ width: `${person.value}%`, backgroundColor: getProgressColor(person.value) }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-4 text-sm text-[#9C9484]">No workload data available.</div>
-              )}
-            </div>
-
-            <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-              <div className="mb-3 text-xs font-medium text-[#9C9484]">Risk signal</div>
-              <div className="rounded-2xl bg-[#FDECC8] p-4 text-sm text-[#92400E]">
-                At-risk criteria: low engagement, delayed milestones, or students carrying more than 60% of the work.
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-          <div className="mb-4 text-xs font-medium text-[#9C9484]">Activity log</div>
-          <h3 className="text-xl font-bold text-[#1A1A1A]">Chronological evidence trail</h3>
-          {activityLog.length ? (
-            <div className="mt-4 space-y-2.5">
-              {activityLog.map((entry) => (
-                <div key={`${entry.time}-${entry.event}`} className="rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-3.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-semibold text-[#1A1A1A]">{entry.event}</div>
-                    <span className="text-[10px] font-medium text-[#9C9484]">{entry.time}</span>
-                  </div>
-                  <div className="mt-1 text-sm text-[#57534E]">{entry.target}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 text-sm text-[#9C9484]">No activity history has been loaded yet.</div>
-          )}
-        </section>
+      <div className="min-h-screen bg-[#EEF3FA] dark:bg-[#0B1120] flex items-center justify-center">
+        <div className="text-center text-[#0F3D6E] dark:text-[#E8EEF9]">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#D5E3D6] border-t-[#6DB6E6]" />
+          <p className="text-sm font-medium">Loading your dashboard...</p>
+        </div>
       </div>
     );
-  };
+  }
 
-  const renderProjects = () => {
-    const projectTree = dashboardData.projectTree || [];
+  if (error) {
     return (
-      <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-medium text-[#9C9484]">Projects</div>
-            <h2 className="mt-1 text-2xl font-bold text-[#1A1A1A]">Portfolio overview</h2>
-          </div>
-          <button type="button" className="rounded-full bg-[#141414] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2A2A2A]">
-            + New project
+      <div className="min-h-screen bg-[#EEF3FA] dark:bg-[#0B1120] flex items-center justify-center p-6">
+        <div className="rounded-2xl border border-[#E3E9F2] bg-white p-8 text-center shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]">
+          <p className="mb-5 text-[#E5484D]">{error}</p>
+          <button onClick={fetchDashboardData} className="rounded-xl bg-[#0F3D6E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#174f89]">
+            Retry
           </button>
         </div>
-        {projectTree.length ? (
-          <div className="space-y-4">
-            {projectTree.map((project) => (
-              <div key={project.id} className="rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-4">
-                <div className="text-lg font-semibold text-[#1A1A1A]">{project.title}</div>
-                <div className="text-xs text-[#9C9484]">{project.milestone}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          renderEmptyState('No project records', 'Project hierarchy will appear here once your backend data is connected.')
-        )}
       </div>
     );
-  };
+  }
 
-  const renderGroups = () => (
-    <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <div className="text-xs font-medium text-[#9C9484]">Groups</div>
-          <h2 className="mt-1 text-2xl font-bold text-[#1A1A1A]">Student groups</h2>
-        </div>
-        <input
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="Search groups"
-          className="w-64 rounded-full border border-[#EDE7D8] bg-[#FAF7EF] px-4 py-2.5 text-sm text-[#1A1A1A] placeholder:text-[#9C9484] focus:border-[#141414] focus:outline-none"
-        />
-      </div>
-
-      {filteredGroups.length ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {filteredGroups.map((group) => (
-            <div key={group.id} className="rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-[#1A1A1A]">{group.name}</div>
-                  <div className="mt-0.5 text-xs text-[#9C9484]">{group.unit_code || group.unitCode || group.course || 'Unit'} · {group.members_count || group.memberCount || 0} members</div>
-                </div>
-                <span className={statusPill(group.status || 'On track')}>{group.status || 'On track'}</span>
-              </div>
-              <div className="mt-3 text-xs text-[#9C9484]">Submitted work: {group.members_count || group.memberCount || 0} active contributors</div>
-              <div className="mt-4 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => goToGroupChat(group.id)}
-                  className="rounded-full bg-[#141414] px-4 py-2 text-xs font-semibold text-white hover:bg-[#2A2A2A]"
-                >
-                  Go to chat →
-                </button>
-                <button type="button" className="rounded-full border border-[#EDE7D8] bg-white px-4 py-2 text-xs font-semibold text-[#1A1A1A] hover:bg-[#F0EDE4]">
-                  View group
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        renderEmptyState('No student groups', 'Once the group roster is available, it will show here.')
-      )}
-
-      <div className="mt-8">
-        <div className="mb-3 text-xs font-medium text-[#9C9484]">Accountability view</div>
-        {filteredMembers.length ? (
-          <div className="space-y-3">
-            {filteredMembers.map((member) => (
-              <div key={member.name} className="rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[#1A1A1A]">{member.name}</span>
-                      {member.badge && <span className="rounded-full bg-[#EAF3FF] px-2.5 py-0.5 text-[10px] font-semibold text-[#2E5C8A]">{member.badge}</span>}
-                    </div>
-                    <div className="text-xs text-[#9C9484]">{member.role}</div>
-                  </div>
-                  <span className={statusPill(member.status || 'On track')}>{member.status || 'On track'}</span>
-                </div>
-                <div className="mt-3">
-                  <div className="mb-1 flex items-center justify-between text-[11px] text-[#9C9484]">
-                    <span>Contribution</span>
-                    <span>{member.contribution || 0}%</span>
-                  </div>
-                  <div className="h-2.5 rounded-full bg-[#F0EDE4]">
-                    <div className="h-full rounded-full" style={{ width: `${member.contribution || 0}%`, backgroundColor: getProgressColor(member.contribution || 0) }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-[#9C9484]">No member data yet.</div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderSubmissions = () => {
-    const submissions = dashboardData.submissions || [];
-    return (
-      <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <div className="text-xs font-medium text-[#9C9484]">Submissions</div>
-            <h2 className="mt-1 text-2xl font-bold text-[#1A1A1A]">Review board</h2>
-          </div>
-        </div>
-        {submissions.length ? (
-          <div className="space-y-3">
-            {submissions.map((submission) => (
-              <div key={submission.id || submission.group} className="rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold text-[#1A1A1A]">{submission.group}</div>
-                  <span className={statusPill(submission.status || 'Submitted')}>{submission.status || 'Submitted'}</span>
-                </div>
-                <div className="mt-2 text-xs text-[#9C9484]">Repo: {submission.repo || 'Live backend pull'}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          renderEmptyState('No submissions', 'Submission records will appear here when the backend is connected.')
-        )}
-      </div>
-    );
-  };
-
-  const renderChatInbox = () => {
-    const groups = dashboardData.groups || [];
-    return (
-      <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-        <div className="mb-5">
-          <div className="text-xs font-medium text-[#9C9484]">Chat</div>
-          <h2 className="mt-1 text-2xl font-bold text-[#1A1A1A]">Your group chats</h2>
-          <p className="mt-1 text-sm text-[#9C9484]">Open a group to see its live chat, task updates, and comments in one feed.</p>
-        </div>
-        {groups.length ? (
-          <div className="space-y-2.5">
-            {groups.map((group) => (
-              <button
-                key={group.id}
-                type="button"
-                onClick={() => goToGroupChat(group.id)}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-4 text-left hover:bg-[#F0EDE4]"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-semibold text-[#1A1A1A]">{group.name}</div>
-                    {Number(group.unread_count || 0) > 0 && (
-                      <span className="rounded-full bg-[#E8622C] px-2 py-0.5 text-[10px] font-bold text-white">
-                        {group.unread_count}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1 text-xs text-[#9C9484]">{group.unit_code || group.unitCode || group.course || 'Unit'} · {group.members_count || group.memberCount || 0} members</div>
-                  <div className="mt-2 truncate text-xs text-[#57534E]">{group.last_message_preview || 'No messages yet'}</div>
-                </div>
-                <div className="text-right text-[10px] text-[#9C9484]">
-                  <div>{group.last_message_time ? new Date(group.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
-                  <div className="mt-1">Open →</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          renderEmptyState('No group chats yet', 'Chats appear here once groups are formed for your units.')
-        )}
-      </div>
-    );
-  };
-
-  const renderSchedule = () => {
-    const schedule = dashboardData.schedule || [];
-    return (
-      <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-        <div className="mb-5">
-          <div className="text-xs font-medium text-[#9C9484]">Schedule</div>
-          <h2 className="mt-1 text-2xl font-bold text-[#1A1A1A]">Weekly planner</h2>
-        </div>
-        {schedule.length ? (
-          <div className="grid gap-3 md:grid-cols-7">
-            {schedule.map((day) => (
-              <div key={day.day} className="rounded-2xl border border-[#EDE7D8] bg-[#FAF7EF] p-3">
-                <div className="mb-2 text-center text-xs font-semibold text-[#9C9484]">{day.day}</div>
-                <div className="space-y-2">
-                  {day.items.length ? (
-                    day.items.map((item, index) => (
-                      <div key={`${day.day}-${index}`} className="rounded-lg bg-[#FDECC8] px-2 py-1.5 text-[11px] text-[#92400E]">{item}</div>
-                    ))
-                  ) : (
-                    <div className="rounded-lg border border-dashed border-[#EDE7D8] px-2 py-3 text-center text-[10px] text-[#B8B0A0]">free</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          renderEmptyState('No schedule data', 'The weekly planner will populate from backend deadlines.')
-        )}
-      </div>
-    );
-  };
-
-  const renderProfile = () => {
-    const profile = dashboardData.profile || {};
-    return (
-      <div className="rounded-3xl border border-[#EDE7D8] bg-white p-6 shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-        <div className="mb-5 text-xs font-medium text-[#9C9484]">Profile</div>
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E8622C] text-lg font-bold text-white">
-            {formatInitials(storedUser || profile)}
-          </div>
-          <div>
-            <div className="text-xl font-bold text-[#1A1A1A]">
-              {(storedUser?.first_name || profile.first_name || 'Lecturer')} {(storedUser?.last_name || profile.last_name || 'Profile')}
-            </div>
-            <div className="text-sm text-[#9C9484]">{profile.department || storedUser?.department || 'Department not set'}</div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'overview': return renderOverview();
-      case 'projects': return renderProjects();
-      case 'groups': return renderGroups();
-      case 'submissions': return renderSubmissions();
-      case 'chat': return renderChatInbox();
-      case 'schedule': return renderSchedule();
-      case 'profile': return renderProfile();
-      default: return renderOverview();
-    }
+  const activeSection = activeTab === 'dashboard' ? 'Dashboard' : navigation.find((item) => item.id === activeTab)?.label;
+  const statValues = {
+    total_students: dashboardData?.stats?.total_students || 0,
+    total_groups: dashboardData?.stats?.total_groups || 0,
+    pending_submissions: dashboardData?.stats?.pending_submissions || 0,
+    projects: groups.reduce((total, group) => total + (group.projects?.length || 0), 0)
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F1E8] text-[#1A1A1A]" style={{ fontFamily: 'Inter, Segoe UI, sans-serif' }}>
+    <div className="min-h-screen bg-[#EEF3FA] text-[#12294A] dark:bg-[#0B1120] dark:text-[#E8EEF9]">
       <div className="flex min-h-screen">
-        <aside className="relative flex w-64 flex-col justify-between bg-[#141414] p-5 text-white">
-          <div>
-            <div className="mb-8 flex items-center gap-3 px-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E8622C] text-lg font-bold text-white">G</div>
-              <div>
-                <div className="text-lg font-bold tracking-tight">GroupHub</div>
-                <div className="text-[10px] text-[#8A8374]">Lecturer portal</div>
+        <aside className={`fixed inset-y-0 left-0 z-30 w-60 transform border-r border-[#E3E9F2] bg-white p-5 transition-transform dark:border-[#1E2940] dark:bg-[#121A2D] md:static md:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex h-full flex-col">
+            <div className="mb-10 flex items-center justify-between">
+              <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-3 text-left">
+                {/* <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0F3D6E] text-lg font-bold text-white">G</span> */}
+                <span>
+                  <span className="block text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">GroupHub</span>
+                  <span className="block text-[10px] font-semibold tracking-[0.16em] text-[#6B7A90]">LECTURER WORKSPACE</span>
+                </span>
+              </button>
+              <button onClick={() => setMobileNavOpen(false)} className="md:hidden" aria-label="Close navigation"><X size={20} /></button>
+            </div>
+
+            {['MAIN', 'WORK', 'ACCOUNT'].map((section) => (
+              <div key={section} className="mb-7">
+                <p className="mb-2 px-3 text-[10px] font-bold tracking-[0.18em] text-[#8A97AF]">{section}</p>
+                {navigation.filter((item) => item.section === section).map((item) => {
+                  const Icon = item.icon;
+                  const count = item.id === 'chat' ? unreadCounts?.total || 0 : item.id === 'submissions' ? dashboardData?.stats?.pending_submissions || 0 : 0;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
+                      className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${activeTab === item.id ? 'bg-[#E8F3FB] text-[#0F3D6E] dark:bg-[#26365a] dark:text-[#E8EEF9]' : 'text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]'}`}
+                    >
+                      <Icon size={18} strokeWidth={1.8} />
+                      <span>{item.label}</span>
+                      {count > 0 && <span className="ml-auto rounded-full bg-[#6DB6E6] px-2 py-0.5 text-[10px] text-[#0F3D6E]">{count}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+
+            <div className="mt-auto border-t border-[#E3E9F2] pt-5 dark:border-[#1E2940]">
+              <button onClick={() => setDarkMode((value) => !value)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]">
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                <span className={`ml-auto h-5 w-9 rounded-full p-0.5 ${darkMode ? 'bg-[#6B84D6]' : 'bg-[#D5E3D6]'}`}><span className={`block h-4 w-4 rounded-full bg-white transition ${darkMode ? 'translate-x-4' : ''}`} /></span>
+              </button>
+              <div className="mt-5 flex items-center gap-3 border-t border-[#E3E9F2] pt-5 dark:border-[#1E2940]">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6DB6E6] text-sm font-bold text-[#0F3D6E]">{initials}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold">{user?.first_name} {user?.last_name}</span>
+                  <span className="block text-xs capitalize text-[#6B7A90]">{user?.user_type || 'Lecturer'}</span>
+                </span>
+                <button onClick={handleLogout} aria-label="Log out" className="text-[#6B7A90] hover:text-[#E5484D]"><LogOut size={17} /></button>
               </div>
             </div>
-
-            <nav className="space-y-1.5">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex w-full items-center gap-3 rounded-full px-4 py-2.5 text-left text-sm font-medium transition ${
-                    activeTab === item.id ? 'bg-[#F5F1E8] text-[#141414]' : 'text-[#B8B0A0] hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <span className="w-5 text-center">{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2E5C8A] text-sm font-bold text-white">
-              {formatInitials(storedUser)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-white">{storedUser?.first_name || 'Lecturer'} {storedUser?.last_name || 'Profile'}</div>
-              <div className="truncate text-[10px] text-[#8A8374]">Faculty oversight</div>
-            </div>
-            <button type="button" onClick={handleLogout} className="rounded-full px-2 py-1 text-xs text-[#B8B0A0] hover:text-white">
-              Logout
-            </button>
           </div>
         </aside>
 
-        <main className="flex-1 overflow-hidden">
-          <header className="px-8 pt-8">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-medium text-[#9C9484]">GroupHub / lecturer workspace</div>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#1A1A1A]">{greeting}, {storedUser?.first_name || 'Dr.'} {storedUser?.last_name || 'Lecturer'}</h1>
-              </div>
+        {mobileNavOpen && <button className="fixed inset-0 z-20 bg-[#12294A]/30 md:hidden" onClick={() => setMobileNavOpen(false)} aria-label="Close menu overlay" />}
 
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#9C9484]">⌕</span>
-                  <input
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search groups or members"
-                    className="w-72 rounded-full border border-[#EDE7D8] bg-white py-3 pl-10 pr-4 text-sm text-[#1A1A1A] placeholder:text-[#9C9484] focus:border-[#141414] focus:outline-none"
-                  />
-                </div>
-                <button type="button" className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#EDE7D8] bg-white text-[#1A1A1A]">
-                  🔔
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#E8622C] text-[10px] font-bold text-white">3</span>
-                </button>
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#141414] text-sm font-bold text-white">
-                  {formatInitials(storedUser)}
-                </div>
+        <div className="min-w-0 flex-1">
+          <header className="sticky top-0 z-10 border-b border-[#E3E9F2] bg-white/95 px-5 py-4 backdrop-blur dark:border-[#1E2940] dark:bg-[#121A2D]/95 lg:px-8">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setMobileNavOpen(true)} className="md:hidden" aria-label="Open navigation"><Menu size={22} /></button>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-[#6B7A90]">Lecturer Workspace</p>
+                <h1 className="truncate text-xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{activeSection}</h1>
               </div>
+              {activeTab === 'dashboard' && (
+                <div className="relative hidden w-64 md:block">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A97AF]" size={17} />
+                  <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search groups..." className="w-full rounded-xl border border-[#E3E9F2] bg-[#EEF3FA] py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[#6DB6E6] dark:border-[#1E2940] dark:bg-[#0B1120]" />
+                </div>
+              )}
+              <button className="relative rounded-xl p-2 text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]" aria-label="Notifications"><Bell size={19} /><span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#E5484D]" /></button>
+              <button onClick={() => setDarkMode((value) => !value)} className="rounded-xl p-2 text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]" aria-label="Toggle dark mode">{darkMode ? <Sun size={19} /> : <Moon size={19} />}</button>
+              <span className="hidden h-9 w-9 items-center justify-center rounded-full bg-[#6DB6E6] text-sm font-bold text-[#0F3D6E] sm:flex">{initials}</span>
             </div>
           </header>
 
-          <div className="p-8">
-            {loading ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-3xl border border-[#EDE7D8] bg-white p-6 text-sm text-[#9C9484] shadow-[0_2px_12px_rgba(20,20,20,0.05)]">
-                Loading lecturer dashboard...
-              </div>
-            ) : (
-              renderTabContent()
+          <main className="mx-auto max-w-[1500px] p-5 lg:p-8">
+            {activeTab === 'dashboard' && (
+              <>
+                <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+                  <div><p className="text-sm text-[#6B7A90]">Welcome back, {firstName}</p><h2 className="mt-1 text-2xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Lecturer Dashboard</h2></div>
+                  <button onClick={() => setActiveTab('groups')} className="flex items-center gap-2 rounded-xl bg-[#0F3D6E] px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#174f89]"><BookOpen size={17} /> Manage units</button>
+                </div>
+
+                <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                  {statCards.map((card) => {
+                    const Icon = card.icon;
+                    const value = card.value ?? statValues[card.key];
+                    return <div key={card.label} className={`rounded-2xl border border-white/70 p-5 shadow-sm dark:border-[#1E2940] ${toneStyles[card.tone]}`}><div className="mb-5 flex items-start justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/80 bg-white/70 text-[#0F3D6E] dark:border-[#384663] dark:bg-[#121A2D] dark:text-[#9ccdf0]"><Icon size={18} /></span><span className="text-2xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{value}</span></div><p className="text-sm font-semibold text-[#12294A] dark:text-[#E8EEF9]">{card.label}</p><p className="mt-1 text-xs text-[#6B7A90]">From your current groups</p></div>;
+                  })}
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.8fr)]">
+                  <section className="rounded-2xl border border-[#E3E9F2] bg-white p-5 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]">
+                    <div className="mb-6 flex items-center justify-between"><div><h3 className="text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Assessment Completion</h3><p className="mt-1 text-xs text-[#6B7A90]">Activity across your units</p></div><select className="rounded-lg border border-[#E3E9F2] bg-[#EEF3FA] px-2 py-1.5 text-xs text-[#6B7A90] outline-none dark:border-[#1E2940] dark:bg-[#0B1120]"><option>Current term</option></select></div>
+                    <div className="flex h-56 items-end gap-3 border-b border-[#E3E9F2] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_54px,#E3E9F2_55px)] px-2 pt-5 dark:border-[#1E2940] dark:bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_54px,#1E2940_55px)]">
+                      {(groups.length ? groups : [{ name: 'No units' }]).slice(0, 6).map((group, index) => { const submitted = group.projects?.length ? 55 + (index * 7) % 35 : 12; const pending = Math.max(12, 100 - submitted); return <div key={group.id || group.name} className="flex min-w-0 flex-1 items-end justify-center gap-1">{<div className="w-3 rounded-t-md bg-[#6DB6E6]" style={{ height: `${submitted}%` }} />}{<div className="w-3 rounded-t-md bg-[#D5E3D6]" style={{ height: `${pending}%` }} />}</div>; })}
+                    </div>
+                    <div className="mt-4 flex justify-center gap-5 text-xs text-[#6B7A90]"><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#6DB6E6]" />Submitted</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#D5E3D6]" />Pending</span></div>
+                  </section>
+
+                  <section className="rounded-2xl border border-[#E3E9F2] bg-white p-5 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]"><h3 className="mb-4 text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Quick Actions</h3><div className="space-y-3">{[['submissions', 'Review Pending Grades', ClipboardList], ['chat', 'Manage Students', Users], ['groups', 'Create Assessment', CheckSquare]].map(([tab, label, ActionIcon]) => <button key={label} onClick={() => setActiveTab(tab)} className="flex w-full items-center gap-3 rounded-xl bg-[#E8F3FB] px-3 py-3 text-left text-sm font-semibold text-[#0F3D6E] transition hover:bg-[#d7ebf8] dark:bg-[#1d3049] dark:text-[#E8EEF9]">{React.createElement(ActionIcon, { size: 17 })}<span>{label}</span><ChevronRight className="ml-auto" size={16} /></button>)}</div></section>
+                </div>
+
+                <section className="mt-6 rounded-2xl border border-[#E3E9F2] bg-white p-5 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]"><div className="mb-5 flex items-center justify-between"><div><h3 className="text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Your Units</h3><p className="mt-1 text-xs text-[#6B7A90]">Groups and projects under your supervision</p></div><button onClick={() => setActiveTab('groups')} className="text-sm font-bold text-[#0F3D6E] dark:text-[#9ccdf0]">View all</button></div>{filteredGroups.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredGroups.map((group) => <div key={group.id} className="rounded-xl border border-[#E3E9F2] bg-[#E8F3FB]/60 p-4 dark:border-[#1E2940] dark:bg-[#182943]"><div className="mb-5 flex items-start justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b9dced] bg-white text-[#0F3D6E] dark:bg-[#121A2D] dark:text-[#9ccdf0]"><BookOpen size={17} /></span><span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold text-[#6B7A90] dark:bg-[#121A2D]">{group.projects?.length || 0} projects</span></div><h4 className="font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{group.name}</h4><p className="mt-1 text-xs text-[#6B7A90]">{group.course} · Year {group.year_of_study}</p><div className="mt-5 flex gap-4 text-xs text-[#6B7A90]"><span className="flex items-center gap-1"><Users size={14} />{group.members_count || 0} students</span><span className="flex items-center gap-1"><ClipboardList size={14} />{group.projects?.length || 0} assessments</span></div></div>)}</div> : <p className="rounded-xl bg-[#EEF3FA] p-6 text-center text-sm text-[#6B7A90] dark:bg-[#0B1120]">No units match your search.</p>}</section>
+              </>
             )}
-          </div>
-        </main>
+
+            {activeTab === 'groups' && <Panel title="My Units" description="Manage the groups and projects assigned to you." content={<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredGroups.map((group) => <UnitSummary key={group.id} group={group} />)}</div>} />}
+            {activeTab === 'progress' && <Panel title="Analytics" description="Track assessment activity across your units." content={<div className="rounded-xl bg-[#E8F3FB] p-6 text-sm text-[#6B7A90] dark:bg-[#182943]">Analytics will appear here as assessment data is recorded.</div>} />}
+            {activeTab === 'submissions' && <Panel title="Assessments" description="Review recent student submissions." content={filteredSubmissions.length ? <div className="space-y-3">{filteredSubmissions.map((submission) => <div key={submission.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940]"><div><p className="font-bold">{submission.project_title}</p><p className="text-xs text-[#6B7A90]">Submitted by {submission.submitted_by}</p></div><span className="rounded-full bg-[#E6F5EC] px-3 py-1 text-xs font-bold capitalize text-[#22A06B]">{submission.status}</span></div>)}</div> : <EmptyState text="No submissions yet." />} />}
+            {activeTab === 'settings' && <Panel title="Settings" description="Manage your portal preferences." content={<button onClick={() => setDarkMode((value) => !value)} className="flex items-center gap-3 rounded-xl bg-[#EEF3FA] px-4 py-3 text-sm font-semibold dark:bg-[#0B1120]">{darkMode ? <Sun size={18} /> : <Moon size={18} />} Switch to {darkMode ? 'light' : 'dark'} mode</button>} />}
+            {activeTab === 'chat' && <Panel title="Students" description="Open a conversation with your groups." content={<div className="grid gap-4 lg:grid-cols-[280px_1fr]">{<div className="space-y-2">{chatRooms.length ? chatRooms.map((room) => <button key={room.id} onClick={() => selectChatRoom(room)} className={`w-full rounded-xl p-3 text-left text-sm ${selectedChatRoom?.id === room.id ? 'bg-[#E8F3FB] text-[#0F3D6E]' : 'bg-[#EEF3FA] dark:bg-[#0B1120]'}`}>{room.name || `Chat room ${room.id}`}</button>) : <EmptyState text="No chat rooms available." />}</div>}{<div className="min-h-64 rounded-xl bg-[#EEF3FA] p-4 dark:bg-[#0B1120]">{selectedChatRoom ? <><div className="mb-4 space-y-2">{chatLoading ? <p className="text-sm text-[#6B7A90]">Loading messages...</p> : messages.map((message, index) => <p key={message.id || index} className="rounded-lg bg-white p-2 text-sm dark:bg-[#121A2D]">{message.content}</p>)}</div><div className="flex gap-2"><input value={newMessage} onChange={(event) => setNewMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && sendMessage()} className="min-w-0 flex-1 rounded-xl border border-[#E3E9F2] bg-white px-3 py-2 text-sm dark:border-[#1E2940] dark:bg-[#121A2D]" placeholder="Write a message..." /><button onClick={sendMessage} className="rounded-xl bg-[#0F3D6E] px-4 text-sm font-bold text-white">Send</button></div></> : <p className="text-sm text-[#6B7A90]">Select a chat room to view messages.</p>}</div>}</div>} />}
+          </main>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+const Panel = ({ title, description, content }) => <section className="rounded-2xl border border-[#E3E9F2] bg-white p-6 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]"><h2 className="text-xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{title}</h2><p className="mb-6 mt-1 text-sm text-[#6B7A90]">{description}</p>{content}</section>;
+const UnitSummary = ({ group }) => <div className="rounded-xl border border-[#E3E9F2] bg-[#E8F3FB]/60 p-4 dark:border-[#1E2940] dark:bg-[#182943]"><BookOpen size={20} className="mb-4 text-[#0F3D6E] dark:text-[#9ccdf0]" /><h3 className="font-bold">{group.name}</h3><p className="mt-1 text-sm text-[#6B7A90]">{group.course} · Year {group.year_of_study}</p><p className="mt-4 text-xs text-[#6B7A90]">{group.members_count || 0} students · {group.projects?.length || 0} projects</p></div>;
+const EmptyState = ({ text }) => <p className="rounded-xl bg-[#EEF3FA] p-6 text-center text-sm text-[#6B7A90] dark:bg-[#0B1120]">{text}</p>;
 
 export default LecturerDashboard;
