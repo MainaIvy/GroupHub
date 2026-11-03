@@ -12,7 +12,6 @@ db.sqlite3
 
 # Logs
 logs/*.log
-**/logs/*.log
 
 # Frontend build and dependencies
 frontend/node_modules/

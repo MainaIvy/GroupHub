@@ -10,7 +10,6 @@ import About from './components/About';
 import Contact from './components/Contact';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
-import AdminDashboard from './components/AdminDashboard';
 
 
 function App() {
@@ -33,11 +32,11 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
 
