@@ -113,6 +113,9 @@ const Login = () => {
     setIsLoading(true);
     setError('');
     setValidationError('');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
 
     const emailTrimmed = (formData.email || '').trim();
     const passwordTrimmed = formData.password || '';
@@ -371,4 +374,3 @@ const Login = () => {
 };
 
 export default Login;
-

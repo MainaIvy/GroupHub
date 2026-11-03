@@ -67,6 +67,11 @@ const SignUp = () => {
     const lecturerDepartment = (formData.department || '').trim();
     const lecturerCoursesTaught = (formData.coursesTaught || '').trim();
 
+    if (accountType === 'lecturer' && !/^[A-Za-z]{2}\d{4}$/.test(lecturerStaffId)) {
+      alert('Staff ID must be in the format XX1234 (for example, AB1234).');
+      return;
+    }
+
     const signupData = {
       // Django User/serializer typical fields
       // Backend signup_view requires these keys: email, password, user_type
@@ -117,7 +122,7 @@ const SignUp = () => {
     }
 
     try {
-      const response = await fetch('/api/signup/', {
+      const response = await fetch('/api/accounts/signup/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupData)
@@ -425,6 +430,9 @@ const SignUp = () => {
                     name="staffId"
                     type="text"
                     required
+                    pattern="[A-Za-z]{2}[0-9]{4}"
+                    maxLength={6}
+                    title="Enter two letters followed by four digits, for example AB1234."
                     className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                     placeholder="Staff ID (e.g., AB1234)"
                     value={formData.staffId}
@@ -553,4 +561,3 @@ const SignUp = () => {
 };
 
 export default SignUp;
-
