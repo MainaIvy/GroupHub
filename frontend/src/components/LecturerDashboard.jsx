@@ -30,7 +30,7 @@ const navigation = [
 
 const statCards = [
   { label: 'Total Students', key: 'total_students', icon: Users, tone: 'blue' },
-  { label: 'Active Units', key: 'total_groups', icon: BookOpen, tone: 'pink' },
+  { label: 'Teaching Units', key: 'total_units', icon: BookOpen, tone: 'pink' },
   { label: 'Pending to Grade', key: 'pending_submissions', icon: CheckSquare, tone: 'yellow' },
   { label: 'Assessments Created', key: 'projects', icon: ClipboardList, tone: 'green' },
   { label: 'Avg. Class Performance', value: '—', icon: BarChart3, tone: 'lavender' }
@@ -50,7 +50,7 @@ const LecturerDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('groups');
   const [searchQuery, setSearchQuery] = useState('');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -64,6 +64,7 @@ const LecturerDashboard = () => {
 
   const user = dashboardData?.user;
   const groups = useMemo(() => dashboardData?.groups || [], [dashboardData]);
+  const units = useMemo(() => dashboardData?.units || [], [dashboardData]);
   const submissions = useMemo(() => dashboardData?.recent_submissions || [], [dashboardData]);
   const firstName = user?.first_name || 'Lecturer';
   const initials = `${user?.first_name?.[0] || 'U'}${user?.last_name?.[0] || ''}`;
@@ -186,6 +187,22 @@ const LecturerDashboard = () => {
     }
   };
 
+  const messageStudent = async (student) => {
+    try {
+      const response = await axios.post(
+        '/api/accounts/chat/direct/',
+        { user_id: student.id },
+        { headers: apiHeaders() }
+      );
+      await fetchChatRooms();
+      setSelectedChatRoom(response.data);
+      setActiveTab('chat');
+      setMessages([]);
+    } catch (requestError) {
+      setError(requestError?.response?.data?.error || 'Unable to start a conversation.');
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -220,7 +237,7 @@ const LecturerDashboard = () => {
   const activeSection = activeTab === 'dashboard' ? 'Dashboard' : navigation.find((item) => item.id === activeTab)?.label;
   const statValues = {
     total_students: dashboardData?.stats?.total_students || 0,
-    total_groups: dashboardData?.stats?.total_groups || 0,
+    total_units: dashboardData?.stats?.total_units || units.length,
     pending_submissions: dashboardData?.stats?.pending_submissions || 0,
     projects: groups.reduce((total, group) => total + (group.projects?.length || 0), 0)
   };
@@ -334,7 +351,7 @@ const LecturerDashboard = () => {
               </>
             )}
 
-            {activeTab === 'groups' && <Panel title="My Units" description="Manage the groups and projects assigned to you." content={<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredGroups.map((group) => <UnitSummary key={group.id} group={group} />)}</div>} />}
+            {activeTab === 'groups' && <Panel title="My Units" description="Students registered for the units you teach, with their groups and contact links." content={<div className="space-y-5">{units.length ? units.map((unit) => <section key={unit.id} className="rounded-2xl border border-[#E3E9F2] p-5 dark:border-[#1E2940]"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{unit.code} · {unit.name}</h3><p className="mt-1 text-xs text-[#6B7A90]">{unit.course_code} · Year {unit.year_of_study}, Semester {unit.semester}</p></div><div className="flex gap-2 text-xs font-semibold"><span className="rounded-full bg-[#E8EFFB] px-3 py-1 text-[#0F3D6E]">{unit.student_count} students</span><span className="rounded-full bg-[#E6F5EC] px-3 py-1 text-[#22764F]">{unit.group_count} groups</span></div></div>{unit.students?.length ? <div className="grid gap-2 md:grid-cols-2">{unit.students.map((student) => <div key={student.id} className="flex items-center justify-between gap-3 rounded-xl bg-[#EEF3FA] px-3 py-2.5 dark:bg-[#0B1120]"><div className="min-w-0"><p className="truncate text-sm font-semibold">{student.name}</p><p className="truncate text-xs text-[#6B7A90]">{student.email}</p></div><button onClick={() => messageStudent(student)} className="shrink-0 rounded-lg bg-[#0F3D6E] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#174f89]">Message</button></div>)}</div> : <p className="text-sm text-[#6B7A90]">No registered students for this unit yet.</p>}</section>) : <EmptyState text="No teaching units have been assigned yet." />}</div>} />}
             {activeTab === 'progress' && <Panel title="Analytics" description="Track assessment activity across your units." content={<div className="rounded-xl bg-[#E8F3FB] p-6 text-sm text-[#6B7A90] dark:bg-[#182943]">Analytics will appear here as assessment data is recorded.</div>} />}
             {activeTab === 'submissions' && <Panel title="Assessments" description="Review recent student submissions." content={filteredSubmissions.length ? <div className="space-y-3">{filteredSubmissions.map((submission) => <div key={submission.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940]"><div><p className="font-bold">{submission.project_title}</p><p className="text-xs text-[#6B7A90]">Submitted by {submission.submitted_by}</p></div><span className="rounded-full bg-[#E6F5EC] px-3 py-1 text-xs font-bold capitalize text-[#22A06B]">{submission.status}</span></div>)}</div> : <EmptyState text="No submissions yet." />} />}
             {activeTab === 'settings' && <Panel title="Settings" description="Manage your portal preferences." content={<button onClick={() => setDarkMode((value) => !value)} className="flex items-center gap-3 rounded-xl bg-[#EEF3FA] px-4 py-3 text-sm font-semibold dark:bg-[#0B1120]">{darkMode ? <Sun size={18} /> : <Moon size={18} />} Switch to {darkMode ? 'light' : 'dark'} mode</button>} />}

@@ -18,6 +18,8 @@ from dotenv import load_dotenv; load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # Add the project root to the Python path
 sys.path.insert(0, str(BASE_DIR))
@@ -194,7 +196,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
+            'filename': LOG_DIR / 'django.log',
             'formatter': 'verbose',
         },
         'console': {
@@ -258,5 +260,4 @@ SIMPLE_JWT_SERIALIZER = 'accounts.jwt.EmailTokenObtainPairSerializer'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
-
 

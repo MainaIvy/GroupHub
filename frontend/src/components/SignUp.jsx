@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/images/groubhub logo.svg';
 
@@ -21,9 +21,67 @@ const SignUp = () => {
     department: '',
     coursesTaught: '',
     salutation: '',
+    unitIds: [],
 
     agreeToTerms: false
   });
+
+  const [academicCourses, setAcademicCourses] = useState([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
+  const [unitsError, setUnitsError] = useState('');
+  const [unitFilters, setUnitFilters] = useState({ courseId: '', year: '', semester: '' });
+
+  useEffect(() => {
+    if (accountType !== 'lecturer') return undefined;
+    let cancelled = false;
+    setUnitsLoading(true);
+    setUnitsError('');
+    fetch('/api/accounts/academic/courses/')
+      .then((response) => {
+        if (!response.ok) throw new Error('Unable to load units.');
+        return response.json();
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setAcademicCourses(data.courses || []);
+          setUnitFilters({ courseId: '', year: '', semester: '' });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setUnitsError('Units could not be loaded. Please refresh and try again.');
+      })
+      .finally(() => {
+        if (!cancelled) setUnitsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [accountType]);
+
+  const availableUnits = useMemo(
+    () => academicCourses.flatMap((course) => (course.units || []).map((unit) => ({
+      ...unit,
+      courseId: course.id,
+      courseCode: course.code,
+      courseName: course.name
+    }))).filter((unit) => !unit.assigned_lecturer_id),
+    [academicCourses]
+  );
+
+  const selectedCourse = academicCourses.find((course) => String(course.id) === unitFilters.courseId);
+  const availableYears = useMemo(
+    () => [...new Set((selectedCourse?.units || []).map((unit) => String(unit.year_of_study)))].sort(),
+    [selectedCourse]
+  );
+  const availableSemesters = useMemo(
+    () => [...new Set((selectedCourse?.units || [])
+      .filter((unit) => !unitFilters.year || String(unit.year_of_study) === unitFilters.year)
+      .map((unit) => String(unit.semester)))].sort(),
+    [selectedCourse, unitFilters.year]
+  );
+  const filteredUnits = availableUnits.filter((unit) => (
+    (!unitFilters.courseId || String(unit.courseId) === unitFilters.courseId)
+    && (!unitFilters.year || String(unit.year_of_study) === unitFilters.year)
+    && (!unitFilters.semester || String(unit.semester) === unitFilters.semester)
+  ));
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -71,6 +129,10 @@ const SignUp = () => {
       alert('Staff ID must be in the format XX1234 (for example, AB1234).');
       return;
     }
+    if (accountType === 'lecturer' && formData.unitIds.length === 0) {
+      alert('Select at least one unit you teach.');
+      return;
+    }
 
     const signupData = {
       // Django User/serializer typical fields
@@ -82,6 +144,7 @@ const SignUp = () => {
       username: normalizedEmail,
 
       password: normalizedPassword,
+      confirmPassword: normalizedPassword,
 
       // Backend expects camelCase keys
       fullName: normalizedFullName,
@@ -119,6 +182,7 @@ const SignUp = () => {
       signupData.staff_id = lecturerStaffId;
       signupData.courses_taught = lecturerCoursesTaught;
       signupData.salutation_snake_case = signupData.salutation;
+      signupData.unit_ids = formData.unitIds;
     }
 
     try {
@@ -486,6 +550,69 @@ const SignUp = () => {
                     value={formData.coursesTaught}
                     onChange={handleChange}
                   />
+                </div>
+
+                <div className="rounded-md border border-gray-300 bg-white p-3">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-700">Units you teach</p>
+                    <span className="text-xs text-gray-500">{formData.unitIds.length} selected</span>
+                  </div>
+                  {unitsLoading && <p className="text-sm text-gray-500">Loading available units...</p>}
+                  {unitsError && <p className="text-sm text-red-600">{unitsError}</p>}
+                  {!unitsLoading && !unitsError && availableUnits.length === 0 && (
+                    <p className="text-sm text-gray-500">No unassigned units are available yet.</p>
+                  )}
+                  {!unitsLoading && !unitsError && availableUnits.length > 0 && (
+                    <div className="mb-3 grid gap-2 sm:grid-cols-3">
+                      <select
+                        value={unitFilters.courseId}
+                        onChange={(event) => setUnitFilters({ courseId: event.target.value, year: '', semester: '' })}
+                        className="rounded border border-gray-300 px-2 py-2 text-sm text-gray-700"
+                      >
+                        <option value="">All programmes</option>
+                        {academicCourses.map((course) => <option key={course.id} value={course.id}>{course.code} — {course.name}</option>)}
+                      </select>
+                      <select
+                        value={unitFilters.year}
+                        onChange={(event) => setUnitFilters((current) => ({ ...current, year: event.target.value, semester: '' }))}
+                        disabled={!unitFilters.courseId}
+                        className="rounded border border-gray-300 px-2 py-2 text-sm text-gray-700 disabled:bg-gray-100"
+                      >
+                        <option value="">All years</option>
+                        {availableYears.map((year) => <option key={year} value={year}>Year {year}</option>)}
+                      </select>
+                      <select
+                        value={unitFilters.semester}
+                        onChange={(event) => setUnitFilters((current) => ({ ...current, semester: event.target.value }))}
+                        disabled={!unitFilters.courseId}
+                        className="rounded border border-gray-300 px-2 py-2 text-sm text-gray-700 disabled:bg-gray-100"
+                      >
+                        <option value="">All semesters</option>
+                        {availableSemesters.map((semester) => <option key={semester} value={semester}>Semester {semester}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div className="grid max-h-48 gap-2 overflow-y-auto sm:grid-cols-2">
+                    {filteredUnits.map((unit) => (
+                      <label key={unit.id} className="flex cursor-pointer items-start gap-2 rounded border border-gray-200 p-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={formData.unitIds.includes(unit.id)}
+                          onChange={(event) => setFormData((current) => ({
+                            ...current,
+                            unitIds: event.target.checked
+                              ? [...current.unitIds, unit.id]
+                              : current.unitIds.filter((id) => id !== unit.id)
+                          }))}
+                          className="mt-0.5"
+                        />
+                        <span><strong>{unit.code}</strong> — {unit.name}<span className="block text-xs text-gray-500">{unit.courseCode}, Year {unit.year_of_study}, Semester {unit.semester}</span></span>
+                      </label>
+                    ))}
+                  </div>
+                  {!unitsLoading && !unitsError && availableUnits.length > 0 && filteredUnits.length === 0 && (
+                    <p className="mt-2 text-sm text-gray-500">No available units match these filters.</p>
+                  )}
                 </div>
 
                 <div>

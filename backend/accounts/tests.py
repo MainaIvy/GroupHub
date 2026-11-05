@@ -14,6 +14,75 @@ from accounts.models import ChatRoom, Course, Group, GroupMembership, Message, N
 
 
 class LecturerClaimFlowTests(TestCase):
+    def test_lecturer_signup_assigns_selected_units(self):
+        course = Course.objects.create(code='BIS', name='BSc Information Systems', department='Computing')
+        unit = Unit.objects.create(course=course, code='BIS 101', name='Information Systems')
+
+        response = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'lecturer',
+            'fullName': 'Unit Lecturer',
+            'email': 'unit-lecturer@zetech.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'department': 'Computing',
+            'staffId': 'IS1234',
+            'unit_ids': [unit.id],
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201, response.json())
+        lecturer = User.objects.get(email='unit-lecturer@zetech.ac.ke')
+        unit.refresh_from_db()
+        self.assertEqual(unit.assigned_lecturer_id, lecturer.id)
+
+    def test_lecturer_dashboard_only_lists_students_registered_in_taught_units(self):
+        course = Course.objects.create(code='BIS', name='BSc Information Systems', department='Computing')
+        semester = Semester.objects.create(name='Year 1 Semester 1', year=1, semester=1)
+        unit = Unit.objects.create(
+            course=course,
+            code='BIS 101',
+            name='Information Systems',
+            year_of_study=1,
+            semester=1,
+        )
+        lecturer = User.objects.create_user(
+            username='roster-lecturer',
+            email='roster-lecturer@zetech.ac.ke',
+            password='secret123',
+            user_type='lecturer',
+            staff_id='IS1234',
+        )
+        registered = User.objects.create_user(
+            username='registered-student',
+            email='registered-student@zetech.ac.ke',
+            password='secret123',
+            user_type='student',
+            course=course.name,
+            year_of_study='1',
+            semester=1,
+        )
+        unrelated = User.objects.create_user(
+            username='unrelated-student',
+            email='unrelated-student@zetech.ac.ke',
+            password='secret123',
+            user_type='student',
+        )
+        unit.assigned_lecturer = lecturer
+        unit.save()
+        StudentEnrollment.objects.create(student=registered, unit=unit, semester=semester)
+
+        client = APIClient()
+        client.force_authenticate(user=lecturer)
+        response = client.get('/api/accounts/dashboard/lecturer/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['stats']['total_students'], 1)
+        self.assertEqual(response.json()['stats']['total_units'], 1)
+        self.assertEqual(response.json()['units'][0]['students'][0]['id'], registered.id)
+        self.assertNotIn(unrelated.id, [student['id'] for student in response.json()['units'][0]['students']])
+
+        chat_response = client.post('/api/accounts/chat/direct/', {'user_id': registered.id}, format='json')
+        self.assertEqual(chat_response.status_code, 200)
+
     def test_lecturer_can_claim_and_release_unit(self):
         course = Course.objects.create(code='BCS', name='BSc Computer Science', department='Computing')
         unit = Unit.objects.create(course=course, code='BCU 112', name='Digital Literacy', year_of_study=1, semester=1)
@@ -313,8 +382,8 @@ class LoginEndpointTests(TestCase):
             'username': 'ct101@zetech.ac.ke',
             'password': 'StrongPass123',
         }, format='json')
-        self.assertEqual(email_login.status_code, 400, email_login.json())
-        self.assertIn('not your email', str(email_login.json()).lower())
+        self.assertEqual(email_login.status_code, 200, email_login.json())
+        self.assertEqual(email_login.json()['user']['username'], user.username)
 
         account_id_login = APIClient().post('/api/accounts/login/', {
             'username': 'CT101',
