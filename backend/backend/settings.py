@@ -32,11 +32,17 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.0.198', 'localhost', '127.0.0.1', '*']
+# ALLOWED_HOSTS = ['192.168.0.198', 'localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['192.168.0.61', 'localhost', '127.0.0.1', '*']
+
+# Allowed email domains for user registration (comma-separated in .env, e.g. zetech.ac.ke,university.edu)
+ALLOWED_EMAIL_DOMAINS = [d.strip() for d in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'zetech.ac.ke').split(',')]
+
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # must be first so runserver speaks ASGI and accepts WebSockets
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -87,6 +93,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # ASGI application for WebSocket support
 ASGI_APPLICATION = 'backend.asgi.application'
 
+# In-memory layer works for one dev process; use channels_redis when running several workers.
+CHANNEL_LAYERS = {
+    'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+}
+
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -136,6 +147,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

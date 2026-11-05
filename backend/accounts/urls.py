@@ -1,7 +1,14 @@
-from django.urls import path
-from . import views
+﻿from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
+from . import academic_views, group_access_views, planning_views, poll_views, units_views, views, work_views
 
 urlpatterns = [
+    # Academic / units
+    path('academic/courses/', academic_views.academic_courses_view, name='academic_courses'),
+    path('student/current-units/', units_views.get_current_semester_units, name='current_semester_units'),
+    path('units/<int:unit_id>/classmates/', group_access_views.unit_classmates, name='unit_classmates'),
+    path('units/<int:unit_id>/groups/', group_access_views.unit_open_groups, name='unit_open_groups'),
+
     # Auth/session endpoints
     path('signup/', views.signup_view, name='signup'),
 
@@ -17,33 +24,82 @@ urlpatterns = [
     path('admin/users/', views.AdminUsersView.as_view(), name='admin_users'),
     path('admin/users/<int:user_id>/<str:action>/', views.AdminUserStatusView.as_view(), name='admin_user_status'),
 
+    # Admin user management
+    path('admin/users/', views.AdminUsersView.as_view(), name='admin_users'),
+    path('admin/users/<int:user_id>/<str:action>/', views.AdminUserStatusView.as_view(), name='admin_user_status'),
+
     # JWT endpoints (frontend expects this at /api/accounts/jwt/login/)
     path('jwt/login/', views.LoginView.as_view(), name='api_jwt_login'),
+    path('jwt/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
+    # Student account settings
+    path('profile/settings/', views.student_settings, name='student_settings'),
+    path('profile/change-password/', views.change_student_password, name='change_student_password'),
+    path('profile/avatar/', work_views.profile_avatar, name='profile_avatar'),
 
     # Dashboards
     path('dashboard/student/', views.student_dashboard, name='student_dashboard'),
     path('dashboard/lecturer/', views.lecturer_dashboard, name='lecturer_dashboard'),
+    path('student/workload-summary/', views.student_workload_summary, name='student_workload_summary'),
 
 
     # Chat
     path('chat/rooms/', views.get_chat_rooms, name='get_chat_rooms'),
+    path('chat/contacts/', views.get_chat_contacts, name='get_chat_contacts'),
     path('chat/messages/<int:room_id>/', views.get_messages, name='get_messages'),
+    path('chat/messages/<int:message_id>/attachment/', views.download_message_attachment, name='download_message_attachment'),
     path('chat/send/<int:room_id>/', views.send_message, name='send_message'),
     path('chat/direct/', views.get_or_create_direct_chat, name='get_or_create_direct_chat'),
+    path('chat/rooms/<int:room_id>/', views.delete_chat_room, name='delete_chat_room'),
     path('chat/unread-counts/', views.get_unread_message_counts, name='get_unread_message_counts'),
     path('chat/<int:room_id>/mark-read/', views.mark_room_notifications_read, name='mark_room_notifications_read'),
 
     # Tasks / Groups
     path('groups/<int:group_id>/tasks/', views.get_group_tasks, name='get_group_tasks'),
+    # Restoring the required routes for the student Tasks UI
+    path('groups/<int:group_id>/workspace/', views.get_group_task_workspace, name='get_group_task_workspace'),
+    path('groups/<int:group_id>/activity/', views.get_group_activity, name='get_group_activity'),
+    path('groups/<int:group_id>/comments/', views.get_group_comments, name='get_group_comments'),
+    path('groups/<int:group_id>/submissions/', views.group_submissions, name='group_submissions'),
+    path('groups/<int:group_id>/balance/', views.get_group_balance, name='get_group_balance'),
+    path('groups/<int:group_id>/tasks/assign/', views.assign_group_task, name='assign_group_task'),
+    path('groups/<int:group_id>/tasks/<int:task_id>/reassign/', views.reassign_group_task, name='reassign_group_task'),
     path('groups/<int:group_id>/create-task/', views.create_task, name='create_task'),
+    path('groups/<int:group_id>/tasks/<int:task_id>/weight/', planning_views.change_task_weight, name='change_task_weight'),
+    path('groups/<int:group_id>/tasks/<int:task_id>/confirm-weight/', planning_views.confirm_task_weight, name='confirm_task_weight'),
+    path('groups/<int:group_id>/tasks/<int:task_id>/approve/', planning_views.approve_task, name='approve_task'),
+    path('groups/<int:group_id>/tasks/<int:task_id>/claim/', planning_views.claim_task, name='claim_task'),
+    path('groups/<int:group_id>/tasks/propose/', planning_views.propose_task, name='propose_task'),
+    path('groups/<int:group_id>/projects/', planning_views.group_projects, name='group_projects'),
     path('tasks/<int:task_id>/update-progress/', views.update_task_progress, name='update_task_progress'),
     path('tasks/<int:task_id>/update-status/', views.update_task_status, name='update_task_status'),
+    path('groups/<int:group_id>/polls/', poll_views.group_polls, name='group_polls'),
+    path('polls/<int:poll_id>/', poll_views.poll_results, name='poll_results'),
+    path('polls/<int:poll_id>/vote/', poll_views.vote_on_poll, name='vote_on_poll'),
+    path('polls/<int:poll_id>/options/', poll_views.add_poll_option, name='add_poll_option'),
+    path('polls/<int:poll_id>/close/', poll_views.close_poll, name='close_poll'),
+    path('polls/<int:poll_id>/winner/', poll_views.pick_poll_winner, name='pick_poll_winner'),
+    path('groups/<int:group_id>/tasks/<int:task_id>/work/', work_views.add_work_item, name='add_task_work_item'),
+    path('groups/<int:group_id>/tasks/<int:task_id>/work/<int:item_id>/', work_views.delete_work_item, name='delete_task_work_item'),
+    path('groups/<int:group_id>/work/', work_views.group_work_items, name='group_work_items'),
+    path('work-items/<int:item_id>/file/', work_views.work_item_file, name='work_item_file'),
+    path('submissions/attachments/<int:attachment_id>/', work_views.submission_file, name='submission_file'),
     path('notifications/', views.get_notifications, name='get_notifications'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('groups/<int:group_id>/members/', views.get_group_members, name='get_group_members'),
     path('students/', views.get_students_for_lecturer, name='get_students_for_lecturer'),
     path('groups/create/', views.create_group_view, name='create_group'),
     path('groups/<int:group_id>/chat-room/', views.get_group_chat_room, name='get_group_chat_room'),
+    path('groups/<int:group_id>/delete/', views.delete_group_view, name='delete_group'),
+    path('groups/<int:group_id>/leave/', views.leave_group_view, name='leave_group'),
     path('groups/join/', views.join_group_view, name='join_group'),
+path('groups/<int:group_id>/invites/', group_access_views.group_invites, name='group_invites'),
+    path('groups/<int:group_id>/invites/<int:invite_id>/', group_access_views.cancel_group_invite, name='cancel_group_invite'),
+    path('invites/<int:invite_id>/accept/', group_access_views.accept_group_invite, name='accept_group_invite'),
+    path('invites/<int:invite_id>/decline/', group_access_views.decline_group_invite, name='decline_group_invite'),
+    path('groups/<int:group_id>/join-requests/', group_access_views.create_join_request, name='create_join_request'),
+    path('join-requests/<int:request_id>/approve/', group_access_views.approve_join_request, name='approve_join_request'),
+    path('join-requests/<int:request_id>/decline/', group_access_views.decline_join_request, name='decline_join_request'),
+    path('groups/<int:group_id>/settings/', group_access_views.update_group_settings, name='update_group_settings'),
+    path('groups/<int:group_id>/regenerate-code/', group_access_views.regenerate_join_code, name='regenerate_join_code'),
 ]

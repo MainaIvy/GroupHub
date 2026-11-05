@@ -11,7 +11,9 @@ import Contact from './components/Contact';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
 import AdminDashboard from './components/AdminDashboard';
-
+import GroupChatRoom from './components/GroupChatRoom';
+import JoinLink from './components/JoinLink';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function App() {
   return (
@@ -21,7 +23,6 @@ function App() {
         v7_relativeSplatPath: true,
       }}
     >
-
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
@@ -29,10 +30,24 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/join/:code" element={<JoinLink />} />
+        <Route path="/groupchatroom" element={<GroupChatRoom />} />
+        <Route path="/groups/:groupId/chat" element={<GroupChatRoom />} />
+        <Route path="/groupchatroom/:groupId" element={<GroupChatRoom />} />
 
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/login"
+          element={
+            <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+              <Login />
+            </GoogleOAuthProvider>
+          }
+        />
+
         <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
+        <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </Router>

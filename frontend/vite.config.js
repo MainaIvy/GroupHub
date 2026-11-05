@@ -16,6 +16,11 @@ export default defineConfig({
         // Vite will forward the request while the SPA route stays in place.
         secure: false,
       },
+      '/ws': {
+        target: 'ws://127.0.0.1:8000',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
 })

@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from accounts.views import signup_view
 from rest_framework_simplejwt.views import TokenObtainPairView
 from accounts.jwt import EmailTokenObtainPairSerializer
 
@@ -28,6 +29,7 @@ urlpatterns = [
     # React frontend currently posts to /api/login/
     # SimpleJWT: expects { username: <email>, password: ... }
     path('api/login/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/signup/', signup_view, name='api_signup'),
 
 
     path('api/accounts/', include('accounts.urls')),

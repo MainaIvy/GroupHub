@@ -1,44 +1,44 @@
+from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model, authenticate
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Authenticate using `email` as the username.
+    """
+    Authenticate using either admission number/staff ID or email as the username.
 
-    Your custom User model uses `email` for `username` (see signup_view), but
-    SimpleJWT's default serializer expects a field called `username`. The React
-    app is sending `username: <email>`.
-
-    This serializer ensures we consistently authenticate against the email field.
+    The custom User model uses `username` for admission number/staff ID, but the
+    React app may send either an admission number, staff ID, or email address.
+    This serializer handles both cases and always returns a `user` object.
     """
 
-    @classmethod
-    def get_token(cls, user):
-        return super().get_token(user)
-
     def validate(self, attrs):
-        # SimpleJWT passes `username` and `password` into attrs by default.
-        email = attrs.get("username")
-        password = attrs.get("password")
+        identifier = str(attrs.get('username') or '').strip()
+        password = attrs.get("password") or self.initial_data.get("password")
 
-        if not email or not password:
-            raise self.fail("missing_credentials")
+        if not identifier or not password:
+            raise serializers.ValidationError("Enter your admission number, staff ID, or email and password.")
 
-        email = email.strip().lower()
+        user_model = get_user_model()
 
-        user = authenticate(request=self.context.get("request"), username=email, password=password)
-        if user is None:
-            raise self.fail("no_active_account")
+        # Try to find the user by username (admission number / staff ID) or by email
+        user = user_model.objects.filter(username__iexact=identifier).first()
+        if user is None and '@' in identifier:
+            user = user_model.objects.filter(email__iexact=identifier).first()
+
+user = authenticate(request=self.context.get("request"), username=email, password=password)
+        if user is None or not user.is_active:
+            raise serializers.ValidationError("No active account found with the given credentials.")
 
         data = super().validate({"username": email, "password": password})
-        data['user'] = {
-            'id': user.id,
-            'email': user.email,
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'user_type': user.user_type,
-            'is_staff': user.is_staff,
-            'is_active': user.is_active,
+        data["user"] = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "user_type": user.user_type,
+            "is_staff": user.is_staff,
+            "is_active": user.is_active,
         }
         return data

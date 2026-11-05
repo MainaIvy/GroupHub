@@ -1,0 +1,393 @@
+from django.core.management.base import BaseCommand
+from accounts.models import Course, Unit
+
+class Command(BaseCommand):
+    help = 'Seeds exact curriculum for 3 Degrees and 2 Diplomas'
+
+    def handle(self, *args, **kwargs):
+        academic_data = [
+            # 1. BCMCH - Bachelor of Science in Clinical Medicine and Community Health
+            {
+                'name': 'Bachelor of Science in Clinical Medicine and Community Health',
+                'code': 'BCMCH',
+                'department': 'Clinical Medicine',
+                'units': [
+                    # Y1 Trimester 1
+                    {'code': 'BCM 110', 'name': 'General Embryology and Histology', 'year': 1, 'sem': 1},
+                    {'code': 'BCM 111', 'name': 'Cell Biology and Genetics', 'year': 1, 'sem': 1},
+                    {'code': 'BCM 112', 'name': 'General Anatomy and Lower Limbs', 'year': 1, 'sem': 1},
+                    {'code': 'BCM 113', 'name': 'Physiology of Body Fluids and Excitable Tissues', 'year': 1, 'sem': 1},
+                    {'code': 'BCM 114', 'name': 'Structural Biochemistry', 'year': 1, 'sem': 1},
+                    {'code': 'BCM 115', 'name': 'Basic Life Support and First Aid', 'year': 1, 'sem': 1},
+                    {'code': 'BCM 116', 'name': 'Critical and Creative Thinking', 'year': 1, 'sem': 1},
+                    {'code': 'BCU 112', 'name': 'Digital Literacy', 'year': 1, 'sem': 1},
+                    {'code': 'BCM 118', 'name': 'Sexually Transmitted Infections Management', 'year': 1, 'sem': 1},
+                    # Y1 Trimester 2
+                    {'code': 'BCM 120', 'name': 'Anatomy of the Upper Limbs and Thorax', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 121', 'name': 'Respiratory and Cardiovascular Physiology', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 122', 'name': 'Medical Biochemistry: Metabolism of Carbohydrates and Proteins', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 123', 'name': 'Medical Parasitology: Protozoology', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 124', 'name': 'General Microbiology and Virology', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 125', 'name': 'Clinical Methods I', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 126', 'name': 'Behavioural Sciences', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 127', 'name': 'Nursing Skills', 'year': 1, 'sem': 2},
+                    {'code': 'BCM 128', 'name': 'Communication Skills in Health', 'year': 1, 'sem': 2},
+                    # Y1 Trimester 3
+                    {'code': 'BCM 130', 'name': 'Anatomy of the Abdomen, Pelvis and Perineum', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 131', 'name': 'Physiology of the Gastrointestinal and Renal Systems', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 132', 'name': 'Medical Biochemistry: Metabolism of Lipids and Nucleic Acids', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 133', 'name': 'Medical Parasitology: Helminthology and Entomology', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 134', 'name': 'Medical Microbiology: Bacteriology and Mycology', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 135', 'name': 'Clinical Methods II', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 136', 'name': 'Immunology', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 137', 'name': 'General Pathology', 'year': 1, 'sem': 3},
+                    {'code': 'BCM 138', 'name': 'Nutrition and Dietetics', 'year': 1, 'sem': 3},
+                    # Y2 Trimester 1
+                    {'code': 'BCM 210', 'name': 'Human Anatomy IV: Head and Neck', 'year': 2, 'sem': 1},
+                    {'code': 'BCM 211', 'name': 'Medical Physiology IV: Endocrine and Reproductive Systems', 'year': 2, 'sem': 1},
+                    {'code': 'BCM 212', 'name': 'General Pharmacology, Analgesics and Anti-inflammatory Drugs', 'year': 2, 'sem': 1},
+                    {'code': 'BCM 213', 'name': 'Cardiovascular, Respiratory, Gastrointestinal and Renal Pathology', 'year': 2, 'sem': 1},
+                    {'code': 'BCM 214', 'name': 'Clinical Chemistry', 'year': 2, 'sem': 1},
+                    {'code': 'BCM 215', 'name': 'Clinical Methods III', 'year': 2, 'sem': 1},
+                    {'code': 'BCM 216', 'name': 'Primary Healthcare', 'year': 2, 'sem': 1},
+                    # Y2 Trimester 2
+                    {'code': 'BCM 220', 'name': 'Human Anatomy V: Neuroanatomy', 'year': 2, 'sem': 2},
+                    {'code': 'BCM 221', 'name': 'Medical Physiology V: Neurophysiology', 'year': 2, 'sem': 2},
+                    {'code': 'BCM 222', 'name': 'Antimicrobials and Antiparasitics', 'year': 2, 'sem': 2},
+                    {'code': 'BCM 223', 'name': 'Haematology and Blood Transfusion', 'year': 2, 'sem': 2},
+                    {'code': 'BCM 224', 'name': 'Social Work and Community Development', 'year': 2, 'sem': 2},
+                    {'code': 'BCM 225', 'name': 'Disaster Management', 'year': 2, 'sem': 2},
+                    {'code': 'BCM 001', 'name': 'Clinical Placement I: Junior Clerkship', 'year': 2, 'sem': 2},
+                    # Y2 Trimester 3
+                    {'code': 'BCM 230', 'name': 'Cardiovascular, Respiratory and Nervous System Pharmacology', 'year': 2, 'sem': 3},
+                    {'code': 'BCM 231', 'name': 'Nervous, Musculoskeletal, Endocrine and Reproductive Pathology', 'year': 2, 'sem': 3},
+                    {'code': 'BCM 232', 'name': 'Surgery I: Perioperative, Burns and Wound Care', 'year': 2, 'sem': 3},
+                    {'code': 'BCM 233', 'name': 'Reproductive Health I: Normal Pregnancy', 'year': 2, 'sem': 3},
+                    {'code': 'BCM 234', 'name': 'Paediatrics and Child Health I: Neonatology and Nutritional Disorders', 'year': 2, 'sem': 3},
+                    {'code': 'BCM 235', 'name': 'Internal Medicine I: Cardiology', 'year': 2, 'sem': 3},
+                    {'code': 'BCM 236', 'name': 'Tropical Medicine', 'year': 2, 'sem': 3},
+                    {'code': 'BCM 002', 'name': 'Clinical Placement II: Junior Clerkship', 'year': 2, 'sem': 3},
+                    # Y3 Trimester 1
+                    {'code': 'BCM 310', 'name': 'Gastrointestinal, Endocrine and Renal Pharmacology', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 311', 'name': 'Surgery II: Gastrointestinal and Cardiothoracic Surgical Conditions', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 312', 'name': 'Reproductive Health II: Obstetric Conditions', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 313', 'name': 'Paediatrics and Child Health II: Respiratory, Cardiovascular and Haematological Conditions', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 314', 'name': 'Internal Medicine II: Pulmonology and Endocrinology', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 315', 'name': 'Orthopaedics I: Fractures and Dislocations of the Limbs', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 316', 'name': 'Epidemiology and Biostatistics', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 317', 'name': 'Community Health I: Environmental and Occupational Health', 'year': 3, 'sem': 1},
+                    {'code': 'BCM 003', 'name': 'Clinical Placement III: Junior Clerkship', 'year': 3, 'sem': 1},
+                    # Y3 Trimester 2
+                    {'code': 'BCM 321', 'name': 'Surgery III: Genitourinary and Skin Surgical Conditions', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 322', 'name': 'Reproductive Health III: Gynaecological Conditions', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 323', 'name': 'Paediatrics and Child Health III: Gastrointestinal and Renal Conditions', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 324', 'name': 'Internal Medicine III: Gastroenterology and Nephrology', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 325', 'name': 'Orthopaedics II: Conditions of Bones and Joints', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 326', 'name': 'Leadership and Management in Clinical Medicine', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 327', 'name': 'Community Health II: Communicable and Non-Communicable Diseases', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 328', 'name': 'Clinical Research in Health', 'year': 3, 'sem': 2},
+                    {'code': 'BCM 004', 'name': 'Clinical Placement IV: Intermediate Clerkship', 'year': 3, 'sem': 2},
+                    # Y3 Trimester 3
+                    {'code': 'BCM 330', 'name': 'Community Attachment and Community Diagnosis', 'year': 3, 'sem': 3},
+                    # Y4 Trimester 1
+                    {'code': 'BCM 410', 'name': 'Surgery IV: Head, Spine and Neurosurgery', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 411', 'name': 'Reproductive Health IV: Obstetric Medical Conditions', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 412', 'name': 'Paediatrics and Child Health IV: Neurology, Rheumatology and Endocrinology', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 413', 'name': 'Internal Medicine IV: Neurology and Rheumatology', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 414', 'name': 'Ophthalmology', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 415', 'name': 'Mental Health and Substance Abuse', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 416', 'name': 'Anesthesiology', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 417', 'name': 'Ear, Nose and Throat', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 418', 'name': 'Community Health III: Infection Prevention and Control', 'year': 4, 'sem': 1},
+                    {'code': 'BCM 005', 'name': 'Clinical Placement V: Senior Clerkship', 'year': 4, 'sem': 1},
+                    # Y4 Trimester 2
+                    {'code': 'BCM 420', 'name': 'Oncology and Palliative Medicine', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 421', 'name': 'Healthcare and Resource Management', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 422', 'name': 'Forensic Medicine and Toxicology', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 423', 'name': 'Dental Health', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 424', 'name': 'Medical Ethics, Law and Professionalism', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 425', 'name': 'Diagnostic Radiology and Imaging', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 426', 'name': 'Dermato-venereology', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 427', 'name': 'Medical Education', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 428', 'name': 'Health Research Project', 'year': 4, 'sem': 2},
+                    {'code': 'BCM 006', 'name': 'Clinical Placement VI: Senior Clerkship', 'year': 4, 'sem': 2},
+                    # Y4 Trimester 3
+                    {'code': 'BCM 430', 'name': 'Surgery V: Oncological Conditions in Surgery', 'year': 4, 'sem': 3},
+                    {'code': 'BCM 431', 'name': 'Reproductive Health V: Gynaecologic Oncology', 'year': 4, 'sem': 3},
+                    {'code': 'BCM 432', 'name': 'Paediatrics and Child Health V: Paediatric Emergencies and Oncology', 'year': 4, 'sem': 3},
+                    {'code': 'BCM 433', 'name': 'Internal Medicine V: Emergency Medicine', 'year': 4, 'sem': 3},
+                    {'code': 'BCM 007', 'name': 'Clinical Placement VII: Senior Clerkship', 'year': 4, 'sem': 3},
+                ]
+            },
+
+            # 2. BSc.N - Bachelor of Science in Nursing
+            {
+                'name': 'Bachelor of Science in Nursing',
+                'code': 'BSc.N',
+                'department': 'Nursing',
+                'units': [
+                    # Y1 Trimester 1
+                    {'code': 'BSN 111', 'name': 'Human Anatomy I', 'year': 1, 'sem': 1},
+                    {'code': 'BSN 112', 'name': 'Human Physiology I', 'year': 1, 'sem': 1},
+                    {'code': 'BSN 113', 'name': 'Medical Biochemistry', 'year': 1, 'sem': 1},
+                    {'code': 'BSN 114', 'name': 'Fundamentals of Nursing Practice I', 'year': 1, 'sem': 1},
+                    # Y1 Trimester 2
+                    {'code': 'BSN 121', 'name': 'Human Anatomy II', 'year': 1, 'sem': 2},
+                    {'code': 'BSN 122', 'name': 'Human Physiology II', 'year': 1, 'sem': 2},
+                    {'code': 'BSN 123', 'name': 'Academic Writing and Nursing Informatics', 'year': 1, 'sem': 2},
+                    {'code': 'BSN 124', 'name': 'Medical Microbiology', 'year': 1, 'sem': 2},
+                    {'code': 'BSN 125', 'name': 'Nutrition and Health', 'year': 1, 'sem': 2},
+                    {'code': 'BSN 126', 'name': 'Medical Sociology and Anthropology', 'year': 1, 'sem': 2},
+                    # Y1 Trimester 3
+                    {'code': 'BSN 131', 'name': 'Human Pathology', 'year': 1, 'sem': 3},
+                    {'code': 'BSN 132', 'name': 'Clinical Pharmacology I', 'year': 1, 'sem': 3},
+                    {'code': 'BSN 133', 'name': 'Medical Parasitology and Entomology', 'year': 1, 'sem': 3},
+                    {'code': 'BSN 134', 'name': 'Haematology', 'year': 1, 'sem': 3},
+                    {'code': 'BSN 135', 'name': 'Immunology', 'year': 1, 'sem': 3},
+                    {'code': 'BSN 136', 'name': 'Health Assessment', 'year': 1, 'sem': 3},
+                    {'code': 'BSN 137', 'name': 'Pathophysiology I', 'year': 1, 'sem': 3},
+                    # Y2 Trimester 1
+                    {'code': 'BSN 211', 'name': 'Medical-Surgical Nursing I', 'year': 2, 'sem': 1},
+                    {'code': 'BSN 212', 'name': 'Clinical Pharmacology II', 'year': 2, 'sem': 1},
+                    {'code': 'BSN 213', 'name': 'Paediatrics Nursing I', 'year': 2, 'sem': 1},
+                    {'code': 'BSN 214', 'name': 'Fundamentals of Nursing Practice II', 'year': 2, 'sem': 1},
+                    {'code': 'BSN 215', 'name': 'Communication and Counselling in Health', 'year': 2, 'sem': 1},
+                    {'code': 'BSN 216', 'name': 'Pathophysiology II', 'year': 2, 'sem': 1},
+                    {'code': 'BSN 217', 'name': 'Clinical Chemistry', 'year': 2, 'sem': 1},
+                    # Y2 Trimester 2
+                    {'code': 'BSN 221', 'name': 'Medical-Surgical Nursing II', 'year': 2, 'sem': 2},
+                    {'code': 'BSN 222', 'name': 'Midwifery I (Introduction to Midwifery and Pregnancy)', 'year': 2, 'sem': 2},
+                    {'code': 'BSN 223', 'name': 'Medical-Surgical Nursing III', 'year': 2, 'sem': 2},
+                    {'code': 'BSN 224', 'name': 'Paediatric Nursing II', 'year': 2, 'sem': 2},
+                    {'code': 'BSN 225', 'name': 'Family Planning & Contraception', 'year': 2, 'sem': 2},
+                    {'code': 'BSN 226', 'name': 'Environmental and Occupational Health', 'year': 2, 'sem': 2},
+                    {'code': 'BSN 227', 'name': 'Community Health Nursing I', 'year': 2, 'sem': 2},
+                    # Y2 Trimester 3
+                    {'code': 'BSN 231', 'name': 'Clinical Rotation 1 (16 weeks)', 'year': 2, 'sem': 3},
+                    # Y3 Trimester 1
+                    {'code': 'BSN 311', 'name': 'Midwifery II (Labour, Delivery, Emergencies)', 'year': 3, 'sem': 1},
+                    {'code': 'BSN 312', 'name': 'Gender, Sexual Reproductive Health and Rights', 'year': 3, 'sem': 1},
+                    {'code': 'BSN 313', 'name': 'Epidemiology and Demography', 'year': 3, 'sem': 1},
+                    {'code': 'BSN 314', 'name': 'Biostatistics', 'year': 3, 'sem': 1},
+                    {'code': 'BSN 315', 'name': 'Gynaecology Nursing', 'year': 3, 'sem': 1},
+                    {'code': 'BSN 316', 'name': 'Community Health Nursing II', 'year': 3, 'sem': 1},
+                    {'code': 'BSN 317', 'name': 'Medical Research Methodology', 'year': 3, 'sem': 1},
+                    # Y3 Trimester 2
+                    {'code': 'BSN 321', 'name': 'Ophthalmology and Ear, Nose, and Throat (ENT)', 'year': 3, 'sem': 2},
+                    {'code': 'BSN 322', 'name': 'Midwifery III (Puerperium, Newborn)', 'year': 3, 'sem': 2},
+                    {'code': 'BSN 323', 'name': 'Communicable & Vector Borne Diseases', 'year': 3, 'sem': 2},
+                    {'code': 'BSN 324', 'name': 'Trauma and Emergencies, and Peri-operative Nursing', 'year': 3, 'sem': 2},
+                    {'code': 'BSN 325', 'name': 'Human Psychology', 'year': 3, 'sem': 2},
+                    {'code': 'BSN 326', 'name': 'Community Health Nursing III', 'year': 3, 'sem': 2},
+                    {'code': 'MLS 417', 'name': 'Precision Medicine and Technologies in Healthcare', 'year': 3, 'sem': 2},
+                    {'code': 'BSN 327', 'name': 'Research Project I', 'year': 3, 'sem': 2},
+                    # Y3 Trimester 3
+                    {'code': 'BSN 331', 'name': 'Clinical Rotation 2 (17 weeks)', 'year': 3, 'sem': 3},
+                    # Y4 Trimester 1
+                    {'code': 'BSN 411', 'name': 'Mental Health & Psychiatric Nursing', 'year': 4, 'sem': 1},
+                    {'code': 'BSN 412', 'name': 'Oncology, Palliative and Forensic Nursing', 'year': 4, 'sem': 1},
+                    {'code': 'BSN 413', 'name': 'Critical Care and Nephrology', 'year': 4, 'sem': 1},
+                    {'code': 'BSN 414', 'name': 'Curriculum and Instruction in Nursing', 'year': 4, 'sem': 1},
+                    {'code': 'BSN 415', 'name': 'Leadership, Management and Governance in Health', 'year': 4, 'sem': 1},
+                    {'code': 'BSN 417', 'name': 'Research Project II', 'year': 4, 'sem': 1},
+                    # Y4 Trimester 2
+                    {'code': 'BSN 421', 'name': 'Clinical Rotation 3 (16 weeks)', 'year': 4, 'sem': 2},
+                    # Y4 Trimester 3
+                    {'code': 'BSN 431', 'name': 'Clinical Rotation 4 (17 weeks)', 'year': 4, 'sem': 3},
+                ]
+            },
+
+            # 3. LL.B - Bachelor of Laws
+            {
+                'name': 'Bachelor of Laws',
+                'code': 'LL.B',
+                'department': 'School of Law',
+                'units': [
+                    # Y1 Sem 1
+                    {'code': 'LLB 101', 'name': 'Constitutional Law I', 'year': 1, 'sem': 1},
+                    {'code': 'LLB 102', 'name': 'Criminal Law I', 'year': 1, 'sem': 1},
+                    {'code': 'LLB 103', 'name': 'Law of Contract I', 'year': 1, 'sem': 1},
+                    {'code': 'LLB 104', 'name': 'Law of Torts I', 'year': 1, 'sem': 1},
+                    {'code': 'LLB 105', 'name': 'Legal Research & Writing I', 'year': 1, 'sem': 1},
+                    {'code': 'LLB 106', 'name': 'Social and Political Foundations of Law', 'year': 1, 'sem': 1},
+                    {'code': 'BCU 110', 'name': 'Communication Skills', 'year': 1, 'sem': 1},
+                    # Y1 Sem 2
+                    {'code': 'LLB 107', 'name': 'Constitutional Law II', 'year': 1, 'sem': 2},
+                    {'code': 'LLB 108', 'name': 'Criminal Law II', 'year': 1, 'sem': 2},
+                    {'code': 'LLB 109', 'name': 'Law of Contracts II', 'year': 1, 'sem': 2},
+                    {'code': 'LLB 110', 'name': 'Law of Torts II', 'year': 1, 'sem': 2},
+                    {'code': 'LLB 111', 'name': 'Legal Systems & Methods', 'year': 1, 'sem': 2},
+                    {'code': 'BCU 112', 'name': 'Digital Literacy', 'year': 1, 'sem': 2},
+                    {'code': 'BCU 113', 'name': 'Health and Wellness Management', 'year': 1, 'sem': 2},
+                    {'code': 'LLB 114', 'name': 'Community Service (Attachment)', 'year': 1, 'sem': 2},
+                    # Y2 Sem 1
+                    {'code': 'LLB 201', 'name': 'Law of Evidence I', 'year': 2, 'sem': 1},
+                    {'code': 'LLB 202', 'name': 'Property Law I', 'year': 2, 'sem': 1},
+                    {'code': 'LLB 203', 'name': 'Criminal Procedure', 'year': 2, 'sem': 1},
+                    {'code': 'LLB 204', 'name': 'Ethics and Etiquette', 'year': 2, 'sem': 1},
+                    {'code': 'LLB 205', 'name': 'Administrative Law I', 'year': 2, 'sem': 1},
+                    {'code': 'LLB 206', 'name': 'Legal Research & Writing II', 'year': 2, 'sem': 1},
+                    {'code': 'LLB 207', 'name': 'ICT and e-Commerce Law', 'year': 2, 'sem': 1},
+                    # Y2 Sem 2
+                    {'code': 'LLB 208', 'name': 'Law of Evidence II', 'year': 2, 'sem': 2},
+                    {'code': 'LLB 209', 'name': 'Property Law II', 'year': 2, 'sem': 2},
+                    {'code': 'LLB 210', 'name': 'Administrative Law II', 'year': 2, 'sem': 2},
+                    {'code': 'LLB 211', 'name': 'Civil Procedure', 'year': 2, 'sem': 2},
+                    {'code': 'LLB 212', 'name': 'Trial Advocacy Skills', 'year': 2, 'sem': 2},
+                    {'code': 'LLB 213', 'name': 'Economics for Lawyers', 'year': 2, 'sem': 2},
+                    {'code': 'LLB 214', 'name': 'Law Science and Technology', 'year': 2, 'sem': 2},
+                    {'code': 'LLB 215', 'name': 'Judicial Attachment', 'year': 2, 'sem': 2},
+                    # Y3 Sem 1
+                    {'code': 'LLB 301', 'name': 'Law of Business Associations I', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 302', 'name': 'Public International Law', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 303', 'name': 'Commercial Law', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 304', 'name': 'Labour Law', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 305', 'name': 'Financial Services Law', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 310', 'name': 'Competition Law (Elective)', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 311', 'name': 'Intellectual Property Law (Elective)', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 312', 'name': 'Regional Integration Law (Elective)', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 313', 'name': 'International Human Rights Law (Elective)', 'year': 3, 'sem': 1},
+                    {'code': 'LLB 314', 'name': 'Environmental & Climate Change Law (Elective)', 'year': 3, 'sem': 1},
+                    # Y3 Sem 2
+                    {'code': 'LLB 306', 'name': 'Law of Business Associations II', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 307', 'name': 'Jurisprudence', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 308', 'name': 'Equity & Law of Trusts', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 309', 'name': 'Alternative Dispute Resolution', 'year': 3, 'sem': 2},
+                    {'code': 'BCU 320', 'name': 'Research Methods', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 315', 'name': 'Consumer Protection Law (Elective)', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 316', 'name': 'International Humanitarian Law (Elective)', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 317', 'name': 'Media and Entertainment Law (Elective)', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 318', 'name': 'Law & Development (Elective)', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 319', 'name': 'Energy Law (Elective)', 'year': 3, 'sem': 2},
+                    {'code': 'LLB 321', 'name': 'Clinical Externship', 'year': 3, 'sem': 2},
+                    # Y4 Sem 1
+                    {'code': 'LLB 401', 'name': 'Family Law', 'year': 4, 'sem': 1},
+                    {'code': 'LLB 402', 'name': 'Research Paper I', 'year': 4, 'sem': 1},
+                    {'code': 'LLB 403', 'name': 'Accounting for Lawyers', 'year': 4, 'sem': 1},
+                    {'code': 'BCU 410', 'name': 'Entrepreneurship and Innovation', 'year': 4, 'sem': 1},
+                    {'code': 'LLB 409', 'name': 'Taxation Law (Elective)', 'year': 4, 'sem': 1},
+                    {'code': 'LLB 411', 'name': 'International Trade Law (Elective)', 'year': 4, 'sem': 1},
+                    {'code': 'LLB 413', 'name': 'Health Law and Policy (Elective)', 'year': 4, 'sem': 1},
+                    {'code': 'LLB 414', 'name': 'International Migration Law (Elective)', 'year': 4, 'sem': 1},
+                    {'code': 'LLB 418', 'name': 'International Criminal Law (Elective)', 'year': 4, 'sem': 1},
+                    # Y4 Sem 2
+                    {'code': 'LLB 405', 'name': 'Law of Succession', 'year': 4, 'sem': 2},
+                    {'code': 'LLB 406', 'name': 'Data Protection Law', 'year': 4, 'sem': 2},
+                    {'code': 'LLB 407', 'name': 'Research Paper II', 'year': 4, 'sem': 2},
+                    {'code': 'LLB 410', 'name': 'Capital Markets and Securities Regulation Law (Elective)', 'year': 4, 'sem': 2},
+                    {'code': 'LLB 412', 'name': 'International Economic Law (Elective)', 'year': 4, 'sem': 2},
+                    {'code': 'LLB 416', 'name': 'Law, Democracy and Citizenship (Elective)', 'year': 4, 'sem': 2},
+                    {'code': 'LLB 419', 'name': 'International Law of the Sea (Elective)', 'year': 4, 'sem': 2},
+                ]
+            },
+
+            # 4. DCS - Diploma in Computer Science
+            {
+                'name': 'Diploma in Computer Science',
+                'code': 'DCS',
+                'department': 'Computer Science',
+                'units': [
+                    # Y1 Sem 1
+                    {'code': 'DIT 104', 'name': 'Basic Mathematics', 'year': 1, 'sem': 1},
+                    {'code': 'DAC 123', 'name': 'Financial Accounting I', 'year': 1, 'sem': 1},
+                    {'code': 'DCU 100', 'name': 'Communication Skills', 'year': 1, 'sem': 1},
+                    {'code': 'DIT 101', 'name': 'Computer Applications', 'year': 1, 'sem': 1},
+                    {'code': 'DCU 112', 'name': 'ICT And Ethics', 'year': 1, 'sem': 1},
+                    {'code': 'DSE 101', 'name': 'Structured Programming', 'year': 1, 'sem': 1},
+                    # Y1 Sem 2
+                    {'code': 'DCS 201', 'name': 'Computer Organization and Architecture', 'year': 1, 'sem': 2},
+                    {'code': 'DIT 201', 'name': 'System Analysis and Design', 'year': 1, 'sem': 2},
+                    {'code': 'DIT 202', 'name': 'Operating Systems', 'year': 1, 'sem': 2},
+                    {'code': 'DCS 203', 'name': 'Electronics', 'year': 1, 'sem': 2},
+                    {'code': 'DIT 203', 'name': 'Network Essentials (CCNA 1)', 'year': 1, 'sem': 2},
+                    {'code': 'DIT 302', 'name': 'Database Systems', 'year': 1, 'sem': 2},
+                    # Y2 Sem 1
+                    {'code': 'DSE 303', 'name': 'Programming with .Net Framework', 'year': 2, 'sem': 1},
+                    {'code': 'DIT 301', 'name': 'Object Oriented Programming', 'year': 2, 'sem': 1},
+                    {'code': 'DSE 201', 'name': 'Discrete Mathematics', 'year': 2, 'sem': 1},
+                    {'code': 'DCS 301', 'name': 'Probability and Statistics', 'year': 2, 'sem': 1},
+                    {'code': 'DSE 403', 'name': 'Web Development I', 'year': 2, 'sem': 1},
+                    {'code': 'DIT 304', 'name': 'Routing and Switching (CCNA Mod 2)', 'year': 2, 'sem': 1},
+                    # Y2 Sem 2
+                    {'code': 'DSE 402', 'name': 'Research and Proposal Writing', 'year': 2, 'sem': 2},
+                    {'code': 'DIT 403', 'name': 'Cyber Security (CCNA Mod 3)', 'year': 2, 'sem': 2},
+                    {'code': 'DSE 505', 'name': 'Web Development II', 'year': 2, 'sem': 2},
+                    {'code': 'DCS 406', 'name': 'Calculus', 'year': 2, 'sem': 2},
+                    {'code': 'DSE 301', 'name': 'Software Engineering', 'year': 2, 'sem': 2},
+                    {'code': 'DIT 401', 'name': 'Object Oriented Programming II', 'year': 2, 'sem': 2},
+                    # Y3 Sem 1
+                    {'code': 'DSE 501', 'name': 'Artificial Intelligence', 'year': 3, 'sem': 1},
+                    {'code': 'DCS 501', 'name': 'Distributed Systems', 'year': 3, 'sem': 1},
+                    {'code': 'DCU 110', 'name': 'Entrepreneurship Skills', 'year': 3, 'sem': 1},
+                    {'code': 'DSE 401', 'name': 'Human Computer Interaction', 'year': 3, 'sem': 1},
+                    {'code': 'DIT 402', 'name': 'Computer Support And Maintenance', 'year': 3, 'sem': 1},
+                    {'code': 'DSE 506', 'name': 'Computer Systems Project', 'year': 3, 'sem': 1},
+                    {'code': 'DCU 300', 'name': 'Attachment', 'year': 3, 'sem': 1},
+                ]
+            },
+
+            # 5. DCP - Diploma in Counselling Psychology
+            {
+                'name': 'Diploma in Counselling Psychology',
+                'code': 'DCP',
+                'department': 'Psychology & Social Sciences',
+                'units': [
+                    # Y1 Sem 1
+                    {'code': 'DCP 101', 'name': 'Introduction to Counselling Psychology', 'year': 1, 'sem': 1},
+                    {'code': 'DCP 103', 'name': 'Introduction To Counselling Theories And Techniques', 'year': 1, 'sem': 1},
+                    {'code': 'DCU 100', 'name': 'Communication Skills', 'year': 1, 'sem': 1},
+                    {'code': 'DCU 101', 'name': 'Information Communication and Technology And Ethics', 'year': 1, 'sem': 1},
+                    {'code': 'DCU 203', 'name': 'Health and Wellness', 'year': 1, 'sem': 1},
+                    # Y1 Sem 2
+                    {'code': 'DCP 201', 'name': 'Introduction To Social Psychology And Human Development', 'year': 1, 'sem': 2},
+                    {'code': 'DCP 202', 'name': 'Psychology Of Communication', 'year': 1, 'sem': 2},
+                    {'code': 'DCP 203', 'name': 'Culture And Socialization', 'year': 1, 'sem': 2},
+                    {'code': 'DCP 204', 'name': 'Physiological Psychology', 'year': 1, 'sem': 2},
+                    {'code': 'DCP 205', 'name': 'Supervision And Management In Counselling', 'year': 1, 'sem': 2},
+                    # Y2 Sem 1
+                    {'code': 'DCP 301', 'name': 'Basic Statistics', 'year': 2, 'sem': 1},
+                    {'code': 'DCP 302', 'name': 'Health Psychology', 'year': 2, 'sem': 1},
+                    {'code': 'DCP 303', 'name': 'Organizational And Environmental Psychology', 'year': 2, 'sem': 1},
+                    {'code': 'DCP 304', 'name': 'Legal Aspects In Counselling', 'year': 2, 'sem': 1},
+                    {'code': 'DCU 301', 'name': 'Research Methods', 'year': 2, 'sem': 1},
+                    # Y2 Sem 2
+                    {'code': 'DCP 401', 'name': 'Counselling For Special Groups', 'year': 2, 'sem': 2},
+                    {'code': 'DCP 402', 'name': 'Counselling Process And Practice', 'year': 2, 'sem': 2},
+                    {'code': 'DCP 403', 'name': 'Cognitive Psychology', 'year': 2, 'sem': 2},
+                    {'code': 'DCP 404', 'name': 'Family And Marriage Counselling', 'year': 2, 'sem': 2},
+                    {'code': 'DCP 405', 'name': 'Loss, Grief And Trauma Counselling', 'year': 2, 'sem': 2},
+                    {'code': 'DCP 406', 'name': 'Attachment (8 weeks)', 'year': 2, 'sem': 2},
+                ]
+            }
+        ]
+
+        total_courses = 0
+        total_units = 0
+
+        for prog in academic_data:
+            course_obj, _ = Course.objects.get_or_create(
+                code=prog['code'],
+                defaults={
+                    'name': prog['name'],
+                    'department': prog['department']
+                }
+            )
+            total_courses += 1
+
+            for u in prog['units']:
+                Unit.objects.update_or_create(
+                    code=u['code'],
+                    course=course_obj,
+                    defaults={
+                        'name': u['name'],
+                        'year_of_study': u['year'],
+                        'semester': u['sem']
+                    }
+                )
+                total_units += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Successfully seeded {total_courses} programmes and {total_units} units into GroupHub database.'
+            )
+        )

@@ -1,7 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Message, ChatRoom, User
+from .models import Message, ChatRoom, User, Group
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
@@ -18,7 +18,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         self.user = user
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
+        self.chat_room = await self.resolve_chat_room_for_room_name()
+        if not self.chat_room:
+            await self.close()
+            return
+
+        self.room_id = self.chat_room.id
+        self.room_group_name = f'chat_{self.room_id}'
 
         # Check if user has access to this chat room
         if not await self.can_access_room():
@@ -43,41 +49,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+        try:
+            text_data_json = json.loads(text_data)
+        except (TypeError, ValueError):
+            await self.close(code=1003)
+            return
+        message = str(text_data_json.get('content') or text_data_json.get('message') or '').strip()
+        if not message:
+            await self.send(text_data=json.dumps({'error': 'Message content cannot be empty.'}))
+            return
 
-        # Save message to database
-        saved_message = await self.save_message(message)
+        message_data = await self.save_message(message)
 
-        # Send message to room group
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'message': message,
-                'sender_id': self.user.id,
-                'sender_name': f"{self.user.first_name} {self.user.last_name}",
-                'timestamp': saved_message.timestamp.isoformat(),
-                'message_id': saved_message.id,
+                'message_data': message_data,
             }
         )
 
-    # Receive message from room group
     async def chat_message(self, event):
-        message = event['message']
-        sender_id = event['sender_id']
-        sender_name = event['sender_name']
-        timestamp = event['timestamp']
-        message_id = event['message_id']
-
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            'message': message,
-            'sender_id': sender_id,
-            'sender_name': sender_name,
-            'timestamp': timestamp,
-            'message_id': message_id,
-        }))
+        await self.send(text_data=json.dumps(event['message_data']))
 
     @database_sync_to_async
     def get_user_from_token(self):
@@ -101,25 +94,61 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except (InvalidToken, TokenError, User.DoesNotExist):
             return None
 
+    def resolve_chat_room_for_room_name_sync(self):
+        """Resolve a group ID or chat-room ID to a ChatRoom instance."""
+        raw_room_name = str(self.scope['url_route']['kwargs'].get('room_name', '') or '').strip()
+        if not raw_room_name:
+            return None
+
+        try:
+            room_id = int(raw_room_name)
+        except (TypeError, ValueError):
+            room_id = None
+
+        if room_id is not None:
+            room = ChatRoom.objects.filter(id=room_id).first()
+            if room:
+                return room
+
+            group = Group.objects.filter(id=room_id).select_related('chat_room').first()
+            if group:
+                room = getattr(group, 'chat_room', None)
+                if room:
+                    return room
+                return ChatRoom.objects.create(group=group, chat_type='group')
+
+            room = ChatRoom.objects.filter(group_id=room_id).first()
+            if room:
+                return room
+
+        return None
+
+    @database_sync_to_async
+    def resolve_chat_room_for_room_name(self):
+        return self.resolve_chat_room_for_room_name_sync()
+
     @database_sync_to_async
     def can_access_room(self):
         """Check if user has access to this chat room"""
-        try:
-            room = ChatRoom.objects.get(id=self.room_name)
-            if room.chat_type == 'direct':
-                # Allow access if user is one of the participants
-                return room.user1 == self.user or room.user2 == self.user
-            elif room.chat_type == 'group':
-                # Allow access if user is a member of the group
-                return room.group.memberships.filter(student=self.user).exists()
+        room = self.chat_room
+        if not room:
             return False
-        except ChatRoom.DoesNotExist:
-            return False
+
+        if room.chat_type == 'direct':
+            # Allow access if user is one of the participants
+            return room.user1 == self.user or room.user2 == self.user
+        elif room.chat_type == 'group':
+            # Allow access if user is a member of the group or the lecturer for the group
+            return (
+                room.group.memberships.filter(student=self.user).exists()
+                or room.group.lecturer_id == self.user.id
+            )
+        return False
 
     @database_sync_to_async
     def save_message(self, message):
         from .models import Notification
-        room = ChatRoom.objects.get(id=self.room_name)
+        room = self.chat_room
         saved_message = Message.objects.create(
             chat_room=room,
             sender=self.user,
@@ -128,30 +157,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         # Create notifications for other users in the chat room
+        recipients = []
         if room.chat_type == 'direct':
-            # For direct chats, notify the other user
             other_user = room.user2 if room.user1 == self.user else room.user1
             if other_user:
-                Notification.objects.create(
-                    user=other_user,
-                    notification_type='message_received',
-                    title=f'New message from {self.user.first_name} {self.user.last_name}',
-                    message=message[:100] + ('...' if len(message) > 100 else ''),
-                    related_chat_room=room,
-                    related_message=saved_message
-                )
+                recipients.append(other_user)
         else:
-            # For group chats, notify all group members except the sender
-            from django.db.models import Q
-            members = room.group.memberships.select_related('student').exclude(student=self.user)
-            for membership in members:
-                Notification.objects.create(
-                    user=membership.student,
-                    notification_type='message_received',
-                    title=f'New message in {room.group.name}',
-                    message=f'{self.user.first_name} {self.user.last_name}: {message[:100]}{"..." if len(message) > 100 else ""}',
-                    related_chat_room=room,
-                    related_message=saved_message
-                )
+            recipients.extend(
+                membership.student
+                for membership in room.group.memberships.select_related('student').exclude(student=self.user)
+            )
+            if room.group.lecturer_id != self.user.id:
+                recipients.append(room.group.lecturer)
 
-        return saved_message
+        preview = message[:100] + ('...' if len(message) > 100 else '')
+        for recipient in recipients:
+            Notification.objects.create(
+                user=recipient,
+                notification_type='message_received',
+                title=(f'New message in {room.group.name}' if room.chat_type == 'group'
+                       else f'New message from {self.user.first_name} {self.user.last_name}'),
+                message=(f'{self.user.first_name} {self.user.last_name}: {preview}' if room.chat_type == 'group' else preview),
+                related_chat_room=room,
+                related_message=saved_message,
+            )
+
+        return {
+            'id': saved_message.id,
+            'content': saved_message.content,
+            'sender': {
+                'id': self.user.id,
+                'first_name': self.user.first_name,
+                'last_name': self.user.last_name,
+                'user_type': self.user.user_type,
+            },
+            'timestamp': saved_message.timestamp.isoformat(),
+            'attachment_name': None,
+            'attachment_url': None,
+        }

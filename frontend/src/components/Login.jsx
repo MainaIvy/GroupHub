@@ -1,39 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 import logo from '../assets/images/groubhub logo.svg';
 
-const GoogleLoginButton = ({ googleClientId, onLoadingChange, onError }) => {
-  const handleSuccess = async (credentialResponse) => {
-    try {
-      onLoadingChange(true);
-      onError('');
+const GoogleGIcon = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C34.73 32.657 30.83 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.962 3.037l5.657-5.657C34.046 6.053 29.268 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20c0-1.341-.138-2.65-.389-3.917z" />
+    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 19.123 12 24 12c3.059 0 5.842 1.154 7.962 3.037l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+    <path fill="#4CAF50" d="M24 44c5.268 0 10.046-2.053 13.719-5.419l-5.657-5.657C30.842 35.187 28.059 36 24 36c-6.83 0-10.73-3.343-11.303-7.999L6.306 33.31C9.656 39.663 16.318 44 24 44z" />
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a11.999 11.999 0 0 1-3.68 6.592l5.657 5.657C36.963 36.116 44 30.44 44 24c0-1.341-.138-2.65-.389-3.917z" />
+  </svg>
+);
 
-      const idToken = credentialResponse?.credential;
-      if (!idToken) {
-        onError('Google sign-in failed: missing id_token from Google OAuth.');
-        return;
-      }
-
-      const response = await fetch('/api/accounts/google/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: idToken }),
-      });
-
-      let data = null;
+const Login = () => {
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
       try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
+        setGoogleLoading(true);
+        setGoogleError('');
 
-      if (response.ok) {
+        const accessToken = tokenResponse?.access_token;
+        const idToken = tokenResponse?.id_token;
+        const googleToken = accessToken || idToken || tokenResponse?.token;
+
+        if (!googleToken) {
+          setGoogleError('Google sign-in failed: missing token.');
+          return;
+        }
+
+        const response = await fetch('/api/google/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: googleToken }),
+        });
+
+        if (!response.ok) {
+          let errData = null;
+          try { errData = await response.json(); } catch { errData = null; }
+          throw new Error(errData?.error || errData?.detail || `Google login failed (${response.status}).`);
+        }
+
+        const data = await response.json().catch(() => null);
+        if (!data?.access) throw new Error('Missing access token.');
+
         localStorage.setItem('access_token', data.access);
         localStorage.setItem('refresh_token', data.refresh);
 
         const localizedUser = {
-          email: data?.user?.email || data?.user?.username || 'google-user',
+          id: data?.user?.id || null,
+          email: data?.user?.email || data?.user?.username || 'user',
           user_type: data?.user?.user_type || data?.user_type || 'student',
           first_name: data?.user?.first_name || 'User',
           last_name: data?.user?.last_name || 'Account',
@@ -48,149 +63,108 @@ const GoogleLoginButton = ({ googleClientId, onLoadingChange, onError }) => {
         } else {
           window.location.href = '/student/dashboard';
         }
-      } else {
-        const message = data?.error || data?.detail || `Google login failed (HTTP ${response.status}).`;
-        onError(message);
+      } catch (err) {
+        console.error('Google login error:', err);
+        setGoogleError('Google sign-in failed. Please try again.');
+      } finally {
+        setGoogleLoading(false);
       }
-    } catch (err) {
-      console.error('Google login error:', err);
-      onError('Google sign-in failed due to a network or server error.');
-    } finally {
-      onLoadingChange(false);
-    }
-  };
-
-  return (
-    <div style={{ width: '100%' }}>
-      <GoogleLogin
-        onSuccess={handleSuccess}
-        onError={() => onError('Google sign-in was cancelled or failed.')}
-        useOneTap={false}
-        theme="outline"
-        size="large"
-        text="signin_with"
-        shape="rectangular"
-      />
-    </div>
-  );
-};
-
-const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false,
+    },
+    onError: () => setGoogleError('Google sign-in was cancelled.'),
   });
+
+  const [formData, setFormData] = useState({ username: '', password: '', rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [validationError, setValidationError] = useState('');
-
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState('');
 
-  const emailRef = useRef(null);
-
-
+  const usernameRef = useRef(null);
 
   useEffect(() => {
-    if (emailRef.current) emailRef.current.focus();
+    if (usernameRef.current) usernameRef.current.focus();
   }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
-
     if (error) setError('');
     if (validationError) setValidationError('');
   };
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
-    e?.stopPropagation?.();
-
     setIsLoading(true);
     setError('');
+    setSuccessMessage('');
     setValidationError('');
 
-    const emailTrimmed = (formData.email || '').trim();
+    const username = (formData.username || '').trim();
     const passwordTrimmed = formData.password || '';
 
-    if (!emailTrimmed || !passwordTrimmed) {
-      const missing = [];
-      if (!emailTrimmed) missing.push('email');
-      if (!passwordTrimmed) missing.push('password');
-      setValidationError(`Please enter your ${missing.join(' and ')}.`);
+    if (!username || !passwordTrimmed) {
+      setValidationError('Enter your admission number or staff ID and password.');
       setIsLoading(false);
       return;
     }
 
     try {
-      const payload = {
-        username: emailTrimmed.toLowerCase(),
-        password: passwordTrimmed,
-      };
-
       const response = await fetch('/api/login/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password: passwordTrimmed }),
       });
 
-      let data = null;
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
+      const data = await response.json().catch(() => null);
 
-      if (response.ok) {
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
+          if (!response.ok) {
+            const friendlyError = data?.error || data?.detail || 'Incorrect email or password. Please try again.';
+            setError(friendlyError);
+            return;
+          }
 
-        const emailTrimmedLower = emailTrimmed.toLowerCase();
-        let calculatedUserType = data.user?.user_type || data.user_type;
-        const isAdmin = Boolean(data.user?.is_staff);
+      localStorage.setItem('access_token', data.access || data.access_token || '');
+      localStorage.setItem('refresh_token', data.refresh || data.refresh_token || '');
 
-        if (!calculatedUserType) {
-          calculatedUserType = emailTrimmedLower.includes('lecturer') ? 'lecturer' : 'student';
-        }
+      const profile = data.user || data.profile || data.account || {};
+      const rawUserType = (
+        profile.user_type ||
+        profile.role ||
+        data.user_type ||
+        data.role ||
+        data.type ||
+        profile.type ||
+        'student'
+      )?.toString().toLowerCase();
 
-        localStorage.setItem(
-          'user',
-          JSON.stringify({
-            email: emailTrimmedLower,
-            user_type: calculatedUserType,
+      const userType = rawUserType === 'lecturer' ? 'lecturer' : 'student';
+      const userEmail = (profile.email || data.email || '').toString().trim();
+      const isAdmin = Boolean(profile.is_staff || data.is_staff);
+
+      localStorage.setItem('user', JSON.stringify({
+        id: profile.id || null,
+        email: userEmail,
+        username: profile.username || username,
+        user_type: userType,
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
             is_staff: isAdmin,
-            first_name: 'User',
-            last_name: 'Account',
-          })
-        );
+      }));
 
-        if (isAdmin) {
-          window.location.href = '/admin/dashboard';
-          return;
-        }
-
-        if (calculatedUserType === 'lecturer') {
-          window.location.href = '/lecturer/dashboard';
-          return;
-        }
-
-        window.location.href = '/student/dashboard';
-        return;
-      }
-
-      const message = data?.error || data?.detail || `Login failed (HTTP ${response.status}).`;
-      setError(message);
-    } catch (err) {
-      console.error('Login error:', err);
+      setSuccessMessage('Login successful! Redirecting to your dashboard...');
+      setTimeout(() => {
+            const targetPath = isAdmin
+              ? '/admin/dashboard'
+              : userType === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
+            window.location.href = targetPath;
+      }, 500);
+    } catch {
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
@@ -198,183 +172,147 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-6">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <img src={logo} alt="GroupHub Logo" className="h-10 w-auto" />
+    <div className="min-h-screen bg-[#26303B] text-[#EBEBDD] flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-[440px] rounded-[30px] border border-white/10 bg-[#0F172A] px-6 py-5 shadow-[0_30px_60px_rgba(15,23,42,0.45)] backdrop-blur-sm">
+        <div className="mb-6 flex justify-center">
+          <img src={logo} alt="GroupHub" className="h-12 w-auto opacity-95" />
+        </div>
+
+        <div className="mb-6 border-b border-[#EBEBDD]/20 pb-3">
+          <button
+            type="button"
+            className="mx-auto block w-full text-center text-2xl font-semibold text-[#EBEBDD]"
+          >
+            Login
+          </button>
+        </div>
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="username" className="mb-2 block text-lg font-medium text-[#EBEBDD]">
+              Admission number / Staff ID
+            </label>
+            <div className="flex items-center gap-3 rounded-2xl border border-[#EBEBDD]/25 bg-[#EBEBDD]/5 px-4 py-3 focus-within:border-[#9A694E] transition-colors">
+              <svg className="h-5 w-5 text-[#EBEBDD]/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Z" />
+                <path d="m5 7 7 6 7-6" />
+              </svg>
+              <input
+                ref={usernameRef}
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                required
+                className="w-full bg-transparent text-base text-[#EBEBDD] placeholder-[#EBEBDD]/50 focus:outline-none"
+                placeholder="e.g. ZEC/001/2024 or CS2345"
+                value={formData.username}
+                onChange={handleChange}
+              />
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Welcome Back</h1>
-            <p className="text-base text-gray-600">Log in to continue</p>
           </div>
 
-          <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-1">
-                  Email address
-                </label>
-                <input
-                  ref={emailRef}
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="appearance-none rounded-xl relative block w-full px-4 py-3 border border-gray-200 bg-gray-50 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-4 focus:ring-amber-100 focus:border-amber-300 sm:text-sm transition-all duration-200"
-                  placeholder="yourname@zetech.ac.ke"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="relative">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-800 mb-1">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  className="appearance-none rounded-xl relative block w-full px-4 py-3 pr-10 border border-gray-200 bg-gray-50 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-4 focus:ring-amber-100 focus:border-amber-300 sm:text-sm transition-all duration-200"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
-
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
-                      />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                  )}
-                </button>
-              </div>
-
-              {(validationError || error) && (
-                <p className="text-red-600 text-sm text-center">{validationError || error}</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="rememberMe"
-                  name="rememberMe"
-                  type="checkbox"
-                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                />
-                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-              <div className="text-sm">
-                <Link
-                  to="/forgot-password"
-                  className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
-
-            <div>
+          <div>
+            <label htmlFor="password" className="mb-2 block text-lg font-medium text-[#EBEBDD]">
+              Password
+            </label>
+            <div className="flex items-center gap-3 rounded-2xl border border-[#EBEBDD]/25 bg-[#EBEBDD]/5 px-4 py-3 focus-within:border-[#9A694E] transition-colors">
+              <svg className="h-5 w-5 text-[#EBEBDD]/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="5" y="10" width="14" height="10" rx="2" />
+                <path d="M8 10V7.5A4 4 0 0 1 16 7.5V10" />
+              </svg>
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                className="w-full bg-transparent text-base text-[#EBEBDD] placeholder-[#EBEBDD]/50 focus:outline-none"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+              />
               <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-[#F57D67] hover:bg-[#e66b5b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F57D67] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                type="button"
+                className="text-[#EBEBDD]/70 hover:text-[#EBEBDD]"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label="Toggle password visibility"
               >
-                {isLoading ? (
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
+                {showPassword ? (
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M3 3l18 18" />
+                    <path d="M10.58 10.58A2 2 0 0 0 13.42 13.42" />
+                    <path d="M9.88 5.08A10.94 10.94 0 0 1 12 5c5 0 9 4 9 7 0 1.3-.8 2.74-2.1 4.1" />
+                    <path d="M6.61 6.61A15.47 15.47 0 0 0 3 12c0 3 4 7 9 7 1.71 0 3.27-.38 4.61-1.05" />
                   </svg>
-                ) : null}
-                {isLoading ? 'Logging in...' : 'Log In'}
+                ) : (
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
               </button>
             </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-100 text-gray-500">OR</span>
-              </div>
-            </div>
-
-            <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
-
-              <div>
-                <GoogleLoginButton
-                  googleClientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
-
-                  onLoadingChange={setGoogleLoading}
-                  onError={setGoogleError}
-                />
-
-                {googleLoading ? (
-                  <p className="text-gray-600 text-sm text-center mt-2">Signing in...</p>
-                ) : null}
-                {googleError && <p className="text-red-600 text-sm text-center mt-2">{googleError}</p>}
-              </div>
-            </GoogleOAuthProvider>
-          </form>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                Sign Up
-              </Link>
-            </p>
           </div>
-        </div>
+
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-sm text-[#EBEBDD]/80 hover:text-[#EBEBDD] transition-colors">
+              Forgot password?
+            </Link>
+          </div>
+
+          {(validationError || error) && (
+            <p className="rounded-xl border border-red-500/40 bg-red-900/20 px-3 py-2 text-xs text-white">
+              {validationError || error}
+            </p>
+          )}
+
+          {successMessage && (
+            <p className="rounded-xl border border-emerald-500/40 bg-emerald-900/20 px-3 py-2 text-xs text-emerald-100">
+              {successMessage}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-full bg-[#1F4E79] px-4 py-4 text-lg font-semibold text-white transition-colors hover:bg-[#173d5d] disabled:opacity-70"
+          >
+            {isLoading ? 'Signing in...' : 'Sign In'}
+          </button>
+
+          <div className="relative py-1">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#EBEBDD]/20" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-[#2C3D3A] px-3 text-xs uppercase tracking-[0.2em] text-[#EBEBDD]/60">
+                or continue with
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleGoogleLogin()}
+            disabled={googleLoading}
+            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3 text-base font-medium text-[#26303B] shadow-sm transition-colors hover:bg-[#f3f4f6] disabled:opacity-70"
+          >
+            <GoogleGIcon className="h-5 w-5" />
+            <span>Continue with Google</span>
+          </button>
+
+          {googleError && (
+            <p className="text-center text-xs text-white">{googleError}</p>
+          )}
+
+          <p className="pt-1 text-center text-base text-[#EBEBDD]/80">
+            Don&apos;t have an account?{' '}
+            <Link to="/signup" className="font-semibold text-[#1F4E79] hover:text-[#173d5d]">
+              Sign up
+            </Link>
+          </p>
+        </form>
       </div>
     </div>
   );
