@@ -10,12 +10,14 @@ import About from './components/About';
 import Contact from './components/Contact';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
-import AdminDashboard from './components/AdminDashboard';
 import GroupChatRoom from './components/GroupChatRoom';
 import JoinLink from './components/JoinLink';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function App() {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const loginPage = <Login googleEnabled={Boolean(googleClientId)} />;
+
   return (
     <Router
       future={{
@@ -38,9 +40,11 @@ function App() {
         <Route
           path="/login"
           element={
-            <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
-              <Login />
-            </GoogleOAuthProvider>
+            googleClientId ? (
+              <GoogleOAuthProvider clientId={googleClientId}>
+                {loginPage}
+              </GoogleOAuthProvider>
+            ) : loginPage
           }
         />
 
@@ -48,11 +52,9 @@ function App() {
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
-

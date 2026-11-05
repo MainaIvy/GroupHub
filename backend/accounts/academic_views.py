@@ -13,7 +13,8 @@ def academic_courses_view(request):
 
     for course in courses:
         structure = {}
-        unit_rows = Unit.objects.filter(course=course).values_list('year_of_study', 'semester').distinct()
+        course_units = Unit.objects.filter(course=course).order_by('year_of_study', 'semester', 'code')
+        unit_rows = course_units.values_list('year_of_study', 'semester').distinct()
         for year, semester in unit_rows.order_by('year_of_study', 'semester'):
             structure.setdefault(str(year), []).append(semester)
 
@@ -23,6 +24,14 @@ def academic_courses_view(request):
             'name': course.name,
             'department': course.department,
             'structure': structure,
+            'units': [{
+                'id': unit.id,
+                'code': unit.code,
+                'name': unit.name,
+                'year_of_study': unit.year_of_study,
+                'semester': unit.semester,
+                'assigned_lecturer_id': unit.assigned_lecturer_id,
+            } for unit in course_units],
         })
 
     return Response({'courses': course_data})

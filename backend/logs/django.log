@@ -1,0 +1,573 @@
+INFO 2026-11-03 06:45:55,294 views 43906 133371194753024 Dashboard request for user 2: lecturer.demo@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:45:55,309 views 43906 133371194753024 Dashboard data returned for user 2
+INFO 2026-11-03 06:46:09,152 views 44104 131710757302272 Dashboard request for user 2: lecturer.demo@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,172 views 44104 131710757302272 Dashboard data returned for user 2
+INFO 2026-11-03 06:46:09,173 views 44104 131710757302272 Dashboard request for user 7: ken2@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,186 views 44104 131710757302272 Dashboard data returned for user 7
+INFO 2026-11-03 06:46:09,187 views 44104 131710757302272 Dashboard request for user 8: mark2@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,199 views 44104 131710757302272 Dashboard data returned for user 8
+INFO 2026-11-03 06:46:09,200 views 44104 131710757302272 Dashboard request for user 9: isaac@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,211 views 44104 131710757302272 Dashboard data returned for user 9
+INFO 2026-11-03 06:46:09,213 views 44104 131710757302272 Dashboard request for user 10: mwalimu@zetech.ac.ke, type: lecturer
+INFO 2026-11-03 06:46:09,226 views 44104 131710757302272 Dashboard data returned for user 10
+WARNING 2026-11-05 08:46:28,033 log 1568793 128407739105280 Bad Request: /api/accounts/login/
+INFO 2026-11-05 09:01:43,407 autoreload 1586455 124183816966144 Watching for file changes with StatReloader
+INFO 2026-11-05 09:01:43,956 server 1586455 124183749797440 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-05 09:01:43,956 server 1586455 124183749797440 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-05 09:01:43,957 server 1586455 124183749797440 Listening on TCP address 127.0.0.1:8000
+INFO 2026-11-05 09:01:52,068 runserver 1586455 124183749797440 [mHTTP POST /api/login/ 200 [2.14, 127.0.0.1:47484][0m
+INFO 2026-11-05 09:01:53,772 views 1586455 124183690344000 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:01:53,879 views 1586455 124183690344000 Dashboard data returned for user 12
+INFO 2026-11-05 09:01:53,922 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.18, 127.0.0.1:47486][0m
+WARNING 2026-11-05 09:01:53,934 log 1586455 124183593866816 Not Found: /socket.io/
+WARNING 2026-11-05 09:01:53,938 runserver 1586455 124183749797440 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bh132mfz 404 [0.19, 127.0.0.1:47492][0m
+WARNING 2026-11-05 09:01:53,946 log 1586455 124183593866816 Not Found: /socket.io/
+WARNING 2026-11-05 09:01:53,949 runserver 1586455 124183749797440 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bh13a7kn 404 [0.17, 127.0.0.1:47496][0m
+INFO 2026-11-05 09:01:53,958 views 1586455 124183690344000 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:01:53,975 views 1586455 124183690344000 Dashboard data returned for user 12
+INFO 2026-11-05 09:01:53,983 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.05, 127.0.0.1:47510][0m
+WARNING 2026-11-05 09:01:54,839 log 1586455 124183593866816 Not Found: /socket.io/
+WARNING 2026-11-05 09:01:54,840 runserver 1586455 124183749797440 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bh1xlsrv 404 [0.01, 127.0.0.1:47496][0m
+WARNING 2026-11-05 09:01:56,418 log 1586455 124183593866816 Not Found: /socket.io/
+WARNING 2026-11-05 09:01:56,419 runserver 1586455 124183749797440 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bh35eexp 404 [0.01, 127.0.0.1:47496][0m
+WARNING 2026-11-05 09:01:59,246 log 1586455 124183593866816 Not Found: /socket.io/
+WARNING 2026-11-05 09:01:59,247 runserver 1586455 124183749797440 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bh5bt2tz 404 [0.02, 127.0.0.1:47496][0m
+INFO 2026-11-05 09:02:01,170 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.06, 127.0.0.1:32918][0m
+INFO 2026-11-05 09:02:01,175 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.06, 127.0.0.1:32928][0m
+WARNING 2026-11-05 09:02:04,269 log 1586455 124183593866816 Not Found: /socket.io/
+WARNING 2026-11-05 09:02:04,270 runserver 1586455 124183749797440 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bh97gs6d 404 [0.01, 127.0.0.1:47496][0m
+WARNING 2026-11-05 09:02:09,893 log 1586455 124183593866816 Not Found: /socket.io/
+WARNING 2026-11-05 09:02:09,894 runserver 1586455 124183749797440 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bhdjp8p9 404 [0.01, 127.0.0.1:47496][0m
+INFO 2026-11-05 09:02:12,520 runserver 1586455 124183749797440 [mHTTP POST /api/login/ 200 [1.48, 127.0.0.1:49764][0m
+INFO 2026-11-05 09:02:14,637 views 1586455 124183690344000 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:02:14,688 views 1586455 124183690344000 Dashboard data returned for user 11
+INFO 2026-11-05 09:02:14,703 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.08, 127.0.0.1:49778][0m
+INFO 2026-11-05 09:02:14,760 views 1586455 124183690344000 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:02:14,790 views 1586455 124183690344000 Dashboard data returned for user 11
+INFO 2026-11-05 09:02:14,795 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.08, 127.0.0.1:49786][0m
+INFO 2026-11-05 09:02:14,983 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.02, 127.0.0.1:49796][0m
+INFO 2026-11-05 09:02:15,013 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.02, 127.0.0.1:49798][0m
+INFO 2026-11-05 09:02:43,166 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.02, 127.0.0.1:44602][0m
+INFO 2026-11-05 09:02:43,172 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.03, 127.0.0.1:44598][0m
+INFO 2026-11-05 09:02:49,000 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.03, 127.0.0.1:44604][0m
+INFO 2026-11-05 09:02:49,007 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:44616][0m
+INFO 2026-11-05 09:02:55,923 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:42536][0m
+INFO 2026-11-05 09:02:55,928 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.05, 127.0.0.1:42534][0m
+INFO 2026-11-05 09:04:22,686 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/profile/settings/ 200 [0.04, 127.0.0.1:49820][0m
+INFO 2026-11-05 09:04:22,703 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/academic/courses/ 200 [0.06, 127.0.0.1:49828][0m
+INFO 2026-11-05 09:04:46,591 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.03, 127.0.0.1:35306][0m
+INFO 2026-11-05 09:04:46,593 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.03, 127.0.0.1:35298][0m
+INFO 2026-11-05 09:04:46,633 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.03, 127.0.0.1:35308][0m
+INFO 2026-11-05 09:04:46,644 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.04, 127.0.0.1:35316][0m
+INFO 2026-11-05 09:04:47,791 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/profile/settings/ 200 [0.04, 127.0.0.1:35324][0m
+INFO 2026-11-05 09:04:47,806 runserver 1586455 124183749797440 [mHTTP GET /api/accounts/academic/courses/ 200 [0.05, 127.0.0.1:35336][0m
+INFO 2026-11-05 09:04:55,047 autoreload 1586455 124183816966144 /home/netbot/Downloads/GroupHub/backend/accounts/views.py changed, reloading.
+INFO 2026-11-05 09:04:56,447 autoreload 1589851 132650930073600 Watching for file changes with StatReloader
+INFO 2026-11-05 09:04:56,898 server 1589851 132650862585408 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-05 09:04:56,899 server 1589851 132650862585408 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-05 09:04:56,900 server 1589851 132650862585408 Listening on TCP address 127.0.0.1:8000
+INFO 2026-11-05 09:05:06,089 views 1589851 132650731828800 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:05:06,089 views 1589851 132650731828800 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:05:06,187 log 1589851 132650706650688 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:05:06,188 runserver 1589851 132650862585408 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.18, 127.0.0.1:48832][0m
+WARNING 2026-11-05 09:05:06,215 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:06,216 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:06,217 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bl5g4w5x 404 [0.18, 127.0.0.1:48842][0m
+WARNING 2026-11-05 09:05:06,218 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bl5g9oq9 404 [0.16, 127.0.0.1:48844][0m
+INFO 2026-11-05 09:05:06,244 views 1589851 132650689865280 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:05:06,244 views 1589851 132650689865280 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:05:06,249 log 1589851 132650706650688 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:05:06,250 runserver 1589851 132650862585408 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.05, 127.0.0.1:48848][0m
+WARNING 2026-11-05 09:05:06,863 log 1589851 132650698257984 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:06,864 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bl63jy5z 404 [0.01, 127.0.0.1:48844][0m
+INFO 2026-11-05 09:05:09,776 views 1589851 132650689865280 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:05:09,776 views 1589851 132650689865280 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:05:09,791 log 1589851 132650706650688 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:05:09,793 runserver 1589851 132650862585408 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.04, 127.0.0.1:51286][0m
+WARNING 2026-11-05 09:05:09,828 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:09,829 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bl8d7ptv 404 [0.03, 127.0.0.1:48844][0m
+WARNING 2026-11-05 09:05:14,870 log 1589851 132650698257984 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:14,871 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=blc9qxzy 404 [0.02, 127.0.0.1:48844][0m
+WARNING 2026-11-05 09:05:19,939 log 1589851 132650698257984 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:19,940 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=blg5gxiq 404 [0.04, 127.0.0.1:48844][0m
+WARNING 2026-11-05 09:05:24,978 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:24,980 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=blk2pau0 404 [0.01, 127.0.0.1:48844][0m
+INFO 2026-11-05 09:05:25,475 views 1590296 124436990738432 Dashboard request for user 1: roster-lecturer@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:05:25,507 views 1590296 124436990738432 Dashboard data returned for user 1
+INFO 2026-11-05 09:05:54,697 views 1589851 132650723436096 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:05:54,698 views 1589851 132650723436096 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:05:54,741 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:54,742 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bm6wcpnd 404 [0.15, 127.0.0.1:48842][0m
+WARNING 2026-11-05 09:05:54,746 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:54,764 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bm6w71j3 404 [0.20, 127.0.0.1:48844][0m
+WARNING 2026-11-05 09:05:54,765 log 1589851 132650698257984 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:05:54,795 runserver 1589851 132650862585408 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.24, 127.0.0.1:39848][0m
+INFO 2026-11-05 09:05:54,852 views 1589851 132650723436096 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:05:54,853 views 1589851 132650723436096 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:05:54,870 log 1589851 132650706650688 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:05:54,871 runserver 1589851 132650862585408 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.05, 127.0.0.1:39864][0m
+WARNING 2026-11-05 09:05:55,781 log 1589851 132650698257984 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:55,782 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bm7u9cwr 404 [0.01, 127.0.0.1:48844][0m
+INFO 2026-11-05 09:05:55,831 views 1589851 132650723436096 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:05:55,832 views 1589851 132650723436096 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:05:55,841 log 1589851 132650698257984 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:05:55,842 runserver 1589851 132650862585408 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.04, 127.0.0.1:39870][0m
+WARNING 2026-11-05 09:05:58,324 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:05:58,325 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bm9st3uy 404 [0.01, 127.0.0.1:48844][0m
+WARNING 2026-11-05 09:06:01,505 log 1589851 132650706650688 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:01,506 runserver 1589851 132650862585408 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bmc971pn 404 [0.02, 127.0.0.1:48844][0m
+INFO 2026-11-05 09:06:05,104 autoreload 1589851 132650930073600 /home/netbot/Downloads/GroupHub/backend/accounts/views.py changed, reloading.
+INFO 2026-11-05 09:06:07,430 autoreload 1591090 129733183709184 Watching for file changes with StatReloader
+INFO 2026-11-05 09:06:08,774 server 1591090 129733115979328 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-05 09:06:08,774 server 1591090 129733115979328 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-05 09:06:08,800 server 1591090 129733115979328 Listening on TCP address 127.0.0.1:8000
+WARNING 2026-11-05 09:06:12,001 log 1591090 129732976834112 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:12,003 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bmk9xjay 404 [0.12, 127.0.0.1:49058][0m
+INFO 2026-11-05 09:06:20,058 views 1591195 127145604915200 Dashboard request for user 1: roster-lecturer@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:06:20,070 views 1591195 127145604915200 Dashboard data returned for user 1
+INFO 2026-11-05 09:06:32,015 views 1591090 129733056525888 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:06:32,016 views 1591090 129733056525888 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:06:32,024 log 1591090 129732976834112 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:06:32,025 runserver 1591090 129733115979328 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.05, 127.0.0.1:38568][0m
+INFO 2026-11-05 09:06:44,498 runserver 1591090 129733115979328 [mHTTP POST /api/login/ 200 [1.49, 127.0.0.1:47700][0m
+INFO 2026-11-05 09:06:46,049 views 1591090 129733056525888 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:06:46,069 log 1591090 129732976834112 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:46,070 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bnak0yv3 404 [0.08, 127.0.0.1:47728][0m
+WARNING 2026-11-05 09:06:46,103 log 1591090 129732976834112 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:46,103 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bnajw9qh 404 [0.13, 127.0.0.1:49058][0m
+INFO 2026-11-05 09:06:46,115 views 1591090 129733056525888 Dashboard data returned for user 12
+INFO 2026-11-05 09:06:46,122 runserver 1591090 129733115979328 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.15, 127.0.0.1:47716][0m
+INFO 2026-11-05 09:06:46,153 views 1591090 129733056525888 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:06:46,173 views 1591090 129733056525888 Dashboard data returned for user 12
+INFO 2026-11-05 09:06:46,179 runserver 1591090 129733115979328 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.05, 127.0.0.1:47736][0m
+WARNING 2026-11-05 09:06:47,367 log 1591090 129732951656000 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:47,368 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bnbn8a48 404 [0.01, 127.0.0.1:49058][0m
+WARNING 2026-11-05 09:06:50,326 log 1591090 129732951656000 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:50,327 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bndxgtuc 404 [0.01, 127.0.0.1:49058][0m
+WARNING 2026-11-05 09:06:53,009 log 1591090 129732951656000 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:53,010 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bng01miz 404 [0.01, 127.0.0.1:49058][0m
+INFO 2026-11-05 09:06:57,012 runserver 1591090 129733115979328 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.04, 127.0.0.1:41964][0m
+INFO 2026-11-05 09:06:57,016 runserver 1591090 129733115979328 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:41966][0m
+WARNING 2026-11-05 09:06:58,036 log 1591090 129732976834112 Not Found: /socket.io/
+WARNING 2026-11-05 09:06:58,037 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bnjvh9bv 404 [0.02, 127.0.0.1:49058][0m
+WARNING 2026-11-05 09:07:03,075 log 1591090 129732976834112 Not Found: /socket.io/
+WARNING 2026-11-05 09:07:03,076 runserver 1591090 129733115979328 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=bnnr8vbp 404 [0.02, 127.0.0.1:49058][0m
+INFO 2026-11-05 09:09:18,567 autoreload 1591090 129733183709184 /home/netbot/Downloads/GroupHub/backend/accounts/views.py changed, reloading.
+INFO 2026-11-05 09:09:20,257 autoreload 1594448 125376550752256 Watching for file changes with StatReloader
+INFO 2026-11-05 09:09:20,890 server 1594448 125376482977344 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-05 09:09:20,891 server 1594448 125376482977344 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-05 09:09:20,892 server 1594448 125376482977344 Listening on TCP address 127.0.0.1:8000
+INFO 2026-11-05 09:09:40,273 views 1594673 138766549594112 User 1 created successfully. Automated development bypass activation.
+INFO 2026-11-05 09:09:42,995 views 1594673 138766549594112 Dashboard request for user 1: roster-lecturer@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:09:43,015 views 1594673 138766549594112 Dashboard data returned for user 1
+WARNING 2026-11-05 09:10:11,361 log 1595052 132222560215040 Forbidden: /api/accounts/chat/direct/
+WARNING 2026-11-05 09:10:14,024 log 1595052 132222560215040 Forbidden: /api/accounts/chat/1/mark-read/
+WARNING 2026-11-05 09:10:15,654 log 1595052 132222560215040 Forbidden: /api/accounts/groups/1/delete/
+WARNING 2026-11-05 09:10:18,302 log 1595052 132222560215040 Forbidden: /api/accounts/chat/messages/1/attachment/
+WARNING 2026-11-05 09:10:22,455 log 1595052 132222560215040 Forbidden: /api/accounts/chat/rooms/1/
+INFO 2026-11-05 09:10:35,107 views 1595052 132222560215040 Dashboard request for user 1: group-leader@zetech.ac.ke, type: student
+INFO 2026-11-05 09:10:35,122 views 1595052 132222560215040 Dashboard data returned for user 1
+WARNING 2026-11-05 09:10:35,151 log 1595052 132222560215040 Forbidden: /api/accounts/tasks/1/update-status/
+WARNING 2026-11-05 09:10:40,266 log 1595052 132222560215040 Bad Request: /api/accounts/groups/join/
+WARNING 2026-11-05 09:10:40,271 log 1595052 132222560215040 Bad Request: /api/accounts/groups/join/
+WARNING 2026-11-05 09:10:40,275 log 1595052 132222560215040 Not Found: /api/accounts/groups/join/
+WARNING 2026-11-05 09:10:42,921 log 1595052 132222560215040 Forbidden: /api/accounts/groups/1/delete/
+WARNING 2026-11-05 09:10:42,927 log 1595052 132222560215040 Bad Request: /api/accounts/groups/1/leave/
+WARNING 2026-11-05 09:10:42,930 log 1595052 132222560215040 Bad Request: /api/accounts/groups/1/leave/
+WARNING 2026-11-05 09:10:51,994 log 1595052 132222560215040 Forbidden: /api/accounts/groups/1/balance/
+WARNING 2026-11-05 09:11:02,030 log 1595052 132222560215040 Bad Request: /api/accounts/groups/1/tasks/assign/
+WARNING 2026-11-05 09:11:02,040 log 1595052 132222560215040 Bad Request: /api/accounts/groups/1/tasks/assign/
+WARNING 2026-11-05 09:11:02,046 log 1595052 132222560215040 Bad Request: /api/accounts/groups/1/tasks/assign/
+WARNING 2026-11-05 09:11:05,507 log 1595052 132222560215040 Forbidden: /api/accounts/groups/1/activity/
+WARNING 2026-11-05 09:11:08,998 log 1595052 132222560215040 Forbidden: /api/accounts/groups/1/comments/
+WARNING 2026-11-05 09:11:22,829 log 1595052 132222560215040 Bad Request: /api/accounts/tasks/1/update-status/
+WARNING 2026-11-05 09:11:33,280 log 1595052 132222560215040 Bad Request: /api/accounts/groups/1/tasks/1/reassign/
+WARNING 2026-11-05 09:11:44,662 log 1595052 132222560215040 Not Found: /api/units/1/claim/
+INFO 2026-11-05 09:11:47,220 views 1595052 132222560215040 Dashboard request for user 1: roster-lecturer@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:11:47,239 views 1595052 132222560215040 Dashboard data returned for user 1
+WARNING 2026-11-05 09:11:48,207 log 1595052 132222560215040 Not Found: /api/lecturer/oversight/
+INFO 2026-11-05 09:11:49,198 views 1595052 132222560215040 User 1 created successfully. Automated development bypass activation.
+WARNING 2026-11-05 09:11:49,207 log 1595052 132222560215040 Not Found: /api/departments/
+WARNING 2026-11-05 09:11:49,211 log 1595052 132222560215040 Bad Request: /api/signup/
+WARNING 2026-11-05 09:11:49,215 log 1595052 132222560215040 Bad Request: /api/signup/
+WARNING 2026-11-05 09:11:54,230 log 1595052 132222560215040 Bad Request: /api/accounts/login/
+WARNING 2026-11-05 09:11:56,916 log 1595052 132222560215040 Bad Request: /api/accounts/profile/settings/
+WARNING 2026-11-05 09:12:02,555 log 1595052 132222560215040 Bad Request: /api/accounts/profile/change-password/
+INFO 2026-11-05 09:12:06,102 views 1595052 132222560215040 Dashboard request for user 1: legacy-dashboard@zetech.ac.ke, type: student
+INFO 2026-11-05 09:12:06,113 views 1595052 132222560215040 Dashboard data returned for user 1
+INFO 2026-11-05 09:12:07,053 views 1595052 132222560215040 Dashboard request for user 1: cohort-dashboard@zetech.ac.ke, type: student
+INFO 2026-11-05 09:12:07,064 views 1595052 132222560215040 Dashboard data returned for user 1
+INFO 2026-11-05 09:12:07,897 views 1595052 132222560215040 User 1 created successfully. Automated development bypass activation.
+WARNING 2026-11-05 09:12:10,484 views 1595052 132222560215040 Signup attempt with invalid email: sample@example.com from 127.0.0.1
+WARNING 2026-11-05 09:12:10,485 log 1595052 132222560215040 Bad Request: /api/accounts/signup/
+WARNING 2026-11-05 09:12:10,487 log 1595052 132222560215040 Forbidden (Permission denied): /api/accounts/signup/
+Traceback (most recent call last):
+  File "/home/netbot/.local/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/netbot/.local/lib/python3.10/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/netbot/.local/lib/python3.10/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/netbot/.local/lib/python3.10/site-packages/django_ratelimit/decorators.py", line 26, in _wrapped
+    raise (import_string(cls) if isinstance(cls, str) else cls)()
+django_ratelimit.exceptions.Ratelimited
+WARNING 2026-11-05 09:12:10,495 log 1595052 132222560215040 Forbidden (Permission denied): /api/signup/
+Traceback (most recent call last):
+  File "/home/netbot/.local/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/netbot/.local/lib/python3.10/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/netbot/.local/lib/python3.10/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/netbot/.local/lib/python3.10/site-packages/django_ratelimit/decorators.py", line 26, in _wrapped
+    raise (import_string(cls) if isinstance(cls, str) else cls)()
+django_ratelimit.exceptions.Ratelimited
+WARNING 2026-11-05 09:12:12,972 log 1595052 132222560215040 Bad Request: /api/accounts/groups/1/tasks/2/reassign/
+WARNING 2026-11-05 09:12:20,792 log 1595052 132222560215040 Forbidden: /api/accounts/groups/1/submissions/
+WARNING 2026-11-05 09:12:20,796 log 1595052 132222560215040 Forbidden: /api/accounts/groups/1/submissions/
+INFO 2026-11-05 09:12:34,287 autoreload 1594448 125376550752256 /home/netbot/Downloads/GroupHub/backend/accounts/views.py changed, reloading.
+INFO 2026-11-05 09:12:36,352 autoreload 1597352 127547775221760 Watching for file changes with StatReloader
+INFO 2026-11-05 09:12:37,214 server 1597352 127547707434560 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-05 09:12:37,214 server 1597352 127547707434560 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-05 09:12:37,216 server 1597352 127547707434560 Listening on TCP address 127.0.0.1:8000
+WARNING 2026-11-05 09:12:46,689 log 1597408 123665638948864 Bad Request: /api/signup/
+INFO 2026-11-05 09:12:47,667 views 1597408 123665638948864 User 1 created successfully. Automated development bypass activation.
+INFO 2026-11-05 09:12:48,589 views 1597408 123665638948864 User 1 created successfully. Automated development bypass activation.
+INFO 2026-11-05 09:14:45,361 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/academic/courses/ 200 [0.04, 127.0.0.1:46128][0m
+INFO 2026-11-05 09:16:48,489 views 1601695 136393926660096 User 1 created successfully. Automated development bypass activation.
+INFO 2026-11-05 09:18:00,915 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:51952][0m
+INFO 2026-11-05 09:18:05,420 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:51964][0m
+INFO 2026-11-05 09:19:42,479 views 1597352 127547576677952 User 13 created successfully. Automated development bypass activation.
+INFO 2026-11-05 09:19:42,482 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/signup/ 201 [0.90, 127.0.0.1:48220][0m
+INFO 2026-11-05 09:19:51,335 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.63, 127.0.0.1:48226][0m
+INFO 2026-11-05 09:19:52,792 views 1597352 127547576677952 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:19:52,836 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:19:52,845 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:19:52,846 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c45kpfv1 404 [0.17, 127.0.0.1:50188][0m
+WARNING 2026-11-05 09:19:52,858 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c45klsu9 404 [0.18, 127.0.0.1:50172][0m
+INFO 2026-11-05 09:19:52,913 views 1597352 127547576677952 Dashboard data returned for user 13
+INFO 2026-11-05 09:19:52,932 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.28, 127.0.0.1:50162][0m
+INFO 2026-11-05 09:19:52,960 views 1597352 127547576677952 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:19:52,992 views 1597352 127547576677952 Dashboard data returned for user 13
+INFO 2026-11-05 09:19:52,998 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.06, 127.0.0.1:50198][0m
+WARNING 2026-11-05 09:19:53,678 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:19:53,678 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c46dbg8z 404 [0.01, 127.0.0.1:50172][0m
+WARNING 2026-11-05 09:19:55,244 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:19:55,245 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c47kpjtf 404 [0.02, 127.0.0.1:50172][0m
+WARNING 2026-11-05 09:19:57,926 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:19:57,927 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c49nbqty 404 [0.01, 127.0.0.1:50172][0m
+INFO 2026-11-05 09:19:58,421 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:50224][0m
+INFO 2026-11-05 09:19:58,425 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.05, 127.0.0.1:50214][0m
+WARNING 2026-11-05 09:20:02,948 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:20:02,949 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c4diurfl 404 [0.01, 127.0.0.1:50172][0m
+WARNING 2026-11-05 09:20:07,964 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:20:07,965 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c4he8pmz 404 [0.01, 127.0.0.1:50172][0m
+INFO 2026-11-05 09:20:56,025 views 1597352 127547568285248 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:20:56,031 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:20:56,032 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:20:56,037 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c5iex7g5 404 [0.09, 127.0.0.1:50172][0m
+WARNING 2026-11-05 09:20:56,037 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c5if6co4 404 [0.06, 127.0.0.1:50720][0m
+INFO 2026-11-05 09:20:56,065 views 1597352 127547568285248 Dashboard data returned for user 13
+INFO 2026-11-05 09:20:56,069 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.11, 127.0.0.1:50716][0m
+INFO 2026-11-05 09:20:56,104 views 1597352 127547568285248 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:20:56,161 views 1597352 127547568285248 Dashboard data returned for user 13
+INFO 2026-11-05 09:20:56,165 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.08, 127.0.0.1:50724][0m
+WARNING 2026-11-05 09:20:57,352 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:20:57,353 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c5jhw4np 404 [0.02, 127.0.0.1:50720][0m
+WARNING 2026-11-05 09:20:58,998 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:20:59,002 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c5kpsjzg 404 [0.08, 127.0.0.1:50720][0m
+WARNING 2026-11-05 09:21:04,046 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:21:04,047 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c5onpmzv 404 [0.02, 127.0.0.1:50720][0m
+INFO 2026-11-05 09:21:07,556 views 1606303 132176561176576 Dashboard request for user 1: roster-lecturer@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:21:07,573 views 1606303 132176561176576 Dashboard data returned for user 1
+WARNING 2026-11-05 09:21:09,091 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:21:09,093 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c5sjkxt6 404 [0.03, 127.0.0.1:50720][0m
+WARNING 2026-11-05 09:21:14,117 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:21:14,118 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=c5wfpigo 404 [0.01, 127.0.0.1:50720][0m
+INFO 2026-11-05 09:22:29,706 views 1597352 127547568285248 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:22:29,706 views 1597352 127547568285248 Access denied for non-student user 13
+WARNING 2026-11-05 09:22:29,712 log 1597352 127547543107136 Forbidden: /api/accounts/dashboard/student/
+WARNING 2026-11-05 09:22:29,713 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/student/ 403 [0.03, 127.0.0.1:38942][0m
+INFO 2026-11-05 09:22:29,756 views 1597352 127547568285248 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:22:29,756 views 1597352 127547568285248 Access denied for non-student user 13
+WARNING 2026-11-05 09:22:29,760 log 1597352 127547551499840 Forbidden: /api/accounts/dashboard/student/
+WARNING 2026-11-05 09:22:29,762 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/student/ 403 [0.04, 127.0.0.1:34578][0m
+INFO 2026-11-05 09:22:42,506 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.37, 127.0.0.1:47892][0m
+INFO 2026-11-05 09:22:43,909 views 1597352 127547568285248 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:22:43,931 views 1597352 127547568285248 Dashboard data returned for user 11
+INFO 2026-11-05 09:22:43,935 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.06, 127.0.0.1:47902][0m
+INFO 2026-11-05 09:22:43,990 views 1597352 127547568285248 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:22:44,033 views 1597352 127547568285248 Dashboard data returned for user 11
+INFO 2026-11-05 09:22:44,037 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.09, 127.0.0.1:47916][0m
+INFO 2026-11-05 09:22:44,055 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.04, 127.0.0.1:47926][0m
+INFO 2026-11-05 09:22:44,167 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.04, 127.0.0.1:47942][0m
+INFO 2026-11-05 09:23:28,012 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/groups/create/ 201 [0.08, 127.0.0.1:58244][0m
+INFO 2026-11-05 09:23:31,561 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/activity/ 200 [0.09, 127.0.0.1:52060][0m
+INFO 2026-11-05 09:23:31,563 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/balance/ 200 [0.09, 127.0.0.1:52054][0m
+INFO 2026-11-05 09:23:31,565 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/comments/ 200 [0.09, 127.0.0.1:52070][0m
+INFO 2026-11-05 09:23:31,587 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/workspace/ 200 [0.13, 127.0.0.1:52052][0m
+INFO 2026-11-05 09:23:33,206 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/groups/3/balance/ 200 [0.03, 127.0.0.1:52076][0m
+INFO 2026-11-05 09:24:01,200 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/groups/3/balance/ 200 [0.05, 127.0.0.1:46414][0m
+INFO 2026-11-05 09:24:05,984 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/groups/3/tasks/assign/ 201 [0.12, 127.0.0.1:46416][0m
+INFO 2026-11-05 09:24:06,064 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/comments/ 200 [0.05, 127.0.0.1:46442][0m
+INFO 2026-11-05 09:24:06,073 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/activity/ 200 [0.06, 127.0.0.1:46432][0m
+INFO 2026-11-05 09:24:06,082 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/balance/ 200 [0.07, 127.0.0.1:46428][0m
+INFO 2026-11-05 09:24:06,085 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/workspace/ 200 [0.08, 127.0.0.1:46420][0m
+INFO 2026-11-05 09:24:18,523 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/tasks/4/update-status/ 200 [0.05, 127.0.0.1:43282][0m
+INFO 2026-11-05 09:24:18,601 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/comments/ 200 [0.05, 127.0.0.1:43310][0m
+INFO 2026-11-05 09:24:18,611 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/balance/ 200 [0.06, 127.0.0.1:43296][0m
+INFO 2026-11-05 09:24:18,617 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/activity/ 200 [0.06, 127.0.0.1:43306][0m
+INFO 2026-11-05 09:24:18,626 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/workspace/ 200 [0.08, 127.0.0.1:43288][0m
+INFO 2026-11-05 09:24:34,366 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.05, 127.0.0.1:60866][0m
+INFO 2026-11-05 09:24:34,386 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.07, 127.0.0.1:60860][0m
+WARNING 2026-11-05 09:24:36,363 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:24:36,365 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=ca8flp5v 404 [0.08, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:24:36,368 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/messages/3/ 200 [0.09, 127.0.0.1:60880][0m
+WARNING 2026-11-05 09:24:37,277 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:24:37,278 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=ca96uef7 404 [0.02, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:24:38,159 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/messages/3/ 200 [0.01, 127.0.0.1:60892][0m
+WARNING 2026-11-05 09:24:38,409 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:24:38,410 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=caa2g3if 404 [0.01, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:24:38,741 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/messages/3/ 200 [0.02, 127.0.0.1:60904][0m
+WARNING 2026-11-05 09:24:43,082 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:24:43,083 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cadod3iw 404 [0.01, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:24:48,105 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:24:48,105 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cahjrppc 404 [0.01, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:24:53,123 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:24:53,124 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=calf9eeu 404 [0.01, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:24:53,653 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/chat/send/3/ 201 [0.03, 127.0.0.1:35106][0m
+INFO 2026-11-05 09:25:00,623 views 1597352 127547559892544 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:25:00,674 views 1597352 127547559892544 Dashboard data returned for user 11
+INFO 2026-11-05 09:25:00,677 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.08, 127.0.0.1:35292][0m
+INFO 2026-11-05 09:25:00,696 views 1597352 127547559892544 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:25:00,731 views 1597352 127547559892544 Dashboard data returned for user 11
+INFO 2026-11-05 09:25:00,763 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.08, 127.0.0.1:35306][0m
+INFO 2026-11-05 09:25:00,773 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.06, 127.0.0.1:35316][0m
+INFO 2026-11-05 09:25:00,906 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.06, 127.0.0.1:35320][0m
+INFO 2026-11-05 09:25:06,525 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.05, 127.0.0.1:35332][0m
+INFO 2026-11-05 09:25:06,536 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.07, 127.0.0.1:35322][0m
+INFO 2026-11-05 09:25:06,599 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.07, 127.0.0.1:35346][0m
+INFO 2026-11-05 09:25:06,606 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.06, 127.0.0.1:35350][0m
+INFO 2026-11-05 09:25:06,664 runserver 1597352 127547707434560 WebSocket HANDSHAKING /ws/chat/3/ [127.0.0.1:35356]
+INFO 2026-11-05 09:25:06,717 runserver 1597352 127547707434560 WebSocket CONNECT /ws/chat/3/ [127.0.0.1:35356]
+INFO 2026-11-05 09:25:06,720 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/members/ 200 [0.05, 127.0.0.1:35372][0m
+INFO 2026-11-05 09:25:06,726 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/messages/3/ 200 [0.06, 127.0.0.1:35368][0m
+INFO 2026-11-05 09:25:06,770 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/workspace/ 200 [0.02, 127.0.0.1:35380][0m
+INFO 2026-11-05 09:25:06,801 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/chat/3/mark-read/ 200 [0.02, 127.0.0.1:35386][0m
+INFO 2026-11-05 09:25:10,979 runserver 1597352 127547707434560 WebSocket DISCONNECT /ws/chat/3/ [127.0.0.1:35356]
+INFO 2026-11-05 09:25:15,242 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:51552][0m
+INFO 2026-11-05 09:25:15,251 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.05, 127.0.0.1:51548][0m
+INFO 2026-11-05 09:25:15,282 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:51568][0m
+INFO 2026-11-05 09:25:15,299 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.04, 127.0.0.1:51570][0m
+INFO 2026-11-05 09:25:15,330 runserver 1597352 127547707434560 WebSocket HANDSHAKING /ws/chat/3/ [127.0.0.1:51572]
+INFO 2026-11-05 09:25:15,369 runserver 1597352 127547707434560 WebSocket CONNECT /ws/chat/3/ [127.0.0.1:51572]
+INFO 2026-11-05 09:25:15,390 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/members/ 200 [0.05, 127.0.0.1:51576][0m
+INFO 2026-11-05 09:25:15,405 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/messages/3/ 200 [0.07, 127.0.0.1:51574][0m
+INFO 2026-11-05 09:25:15,451 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/workspace/ 200 [0.03, 127.0.0.1:51590][0m
+INFO 2026-11-05 09:25:15,491 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/chat/3/mark-read/ 200 [0.02, 127.0.0.1:51598][0m
+INFO 2026-11-05 09:25:25,200 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:45680][0m
+INFO 2026-11-05 09:25:35,608 views 1597352 127547559892544 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:25:35,631 views 1597352 127547559892544 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:25:35,688 log 1597352 127547551499840 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:25:35,689 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:35,690 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.13, 127.0.0.1:39998][0m
+WARNING 2026-11-05 09:25:35,690 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbi5u3hb 404 [0.12, 127.0.0.1:40012][0m
+WARNING 2026-11-05 09:25:35,695 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:35,696 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbi5rn4t 404 [0.12, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:25:35,732 views 1597352 127547534714432 Dashboard request for user 11: name@zetech.ac.ke, type: student
+WARNING 2026-11-05 09:25:35,733 views 1597352 127547534714432 Access denied for non-lecturer user 11
+WARNING 2026-11-05 09:25:35,741 log 1597352 127547543107136 Forbidden: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 09:25:35,743 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 403 [0.04, 127.0.0.1:40018][0m
+INFO 2026-11-05 09:25:35,907 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.02, 127.0.0.1:40034][0m
+WARNING 2026-11-05 09:25:36,793 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:36,793 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbj49fpc 404 [0.01, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:25:38,414 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:38,415 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbkd91cz 404 [0.01, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:25:44,831 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.49, 127.0.0.1:36944][0m
+INFO 2026-11-05 09:25:45,990 views 1597352 127547534714432 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:25:46,071 log 1597352 127547551499840 Not Found: /socket.io/
+INFO 2026-11-05 09:25:46,071 views 1597352 127547534714432 Dashboard data returned for user 12
+WARNING 2026-11-05 09:25:46,073 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbq2zjxi 404 [0.21, 127.0.0.1:40012][0m
+WARNING 2026-11-05 09:25:46,073 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:46,077 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbq2xmat 404 [0.22, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:25:46,099 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.19, 127.0.0.1:36964][0m
+INFO 2026-11-05 09:25:46,103 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.26, 127.0.0.1:36948][0m
+INFO 2026-11-05 09:25:46,140 runserver 1597352 127547707434560 WebSocket DISCONNECT /ws/chat/3/ [127.0.0.1:51572]
+INFO 2026-11-05 09:25:46,173 runserver 1597352 127547707434560 WebSocket HANDSHAKING /ws/chat/3/ [127.0.0.1:36986]
+INFO 2026-11-05 09:25:46,183 views 1597352 127547534714432 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:25:46,220 views 1597352 127547534714432 Dashboard data returned for user 12
+INFO 2026-11-05 09:25:46,251 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.14, 127.0.0.1:36974][0m
+INFO 2026-11-05 09:25:46,275 runserver 1597352 127547707434560 WebSocket REJECT /ws/chat/3/ [127.0.0.1:36986]
+INFO 2026-11-05 09:25:46,276 runserver 1597352 127547707434560 WebSocket DISCONNECT /ws/chat/3/ [127.0.0.1:36986]
+WARNING 2026-11-05 09:25:46,281 log 1597352 127547551499840 Forbidden: /api/accounts/chat/messages/3/
+WARNING 2026-11-05 09:25:46,282 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/chat/messages/3/ 403 [0.10, 127.0.0.1:37002][0m
+WARNING 2026-11-05 09:25:46,287 log 1597352 127547551499840 Forbidden: /api/accounts/groups/3/members/
+WARNING 2026-11-05 09:25:46,289 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/groups/3/members/ 403 [0.11, 127.0.0.1:37004][0m
+WARNING 2026-11-05 09:25:47,057 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:47,057 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbr1caxj 404 [0.01, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:25:50,064 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:50,065 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbtcvphb 404 [0.01, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:25:52,643 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.03, 127.0.0.1:37588][0m
+INFO 2026-11-05 09:25:52,653 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:37592][0m
+INFO 2026-11-05 09:25:55,202 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.02, 127.0.0.1:37596][0m
+WARNING 2026-11-05 09:25:55,901 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:25:55,901 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cbxutbme 404 [0.02, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:26:01,891 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:26:01,892 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cc2hh4a0 404 [0.01, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:26:06,911 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:26:06,912 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cc6cx7lg 404 [0.01, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:26:23,217 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.40, 127.0.0.1:51224][0m
+INFO 2026-11-05 09:26:24,832 views 1597352 127547526321728 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:26:24,866 views 1597352 127547526321728 Dashboard data returned for user 11
+INFO 2026-11-05 09:26:24,873 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.07, 127.0.0.1:51226][0m
+INFO 2026-11-05 09:26:24,912 views 1597352 127547526321728 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:26:24,962 views 1597352 127547526321728 Dashboard data returned for user 11
+INFO 2026-11-05 09:26:24,972 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.07, 127.0.0.1:51240][0m
+INFO 2026-11-05 09:26:24,973 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.08, 127.0.0.1:51238][0m
+INFO 2026-11-05 09:26:25,093 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.08, 127.0.0.1:51256][0m
+INFO 2026-11-05 09:26:52,250 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.42, 127.0.0.1:44984][0m
+INFO 2026-11-05 09:26:53,807 views 1597352 127547559892544 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:26:53,825 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:26:53,834 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cd6fk831 404 [0.11, 127.0.0.1:45000][0m
+INFO 2026-11-05 09:26:53,857 views 1597352 127547559892544 Dashboard data returned for user 12
+WARNING 2026-11-05 09:26:53,858 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:26:53,859 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cd6fh4h5 404 [0.15, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:26:53,865 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.15, 127.0.0.1:44992][0m
+INFO 2026-11-05 09:26:53,906 views 1597352 127547559892544 Dashboard request for user 12: bill@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:26:53,928 views 1597352 127547559892544 Dashboard data returned for user 12
+INFO 2026-11-05 09:26:53,934 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.06, 127.0.0.1:45014][0m
+WARNING 2026-11-05 09:26:54,764 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:26:54,765 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cd7a6j9m 404 [0.01, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:26:56,938 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:26:56,941 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cd8y0f77 404 [0.03, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:26:59,213 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:26:59,214 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cdapfj1t 404 [0.02, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:27:04,239 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:27:04,240 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cdel6llb 404 [0.02, 127.0.0.1:60888][0m
+WARNING 2026-11-05 09:27:09,267 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:27:09,268 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cdigu0zg 404 [0.02, 127.0.0.1:60888][0m
+INFO 2026-11-05 09:28:14,166 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.42, 127.0.0.1:48712][0m
+INFO 2026-11-05 09:28:15,484 views 1597352 127547559892544 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:28:15,579 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:28:15,589 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cexizbg2 404 [0.13, 127.0.0.1:48724][0m
+INFO 2026-11-05 09:28:15,601 views 1597352 127547559892544 Dashboard data returned for user 13
+WARNING 2026-11-05 09:28:15,602 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:28:15,606 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cexj1f7a 404 [0.13, 127.0.0.1:48730][0m
+INFO 2026-11-05 09:28:15,614 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.16, 127.0.0.1:48714][0m
+INFO 2026-11-05 09:28:15,639 views 1597352 127547559892544 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:28:15,683 views 1597352 127547559892544 Dashboard data returned for user 13
+INFO 2026-11-05 09:28:15,689 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.06, 127.0.0.1:48734][0m
+WARNING 2026-11-05 09:28:16,192 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:28:16,193 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cey3wmot 404 [0.02, 127.0.0.1:48730][0m
+WARNING 2026-11-05 09:28:19,148 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:28:19,148 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cf0e4fbz 404 [0.01, 127.0.0.1:48730][0m
+WARNING 2026-11-05 09:28:23,919 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:28:23,920 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cf42plh5 404 [0.01, 127.0.0.1:48730][0m
+WARNING 2026-11-05 09:28:28,942 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:28:28,942 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cf7y427d 404 [0.01, 127.0.0.1:48730][0m
+WARNING 2026-11-05 09:28:34,898 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:28:34,899 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cfcjhyhd 404 [0.02, 127.0.0.1:48730][0m
+INFO 2026-11-05 09:28:37,290 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:49322][0m
+INFO 2026-11-05 09:28:37,295 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.05, 127.0.0.1:49320][0m
+INFO 2026-11-05 09:28:37,344 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.05, 127.0.0.1:49328][0m
+INFO 2026-11-05 09:28:37,348 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.04, 127.0.0.1:49334][0m
+WARNING 2026-11-05 09:28:47,757 log 1597352 127547551499840 Forbidden: /api/accounts/groups/3/workspace/
+WARNING 2026-11-05 09:28:47,758 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/groups/3/workspace/ 403 [0.04, 127.0.0.1:55590][0m
+WARNING 2026-11-05 09:28:47,783 log 1597352 127547551499840 Forbidden: /api/accounts/groups/3/comments/
+WARNING 2026-11-05 09:28:47,784 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/groups/3/comments/ 403 [0.05, 127.0.0.1:55614][0m
+WARNING 2026-11-05 09:28:47,785 log 1597352 127547551499840 Forbidden: /api/accounts/groups/3/balance/
+WARNING 2026-11-05 09:28:47,784 log 1597352 127547543107136 Forbidden: /api/accounts/groups/3/activity/
+WARNING 2026-11-05 09:28:47,789 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/groups/3/balance/ 403 [0.06, 127.0.0.1:55594][0m
+WARNING 2026-11-05 09:28:47,790 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/groups/3/activity/ 403 [0.06, 127.0.0.1:55608][0m
+INFO 2026-11-05 09:28:53,619 views 1597352 127547526321728 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:28:53,620 views 1597352 127547526321728 Access denied for non-student user 13
+WARNING 2026-11-05 09:28:53,624 log 1597352 127547551499840 Forbidden: /api/accounts/dashboard/student/
+WARNING 2026-11-05 09:28:53,626 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/student/ 403 [0.03, 127.0.0.1:40288][0m
+INFO 2026-11-05 09:28:53,682 views 1597352 127547526321728 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:28:53,691 views 1597352 127547526321728 Access denied for non-student user 13
+WARNING 2026-11-05 09:28:53,723 log 1597352 127547543107136 Forbidden: /api/accounts/dashboard/student/
+WARNING 2026-11-05 09:28:53,732 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/student/ 403 [0.09, 127.0.0.1:40298][0m
+INFO 2026-11-05 09:29:00,814 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.47, 127.0.0.1:40312][0m
+INFO 2026-11-05 09:29:02,118 views 1597352 127547526321728 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:29:02,155 views 1597352 127547526321728 Dashboard data returned for user 11
+INFO 2026-11-05 09:29:02,161 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.07, 127.0.0.1:33750][0m
+INFO 2026-11-05 09:29:02,195 views 1597352 127547526321728 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:29:02,254 views 1597352 127547526321728 Dashboard data returned for user 11
+INFO 2026-11-05 09:29:02,294 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.13, 127.0.0.1:33754][0m
+INFO 2026-11-05 09:29:02,315 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.12, 127.0.0.1:33770][0m
+INFO 2026-11-05 09:29:02,434 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.08, 127.0.0.1:33772][0m
+INFO 2026-11-05 09:29:06,649 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/balance/ 200 [0.07, 127.0.0.1:33780][0m
+INFO 2026-11-05 09:29:06,652 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/activity/ 200 [0.08, 127.0.0.1:33782][0m
+INFO 2026-11-05 09:29:06,656 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/comments/ 200 [0.08, 127.0.0.1:33794][0m
+INFO 2026-11-05 09:29:06,669 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/workspace/ 200 [0.10, 127.0.0.1:33776][0m
+INFO 2026-11-05 09:29:28,400 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/submissions/ 200 [0.04, 127.0.0.1:36994][0m
+INFO 2026-11-05 09:29:28,404 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/balance/ 200 [0.04, 127.0.0.1:37002][0m
+WARNING 2026-11-05 09:29:50,223 log 1597352 127547543107136 Bad Request: /api/accounts/chat/direct/
+WARNING 2026-11-05 09:29:50,224 runserver 1597352 127547707434560 [31;1mHTTP POST /api/accounts/chat/direct/ 400 [0.01, 127.0.0.1:36392][0m
+INFO 2026-11-05 09:30:00,285 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.39, 127.0.0.1:36404][0m
+INFO 2026-11-05 09:30:01,572 views 1597352 127547534714432 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:30:01,686 views 1597352 127547534714432 Dashboard data returned for user 13
+WARNING 2026-11-05 09:30:01,704 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:30:01,705 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=ch7efulk 404 [0.12, 127.0.0.1:47670][0m
+WARNING 2026-11-05 09:30:01,709 log 1597352 127547551499840 Not Found: /socket.io/
+INFO 2026-11-05 09:30:01,710 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.16, 127.0.0.1:47642][0m
+WARNING 2026-11-05 09:30:01,719 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=ch7ebw6p 404 [0.14, 127.0.0.1:47654][0m
+INFO 2026-11-05 09:30:01,746 views 1597352 127547534714432 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 09:30:01,787 views 1597352 127547534714432 Dashboard data returned for user 13
+INFO 2026-11-05 09:30:01,796 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.07, 127.0.0.1:47672][0m
+WARNING 2026-11-05 09:30:02,637 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:30:02,638 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=ch88sffm 404 [0.01, 127.0.0.1:47654][0m
+WARNING 2026-11-05 09:30:05,001 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:30:05,002 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=cha29vt7 404 [0.02, 127.0.0.1:47654][0m
+WARNING 2026-11-05 09:30:08,896 log 1597352 127547543107136 Not Found: /socket.io/
+WARNING 2026-11-05 09:30:08,897 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=chd2l728 404 [0.02, 127.0.0.1:47654][0m
+WARNING 2026-11-05 09:30:14,525 log 1597352 127547551499840 Forbidden: /api/accounts/student/workload-summary/
+WARNING 2026-11-05 09:30:14,526 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/student/workload-summary/ 403 [0.05, 127.0.0.1:36188][0m
+WARNING 2026-11-05 09:30:14,557 log 1597352 127547551499840 Forbidden: /api/accounts/student/workload-summary/
+WARNING 2026-11-05 09:30:14,558 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/student/workload-summary/ 403 [0.02, 127.0.0.1:36190][0m
+WARNING 2026-11-05 09:30:14,890 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:30:14,890 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=chhp907k 404 [0.01, 127.0.0.1:47654][0m
+WARNING 2026-11-05 09:30:20,893 log 1597352 127547551499840 Not Found: /socket.io/
+WARNING 2026-11-05 09:30:20,893 runserver 1597352 127547707434560 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=chmbxlpi 404 [0.01, 127.0.0.1:47654][0m
+WARNING 2026-11-05 09:30:21,364 log 1597352 127547543107136 Forbidden: /api/accounts/profile/settings/
+WARNING 2026-11-05 09:30:21,366 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/profile/settings/ 403 [0.05, 127.0.0.1:42818][0m
+INFO 2026-11-05 09:30:21,401 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/academic/courses/ 200 [0.08, 127.0.0.1:42832][0m
+WARNING 2026-11-05 09:30:29,140 log 1597352 127547551499840 Forbidden: /api/accounts/profile/settings/
+WARNING 2026-11-05 09:30:29,141 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/profile/settings/ 403 [0.02, 127.0.0.1:42842][0m
+INFO 2026-11-05 09:30:29,163 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/academic/courses/ 200 [0.04, 127.0.0.1:42854][0m
+INFO 2026-11-05 09:30:35,593 views 1597352 127547559892544 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:30:35,593 views 1597352 127547559892544 Access denied for non-student user 13
+INFO 2026-11-05 09:30:35,596 views 1597352 127547534714432 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 09:30:35,596 views 1597352 127547534714432 Access denied for non-student user 13
+WARNING 2026-11-05 09:30:35,600 log 1597352 127547543107136 Forbidden: /api/accounts/dashboard/student/
+WARNING 2026-11-05 09:30:35,601 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/student/ 403 [0.02, 127.0.0.1:44168][0m
+WARNING 2026-11-05 09:30:35,603 log 1597352 127547551499840 Forbidden: /api/accounts/dashboard/student/
+WARNING 2026-11-05 09:30:35,606 runserver 1597352 127547707434560 [31;1mHTTP GET /api/accounts/dashboard/student/ 403 [0.03, 127.0.0.1:44160][0m
+INFO 2026-11-05 09:30:45,192 runserver 1597352 127547707434560 [mHTTP POST /api/login/ 200 [1.32, 127.0.0.1:39908][0m
+INFO 2026-11-05 09:30:46,154 views 1597352 127547534714432 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:30:46,187 views 1597352 127547534714432 Dashboard data returned for user 11
+INFO 2026-11-05 09:30:46,194 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.05, 127.0.0.1:39920][0m
+INFO 2026-11-05 09:30:46,213 views 1597352 127547534714432 Dashboard request for user 11: name@zetech.ac.ke, type: student
+INFO 2026-11-05 09:30:46,241 views 1597352 127547534714432 Dashboard data returned for user 11
+INFO 2026-11-05 09:30:46,259 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.06, 127.0.0.1:39930][0m
+INFO 2026-11-05 09:30:46,308 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.06, 127.0.0.1:39944][0m
+INFO 2026-11-05 09:30:46,366 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.05, 127.0.0.1:39950][0m
+INFO 2026-11-05 09:30:52,803 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/profile/settings/ 200 [0.03, 127.0.0.1:38362][0m
+INFO 2026-11-05 09:30:52,833 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/academic/courses/ 200 [0.05, 127.0.0.1:38378][0m
+INFO 2026-11-05 09:31:26,153 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:53348][0m
+INFO 2026-11-05 09:31:26,154 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.05, 127.0.0.1:53346][0m
+INFO 2026-11-05 09:31:26,202 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.04, 127.0.0.1:53364][0m
+INFO 2026-11-05 09:31:26,204 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.05, 127.0.0.1:53352][0m
+INFO 2026-11-05 09:31:26,259 runserver 1597352 127547707434560 WebSocket HANDSHAKING /ws/chat/3/ [127.0.0.1:53374]
+INFO 2026-11-05 09:31:26,310 runserver 1597352 127547707434560 WebSocket CONNECT /ws/chat/3/ [127.0.0.1:53374]
+INFO 2026-11-05 09:31:26,320 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/messages/3/ 200 [0.05, 127.0.0.1:53376][0m
+INFO 2026-11-05 09:31:26,326 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/members/ 200 [0.05, 127.0.0.1:53380][0m
+INFO 2026-11-05 09:31:26,385 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/groups/3/workspace/ 200 [0.03, 127.0.0.1:53384][0m
+INFO 2026-11-05 09:31:26,423 runserver 1597352 127547707434560 [mHTTP POST /api/accounts/chat/3/mark-read/ 200 [0.02, 127.0.0.1:53386][0m
+INFO 2026-11-05 09:31:36,915 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.02, 127.0.0.1:34810][0m
+INFO 2026-11-05 09:31:46,163 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.04, 127.0.0.1:58282][0m
+INFO 2026-11-05 09:31:56,113 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:35954][0m
+INFO 2026-11-05 09:32:06,121 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.02, 127.0.0.1:46636][0m
+INFO 2026-11-05 09:32:16,114 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:51410][0m
+INFO 2026-11-05 09:32:26,114 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:40234][0m
+INFO 2026-11-05 09:32:36,114 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:57882][0m

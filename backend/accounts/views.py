@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 import json
 import logging
@@ -189,6 +189,7 @@ def signup_view(request):
         year = None
         semester_number = None
         matching_units = Unit.objects.none()
+        lecturer_units = Unit.objects.none()
         if user_type == 'student':
             try:
                 course = Course.objects.get(pk=int(data.get('course_id')))
@@ -208,8 +209,25 @@ def signup_view(request):
             if not matching_units.exists():
                 return JsonResponse({'error': 'No units are available for the selected programme, year, and semester.'}, status=400)
 
-        elif not str(data.get('department') or '').strip():
-            return JsonResponse({'error': 'Department is required for lecturer signup.'}, status=400)
+        else:
+            if not str(data.get('department') or '').strip():
+                return JsonResponse({'error': 'Department is required for lecturer signup.'}, status=400)
+            raw_unit_ids = data.get('unit_ids')
+            if raw_unit_ids is None:
+                raw_unit_ids = []
+            if not isinstance(raw_unit_ids, list):
+                return JsonResponse({'error': 'Select valid units to teach.'}, status=400)
+            if not raw_unit_ids and Unit.objects.exists():
+                return JsonResponse({'error': 'Select at least one unit to teach.'}, status=400)
+            try:
+                unit_ids = {int(unit_id) for unit_id in raw_unit_ids}
+            except (TypeError, ValueError):
+                return JsonResponse({'error': 'Select valid units to teach.'}, status=400)
+            lecturer_units = Unit.objects.select_for_update().filter(id__in=unit_ids)
+            if lecturer_units.count() != len(unit_ids):
+                return JsonResponse({'error': 'One or more selected units could not be found.'}, status=400)
+            if lecturer_units.filter(assigned_lecturer__isnull=False).exists():
+                return JsonResponse({'error': 'One or more selected units are already assigned to a lecturer.'}, status=400)
 
         name_parts = full_name.split(' ', 1)
         first_name = name_parts[0]
@@ -237,6 +255,7 @@ def signup_view(request):
                 user.staff_id = str(data.get('staffId') or '').strip()
                 user.department = str(data.get('department') or '').strip()
                 user.courses_taught = str(data.get('coursesTaught') or '').strip()
+                Unit.objects.filter(id__in=unit_ids).update(assigned_lecturer=user)
 
             user.email_verified = True
             user.is_active = True
@@ -442,61 +461,6 @@ class LoginView(APIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-class AdminUsersView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
-
-    def get(self, request):
-        users = User.objects.order_by('last_name', 'first_name', 'username')
-        role = request.query_params.get('role')
-        search = request.query_params.get('search', '').strip()
-        active = request.query_params.get('is_active')
-
-        if role in {'student', 'lecturer'}:
-            users = users.filter(user_type=role)
-        if search:
-            users = users.filter(
-                models.Q(username__icontains=search)
-                | models.Q(email__icontains=search)
-                | models.Q(first_name__icontains=search)
-                | models.Q(last_name__icontains=search)
-            )
-        if active in {'true', 'false'}:
-            users = users.filter(is_active=active == 'true')
-
-        return Response([
-            {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'name': user.get_full_name() or user.username,
-                'user_type': user.user_type,
-                'is_active': user.is_active,
-                'is_staff': user.is_staff,
-                'date_joined': user.date_joined,
-            }
-            for user in users
-        ])
-
-
-class AdminUserStatusView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
-
-    def post(self, request, user_id, action):
-        if action not in {'activate', 'deactivate'}:
-            return Response({'error': 'Unsupported account action.'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-        if user.pk == request.user.pk and action == 'deactivate':
-            return Response({'error': 'You cannot deactivate your own account.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        user.is_active = action == 'activate'
-        user.save(update_fields=['is_active'])
-        return Response({'id': user.id, 'is_active': user.is_active})
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def lecturer_dashboard(request):
@@ -507,14 +471,22 @@ def lecturer_dashboard(request):
             logger.warning(f"Access denied for non-lecturer user {user.id}")
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
-        total_groups = Group.objects.filter(lecturer=user).count()
-        total_students = User.objects.filter(user_type='student').count()
+        lecturer_groups = Group.objects.filter(lecturer=user)
+        total_groups = lecturer_groups.count()
+        lecturer_units = Unit.objects.filter(
+            models.Q(assigned_lecturer=user) | models.Q(groups__lecturer=user)
+        ).select_related('course').distinct()
+        enrolled_students = User.objects.filter(
+            user_type='student',
+            enrollments__unit__in=lecturer_units,
+        ).distinct()
+        total_students = enrolled_students.count()
         pending_submissions = Submission.objects.filter(
             project__group__lecturer=user,
             status='submitted'
         ).count()
 
-        groups = Group.objects.filter(lecturer=user).values(
+        groups = lecturer_groups.values(
             'id', 'name', 'course', 'year_of_study', 'created_at'
         )
         for group in groups:
@@ -535,6 +507,33 @@ def lecturer_dashboard(request):
                 'submitted_at': sub.submitted_at.isoformat()
             })
 
+        units = []
+        for unit in lecturer_units:
+            students = User.objects.filter(
+                user_type='student',
+                enrollments__unit=unit,
+            ).distinct().order_by('first_name', 'last_name', 'id')
+            unit_groups = lecturer_groups.filter(unit=unit).order_by('name')
+            units.append({
+                'id': unit.id,
+                'code': unit.code,
+                'name': unit.name,
+                'course_code': unit.course.code,
+                'course_name': unit.course.name,
+                'year_of_study': unit.year_of_study,
+                'semester': unit.semester,
+                'student_count': students.count(),
+                'group_count': unit_groups.count(),
+                'students': [{
+                    'id': student.id,
+                    'name': f'{student.first_name} {student.last_name}'.strip() or student.username,
+                    'email': student.email,
+                    'course': student.course,
+                    'year_of_study': student.year_of_study,
+                    'semester': student.semester,
+                } for student in students],
+            })
+
         data = {
             'user': {
                 'id': user.id,
@@ -547,9 +546,11 @@ def lecturer_dashboard(request):
             },
             'stats': {
                 'total_groups': total_groups,
+                'total_units': len(units),
                 'total_students': total_students,
                 'pending_submissions': pending_submissions
             },
+            'units': units,
             'groups': list(groups),
             'recent_submissions': submissions_data
         }
@@ -1672,9 +1673,15 @@ def get_students_for_lecturer(request):
         if user.user_type != 'lecturer':
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
-        students = User.objects.filter(user_type='student').values(
+        lecturer_units = Unit.objects.filter(
+            models.Q(assigned_lecturer=user) | models.Q(groups__lecturer=user)
+        ).distinct()
+        students = User.objects.filter(
+            user_type='student',
+            enrollments__unit__in=lecturer_units,
+        ).distinct().values(
             'id', 'first_name', 'last_name', 'email', 'course', 'year_of_study'
-        )
+        ).order_by('first_name', 'last_name', 'id')
 
         data = []
         for student in students:
@@ -1989,12 +1996,22 @@ def get_or_create_direct_chat(request):
             return Response({'error': 'You cannot start a chat with yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
         if user.user_type == 'lecturer':
-            can_contact = Group.objects.filter(lecturer=user, memberships__student=contact).exists()
+            taught_units = Unit.objects.filter(
+                models.Q(assigned_lecturer=user) | models.Q(groups__lecturer=user)
+            ).distinct()
+            can_contact = (
+                Group.objects.filter(lecturer=user, memberships__student=contact).exists()
+                or StudentEnrollment.objects.filter(student=contact, unit__in=taught_units).exists()
+            )
         else:
             shared_group_ids = GroupMembership.objects.filter(student=user).values_list('group_id', flat=True)
             can_contact = (
                 GroupMembership.objects.filter(group_id__in=shared_group_ids, student=contact).exists()
                 or Group.objects.filter(id__in=shared_group_ids, lecturer=contact).exists()
+                or StudentEnrollment.objects.filter(
+                    student=user,
+                    unit__assigned_lecturer=contact,
+                ).exists()
             )
         if not can_contact:
             return Response({'error': 'You can only start a chat with someone in one of your groups.'}, status=status.HTTP_403_FORBIDDEN)

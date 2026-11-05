@@ -12,67 +12,21 @@ const GoogleGIcon = ({ className = '' }) => (
   </svg>
 );
 
-const Login = () => {
+const GoogleSignInButton = ({ onSuccess, onError, isLoading }) => {
   const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        setGoogleLoading(true);
-        setGoogleError('');
-
-        const accessToken = tokenResponse?.access_token;
-        const idToken = tokenResponse?.id_token;
-        const googleToken = accessToken || idToken || tokenResponse?.token;
-
-        if (!googleToken) {
-          setGoogleError('Google sign-in failed: missing token.');
-          return;
-        }
-
-        const response = await fetch('/api/google/login/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: googleToken }),
-        });
-
-        if (!response.ok) {
-          let errData = null;
-          try { errData = await response.json(); } catch { errData = null; }
-          throw new Error(errData?.error || errData?.detail || `Google login failed (${response.status}).`);
-        }
-
-        const data = await response.json().catch(() => null);
-        if (!data?.access) throw new Error('Missing access token.');
-
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-
-        const localizedUser = {
-          id: data?.user?.id || null,
-          email: data?.user?.email || data?.user?.username || 'user',
-          user_type: data?.user?.user_type || data?.user_type || 'student',
-          first_name: data?.user?.first_name || 'User',
-          last_name: data?.user?.last_name || 'Account',
-          is_staff: Boolean(data?.user?.is_staff),
-        };
-        localStorage.setItem('user', JSON.stringify(localizedUser));
-
-        if (localizedUser.is_staff) {
-          window.location.href = '/admin/dashboard';
-        } else if (localizedUser.user_type === 'lecturer') {
-          window.location.href = '/lecturer/dashboard';
-        } else {
-          window.location.href = '/student/dashboard';
-        }
-      } catch (err) {
-        console.error('Google login error:', err);
-        setGoogleError('Google sign-in failed. Please try again.');
-      } finally {
-        setGoogleLoading(false);
-      }
-    },
-    onError: () => setGoogleError('Google sign-in was cancelled.'),
+    onSuccess,
+    onError,
   });
 
+  return (
+    <button type="button" onClick={() => handleGoogleLogin()} disabled={isLoading}>
+      <GoogleGIcon className="h-5 w-5" />
+      <span>{isLoading ? 'Signing in...' : 'Continue with Google'}</span>
+    </button>
+  );
+};
+
+const Login = ({ googleEnabled = false }) => {
   const [formData, setFormData] = useState({ username: '', password: '', rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,6 +37,40 @@ const Login = () => {
   const [googleError, setGoogleError] = useState('');
 
   const usernameRef = useRef(null);
+
+  const handleGoogleSuccess = async (tokenResponse) => {
+    try {
+      setGoogleLoading(true);
+      setGoogleError('');
+      const googleToken = tokenResponse?.access_token || tokenResponse?.id_token || tokenResponse?.token;
+      if (!googleToken) throw new Error('Missing Google token.');
+
+      const response = await fetch('/api/google/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: googleToken }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.access) {
+        throw new Error(data?.error || data?.detail || 'Google login failed.');
+      }
+
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh || '');
+      const user = data.user || {};
+      localStorage.setItem('user', JSON.stringify(user));
+      window.location.href = user.is_staff
+        ? '/admin/dashboard'
+        : user.user_type === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
+    } catch (requestError) {
+      console.error('Google login error:', requestError);
+      setGoogleError('Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => setGoogleError('Google sign-in was cancelled.');
 
   useEffect(() => {
     if (usernameRef.current) usernameRef.current.focus();
@@ -104,6 +92,9 @@ const Login = () => {
     setError('');
     setSuccessMessage('');
     setValidationError('');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
 
     const username = (formData.username || '').trim();
     const passwordTrimmed = formData.password || '';
@@ -292,15 +283,13 @@ const Login = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => handleGoogleLogin()}
-            disabled={googleLoading}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3 text-base font-medium text-[#26303B] shadow-sm transition-colors hover:bg-[#f3f4f6] disabled:opacity-70"
-          >
-            <GoogleGIcon className="h-5 w-5" />
-            <span>Continue with Google</span>
-          </button>
+          {googleEnabled && (
+            <GoogleSignInButton
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              isLoading={googleLoading}
+            />
+          )}
 
           {googleError && (
             <p className="text-center text-xs text-white">{googleError}</p>
