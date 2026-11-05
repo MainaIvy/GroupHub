@@ -196,7 +196,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': LOG_DIR / 'django.log',
+            'filename': BASE_DIR / 'logs' / 'django.log',
             'formatter': 'verbose',
         },
         'console': {
@@ -260,4 +260,3 @@ SIMPLE_JWT_SERIALIZER = 'accounts.jwt.EmailTokenObtainPairSerializer'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
-
