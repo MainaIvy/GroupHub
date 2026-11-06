@@ -30,7 +30,7 @@ from django.db.models import Exists, OuterRef
 from django.core.files.storage import default_storage
 from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
-    ChatRoom, Message, Notification, Course, Unit, Semester, StudentEnrollment,
+    ChatRoom, Message, Notification, Course, Unit, Semester,     StudentEnrollment, UnitAssignment,
 )
 from .planning_rules import board_status, weight_change_block
 from .balance import calculate_group_balance
@@ -163,6 +163,8 @@ def signup_view(request):
         if not email or not password or not user_type:
             logger.warning(f"Signup attempt with missing fields: {request.META.get('REMOTE_ADDR')}")
             return JsonResponse({'error': 'Email, password, and user type are required'}, status=400)
+        if not full_name:
+            return JsonResponse({'error': 'Full name is required.'}, status=400)
 
         if user_type not in ('student', 'lecturer'):
             return JsonResponse({'error': 'Invalid user type'}, status=400)
@@ -210,15 +212,13 @@ def signup_view(request):
                 return JsonResponse({'error': 'No units are available for the selected programme, year, and semester.'}, status=400)
 
         else:
-            if not str(data.get('department') or '').strip():
-                return JsonResponse({'error': 'Department is required for lecturer signup.'}, status=400)
-            raw_unit_ids = data.get('unit_ids')
-            if raw_unit_ids is None:
-                raw_unit_ids = []
+            if not str(data.get('staffId') or '').strip():
+                return JsonResponse({'error': 'Staff ID is required for lecturer signup.'}, status=400)
+            if university != 'zetech':
+                return JsonResponse({'error': 'Select Zetech University as the institution.'}, status=400)
+            raw_unit_ids = data.get('unit_ids') or []
             if not isinstance(raw_unit_ids, list):
                 return JsonResponse({'error': 'Select valid units to teach.'}, status=400)
-            if not raw_unit_ids and Unit.objects.exists():
-                return JsonResponse({'error': 'Select at least one unit to teach.'}, status=400)
             try:
                 unit_ids = {int(unit_id) for unit_id in raw_unit_ids}
             except (TypeError, ValueError):
@@ -434,10 +434,14 @@ class LoginView(APIView):
 
         try:
             user = User.objects.get(username__iexact=username)
+            if user.status == 'suspended':
+                return Response(
+                    {'error': 'This account has been suspended. Contact an administrator.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             if user.check_password(password):
-                user.is_active = True
                 user.email_verified = True
-                user.save()
+                user.save(update_fields=['email_verified', 'is_active', 'status'])
             else:
                 user = None
         except User.DoesNotExist:
@@ -454,7 +458,12 @@ class LoginView(APIView):
                     'user_type': user.user_type,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'university': user.university
+                    'university': user.university,
+                    'is_staff': user.is_staff,
+                    'lecturer_setup_required': (
+                        user.user_type == 'lecturer'
+                        and not UnitAssignment.objects.filter(lecturer=user).exists()
+                    ),
                 }
             })
         else:
@@ -473,8 +482,13 @@ def lecturer_dashboard(request):
 
         lecturer_groups = Group.objects.filter(lecturer=user)
         total_groups = lecturer_groups.count()
+        assigned_unit_ids = UnitAssignment.objects.filter(
+            lecturer=user
+        ).values('unit_id')
         lecturer_units = Unit.objects.filter(
-            models.Q(assigned_lecturer=user) | models.Q(groups__lecturer=user)
+            models.Q(id__in=assigned_unit_ids)
+            | models.Q(assigned_lecturer=user)
+            | models.Q(groups__lecturer=user)
         ).select_related('course').distinct()
         enrolled_students = User.objects.filter(
             user_type='student',
@@ -509,9 +523,15 @@ def lecturer_dashboard(request):
 
         units = []
         for unit in lecturer_units:
+            assigned_term_ids = UnitAssignment.objects.filter(
+                lecturer=user, unit=unit
+            ).values_list('term_id', flat=True)
+            enrollment_filter = {'enrollments__unit': unit}
+            if assigned_term_ids:
+                enrollment_filter['enrollments__semester_id__in'] = assigned_term_ids
             students = User.objects.filter(
                 user_type='student',
-                enrollments__unit=unit,
+                **enrollment_filter,
             ).distinct().order_by('first_name', 'last_name', 'id')
             unit_groups = lecturer_groups.filter(unit=unit).order_by('name')
             units.append({
@@ -522,6 +542,7 @@ def lecturer_dashboard(request):
                 'course_name': unit.course.name,
                 'year_of_study': unit.year_of_study,
                 'semester': unit.semester,
+                'academic_level': unit.academic_level,
                 'student_count': students.count(),
                 'group_count': unit_groups.count(),
                 'students': [{
@@ -2107,8 +2128,8 @@ def mark_room_notifications_read(request, room_id):
 @permission_classes([IsAuthenticated])
 def create_group_view(request):
     user = request.user
-    if user.user_type != 'student':
-        return Response({'error': 'Only students can create groups'}, status=status.HTTP_403_FORBIDDEN)
+    if user.user_type not in ('student', 'lecturer'):
+        return Response({'error': 'Only students and lecturers can create groups'}, status=status.HTTP_403_FORBIDDEN)
 
     data = request.data
     name = data.get('name')
@@ -2135,8 +2156,12 @@ def create_group_view(request):
             unit = Unit.objects.select_related('course').get(pk=data.get('unit_id'))
         except (Unit.DoesNotExist, TypeError, ValueError):
             return Response({'error': 'Select a valid unit'}, status=status.HTTP_400_BAD_REQUEST)
-        if user.enrolled_course_id and unit.course_id != user.enrolled_course_id:
+        if user.user_type == 'student' and user.enrolled_course_id and unit.course_id != user.enrolled_course_id:
             return Response({'error': 'Select a unit from your enrolled programme'}, status=status.HTTP_400_BAD_REQUEST)
+        if user.user_type == 'lecturer' and not UnitAssignment.objects.filter(
+            lecturer=user, unit=unit
+        ).exists() and unit.assigned_lecturer_id != user.id:
+            return Response({'error': 'Select one of your assigned units'}, status=status.HTTP_403_FORBIDDEN)
         course = unit.course.name
         year_of_study = unit.year_of_study
 
@@ -2192,7 +2217,8 @@ def create_group_view(request):
                 lecturer=user,
                 max_members=max_members,
             )
-            GroupMembership.objects.create(group=group, student=user, role='member')
+            if user.user_type == 'student':
+                GroupMembership.objects.create(group=group, student=user, role='member')
             GroupMembership.objects.bulk_create([
                 GroupMembership(group=group, student=invitee, role='member')
                 for invitee in invitees

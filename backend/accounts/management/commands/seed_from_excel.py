@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from openpyxl import load_workbook
 
-from accounts.models import Course, Unit
+from accounts.models import Course, Semester, Unit
 
 
 class Command(BaseCommand):
@@ -27,6 +27,27 @@ class Command(BaseCommand):
         'i': 'I', 'ii': 'II', 'iii': 'III', 'iv': 'IV', 'v': 'V',
         'vi': 'VI', 'vii': 'VII', 'viii': 'VIII', 'ix': 'IX', 'x': 'X',
     }
+
+    @staticmethod
+    def department_for_programme(code, name):
+        text = f'{code} {name}'.casefold()
+        if any(term in text for term in ('business', 'accounting', 'commerce', 'purchasing', 'economics')):
+            return 'School of Business'
+        if any(term in text for term in ('computer', 'information technology', 'software', 'cyber', 'ict')):
+            return 'School of Computing and Informatics'
+        if any(term in text for term in ('electrical', 'engineering')):
+            return 'School of Engineering'
+        if any(term in text for term in ('clinical', 'nursing', 'health')):
+            return 'School of Health Sciences'
+        if 'law' in text:
+            return 'School of Law'
+        if any(term in text for term in ('journalism', 'media', 'film', 'communication')):
+            return 'School of Media and Communication'
+        if any(term in text for term in ('hospitality', 'tourism', 'food and beverage')):
+            return 'School of Hospitality and Tourism'
+        if any(term in text for term in ('psychology', 'sociology', 'political', 'international relations')):
+            return 'School of Social Sciences'
+        return 'School of Business'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -112,7 +133,8 @@ class Command(BaseCommand):
             full_name = ' '.join(str(self._cell(row, programmes_headers, 'Full Name') or '').split())
             programmes[code] = {
                 'name': full_name or code,
-                'department': '',
+                'department': self.department_for_programme(code, full_name),
+                'academic_level': ' '.join(str(self._cell(row, programmes_headers, 'Level') or '').split()),
             }
         if not programmes:
             raise CommandError('Programmes sheet contains no programme codes.')
@@ -193,10 +215,19 @@ class Command(BaseCommand):
 
             course_objects = {}
             for code, metadata in programmes.items():
-                course, created = Course.objects.update_or_create(
-                    code=code,
-                    defaults={'name': metadata['name'] or code, 'department': metadata['department']},
-                )
+                course = Course.objects.filter(code=code).first()
+                created = course is None
+                if course is None:
+                    course = Course.objects.create(
+                        code=code,
+                        name=metadata['name'] or code,
+                        department=metadata['department'],
+                    )
+                else:
+                    course.name = metadata['name'] or code
+                    if metadata['department']:
+                        course.department = metadata['department']
+                    course.save(update_fields=['name', 'department'])
                 course_objects[code] = course
                 created_courses += int(created)
 
@@ -204,16 +235,22 @@ class Command(BaseCommand):
                 _, created = Unit.objects.update_or_create(
                     code=unit_code,
                     course=course_objects[programme_code],
-                    defaults=defaults,
+                    defaults={
+                        **defaults,
+                        'academic_level': programmes[programme_code]['academic_level'],
+                    },
+                )
+                Semester.objects.get_or_create(
+                    year=defaults['year_of_study'],
+                    semester=defaults['semester'],
+                    defaults={
+                        'name': f"Year {defaults['year_of_study']} Semester {defaults['semester']}",
+                    },
                 )
                 created_units += int(created)
                 updated_units += int(not created)
 
-            seeded_course_codes = set(programmes)
-            if Course.objects.exclude(code__in=seeded_course_codes).exists():
-                raise CommandError('Unexpected course rows remain after import.')
-            if Course.objects.filter(code__in=unit_codes).exists():
-                raise CommandError('A unit code was imported as a course code.')
+            # Preserve existing catalogue rows maintained outside the workbook.
 
         self.stdout.write(self.style.SUCCESS(
             f'Import complete: {Course.objects.count()} courses and {Unit.objects.count()} units '

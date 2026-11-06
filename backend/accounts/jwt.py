@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .models import UnitAssignment
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -27,9 +28,9 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             username=user.username if user is not None else identifier,
             password=password,
         )
-        if authenticated_user is None or not authenticated_user.is_active:
+        if authenticated_user is None or authenticated_user.status == 'suspended' or not authenticated_user.is_active:
             raise serializers.ValidationError(
-                'No active account found with the given credentials.'
+                'This account is suspended or has no active credentials.'
             )
 
         data = super().validate({
@@ -45,5 +46,9 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             'user_type': authenticated_user.user_type,
             'is_staff': authenticated_user.is_staff,
             'is_active': authenticated_user.is_active,
+            'lecturer_setup_required': (
+                authenticated_user.user_type == 'lecturer'
+                and not UnitAssignment.objects.filter(lecturer=authenticated_user).exists()
+            ),
         }
         return data
