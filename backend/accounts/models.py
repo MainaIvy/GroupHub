@@ -27,6 +27,12 @@ class User(AbstractUser):
         'Course', on_delete=models.SET_NULL, related_name='enrolled_students', null=True, blank=True
     )
     semester = models.PositiveSmallIntegerField(null=True, blank=True)
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('active', 'Active'),
+        ('suspended', 'Suspended'),
+    ]
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='active')
 
     def __str__(self):
         return self.username
@@ -34,12 +40,6 @@ class User(AbstractUser):
     def clean(self):
         super().clean()
         
-        # 📳 FORCE ALL VERIFICATION FLAGS TO TRUE
-        self.is_active = True
-        self.email_verified = True  
-        if hasattr(self, 'is_verified'):
-            self.is_verified = True
-
         # Validate email format and domain
         if self.email:
             try:
@@ -61,9 +61,7 @@ class User(AbstractUser):
                 raise ValidationError({'staff_id': 'Staff ID must be in format XX1234.'})
 
     def save(self, *args, **kwargs):
-        # 📳 FORCE COMPLIANCE RIGHT BEFORE IT SAVES TO FILE/DATABASE
-        self.is_active = True
-        self.email_verified = True
+        self.is_active = self.status == 'active'
         self.full_clean()
         super().save(*args, **kwargs)
 
@@ -373,6 +371,55 @@ class Semester(models.Model):
     class Meta:
         ordering = ('year', 'semester', 'name')
         unique_together = [('year', 'semester')]
+
+
+class UnitAssignment(models.Model):
+    lecturer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='unit_assignments')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='lecturer_assignments')
+    term = models.ForeignKey(Semester, on_delete=models.PROTECT, related_name='unit_assignments')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=('lecturer', 'unit', 'term'), name='unique_lecturer_unit_term'),
+        ]
+        ordering = ['unit__code']
+
+
+class AuditLog(models.Model):
+    actor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='audit_logs')
+    action = models.CharField(max_length=100)
+    target_type = models.CharField(max_length=100)
+    target_id = models.CharField(max_length=100, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class Announcement(models.Model):
+    AUDIENCE_CHOICES = [
+        ('all', 'All users'),
+        ('programme', 'Programme'),
+        ('unit', 'Unit'),
+    ]
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    audience = models.CharField(max_length=20, choices=AUDIENCE_CHOICES, default='all')
+    programme = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, related_name='announcements')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True, related_name='announcements')
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='announcements')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class AdminSetting(models.Model):
+    key = models.CharField(max_length=100, unique=True)
+    value = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.key
 
 
 class StudentEnrollment(models.Model):

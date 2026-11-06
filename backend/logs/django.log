@@ -571,3 +571,60 @@ INFO 2026-11-05 09:32:06,121 runserver 1597352 127547707434560 [mHTTP GET /api/
 INFO 2026-11-05 09:32:16,114 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:51410][0m
 INFO 2026-11-05 09:32:26,114 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:40234][0m
 INFO 2026-11-05 09:32:36,114 runserver 1597352 127547707434560 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.01, 127.0.0.1:57882][0m
+WARNING 2026-11-05 12:57:49,084 log 1864880 136840176723520 Unauthorized: /api/accounts/admin/overview/
+WARNING 2026-11-05 12:57:49,085 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/admin/overview/ 401 [0.07, 127.0.0.1:58708][0m
+WARNING 2026-11-05 12:57:49,149 log 1864880 136840176723520 Unauthorized: /api/accounts/admin/overview/
+WARNING 2026-11-05 12:57:49,151 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/admin/overview/ 401 [0.03, 127.0.0.1:58714][0m
+INFO 2026-11-05 12:57:58,592 runserver 1864880 136840314824256 [mHTTP POST /api/login/ 200 [1.47, 127.0.0.1:43026][0m
+INFO 2026-11-05 12:57:59,635 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/overview/ 200 [0.10, 127.0.0.1:43032][0m
+INFO 2026-11-05 12:57:59,736 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/overview/ 200 [0.08, 127.0.0.1:43034][0m
+INFO 2026-11-05 12:58:04,174 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/users/ 200 [0.03, 127.0.0.1:45322][0m
+INFO 2026-11-05 12:58:17,737 runserver 1864880 136840314824256 [mHTTP POST /api/login/ 200 [1.53, 127.0.0.1:54794][0m
+INFO 2026-11-05 12:58:19,184 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/overview/ 200 [0.09, 127.0.0.1:54806][0m
+INFO 2026-11-05 12:58:19,245 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/overview/ 200 [0.05, 127.0.0.1:54816][0m
+INFO 2026-11-05 12:58:21,439 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/catalog/ 200 [0.05, 127.0.0.1:43658][0m
+INFO 2026-11-05 12:58:25,153 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/settings/ 200 [0.01, 127.0.0.1:43660][0m
+INFO 2026-11-05 12:58:28,082 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/admin/groups/ 200 [0.04, 127.0.0.1:43664][0m
+INFO 2026-11-05 12:58:45,185 runserver 1864880 136840314824256 [mHTTP POST /api/login/ 200 [1.47, 127.0.0.1:42986][0m
+INFO 2026-11-05 12:58:46,601 views 1864880 136840185116224 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+WARNING 2026-11-05 12:58:46,678 log 1864880 136840176723520 Not Found: /socket.io/
+WARNING 2026-11-05 12:58:46,680 log 1864880 136840150496832 Not Found: /socket.io/
+WARNING 2026-11-05 12:58:46,684 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=jxnq9fyj 404 [0.16, 127.0.0.1:43006][0m
+WARNING 2026-11-05 12:58:46,686 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=jxnq3c69 404 [0.17, 127.0.0.1:42998][0m
+INFO 2026-11-05 12:58:46,737 views 1864880 136840185116224 Dashboard data returned for user 13
+INFO 2026-11-05 12:58:46,745 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.23, 127.0.0.1:42990][0m
+INFO 2026-11-05 12:58:46,773 views 1864880 136840185116224 Dashboard request for user 13: jac@zetech.ac.ke, type: lecturer
+INFO 2026-11-05 12:58:46,824 views 1864880 136840185116224 Dashboard data returned for user 13
+INFO 2026-11-05 12:58:46,829 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.08, 127.0.0.1:43014][0m
+WARNING 2026-11-05 12:58:47,513 log 1864880 136840176723520 Not Found: /socket.io/
+WARNING 2026-11-05 12:58:47,514 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=jxoi2bnz 404 [0.01, 127.0.0.1:42998][0m
+WARNING 2026-11-05 12:58:49,110 log 1864880 136840176723520 Not Found: /socket.io/
+WARNING 2026-11-05 12:58:49,112 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=jxpqe6m5 404 [0.01, 127.0.0.1:42998][0m
+WARNING 2026-11-05 12:58:51,485 log 1864880 136840176723520 Not Found: /socket.io/
+WARNING 2026-11-05 12:58:51,486 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=jxrkeuns 404 [0.01, 127.0.0.1:42998][0m
+WARNING 2026-11-05 12:58:56,512 log 1864880 136840176723520 Not Found: /socket.io/
+WARNING 2026-11-05 12:58:56,513 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=jxvfv9mh 404 [0.02, 127.0.0.1:42998][0m
+WARNING 2026-11-05 12:59:01,532 log 1864880 136840176723520 Not Found: /socket.io/
+WARNING 2026-11-05 12:59:01,533 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=jxzbjpkr 404 [0.01, 127.0.0.1:42998][0m
+INFO 2026-11-05 12:59:01,837 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/chat/unread-counts/ 200 [0.05, 127.0.0.1:38010][0m
+INFO 2026-11-05 12:59:01,840 runserver 1864880 136840314824256 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.06, 127.0.0.1:38000][0m
+WARNING 2026-11-05 13:42:13,772 log 1864880 136840150496832 Unauthorized: /api/accounts/admin/overview/
+WARNING 2026-11-05 13:42:13,777 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/admin/overview/ 401 [0.02, 127.0.0.1:52756][0m
+WARNING 2026-11-05 13:42:13,848 log 1864880 136840176723520 Unauthorized: /api/accounts/admin/overview/
+WARNING 2026-11-05 13:42:13,849 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/admin/overview/ 401 [0.04, 127.0.0.1:52760][0m
+WARNING 2026-11-05 13:42:25,593 log 1864880 136840176723520 Unauthorized: /api/accounts/admin/overview/
+WARNING 2026-11-05 13:42:25,595 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/admin/overview/ 401 [0.03, 127.0.0.1:39200][0m
+WARNING 2026-11-05 13:42:25,627 log 1864880 136840150496832 Unauthorized: /api/accounts/admin/overview/
+WARNING 2026-11-05 13:42:25,628 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/admin/overview/ 401 [0.02, 127.0.0.1:39210][0m
+WARNING 2026-11-05 14:00:01,389 log 1864880 136840176723520 Unauthorized: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 14:00:01,391 log 1864880 136840150496832 Not Found: /socket.io/
+WARNING 2026-11-05 14:00:01,393 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 401 [0.05, 127.0.0.1:39920][0m
+WARNING 2026-11-05 14:00:01,395 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=m4f92hxr 404 [0.04, 127.0.0.1:39924][0m
+WARNING 2026-11-05 14:00:01,419 log 1864880 136840150496832 Not Found: /socket.io/
+WARNING 2026-11-05 14:00:01,422 runserver 1864880 136840314824256 [33mHTTP GET /socket.io/?EIO=4&transport=polling&t=m4f9a9os 404 [0.05, 127.0.0.1:39930][0m
+WARNING 2026-11-05 14:00:01,442 log 1864880 136840176723520 Unauthorized: /api/accounts/dashboard/lecturer/
+WARNING 2026-11-05 14:00:01,443 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/lecturer/ 401 [0.02, 127.0.0.1:39940][0m
+WARNING 2026-11-05 14:00:01,570 log 1864880 136840176723520 Unauthorized: /api/accounts/dashboard/student/
+WARNING 2026-11-05 14:00:01,574 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/student/ 401 [0.04, 127.0.0.1:39948][0m
+WARNING 2026-11-05 14:00:01,638 log 1864880 136840176723520 Unauthorized: /api/accounts/dashboard/student/
+WARNING 2026-11-05 14:00:01,643 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/student/ 401 [0.04, 127.0.0.1:39954][0m

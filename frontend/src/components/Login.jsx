@@ -61,7 +61,9 @@ const Login = ({ googleEnabled = false }) => {
       localStorage.setItem('user', JSON.stringify(user));
       window.location.href = user.is_staff
         ? '/admin/dashboard'
-        : user.user_type === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
+        : user.user_type === 'lecturer'
+          ? (user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard')
+          : '/student/dashboard';
     } catch (requestError) {
       console.error('Google login error:', requestError);
       setGoogleError('Google sign-in failed. Please try again.');
@@ -146,13 +148,16 @@ const Login = ({ googleEnabled = false }) => {
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
             is_staff: isAdmin,
+            lecturer_setup_required: Boolean(profile.lecturer_setup_required || data.lecturer_setup_required),
       }));
 
       setSuccessMessage('Login successful! Redirecting to your dashboard...');
       setTimeout(() => {
             const targetPath = isAdmin
               ? '/admin/dashboard'
-              : userType === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
+              : userType === 'lecturer'
+                ? (Boolean(profile.lecturer_setup_required || data.lecturer_setup_required) ? '/lecturer/setup' : '/lecturer/dashboard')
+                : '/student/dashboard';
             window.location.href = targetPath;
       }, 500);
     } catch {

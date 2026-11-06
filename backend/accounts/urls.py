@@ -1,10 +1,32 @@
 ﻿from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-from . import academic_views, group_access_views, planning_views, poll_views, units_views, views, work_views
+from . import academic_views, admin_api, group_access_views, planning_views, poll_views, units_views, views, work_views
 
 urlpatterns = [
     # Academic / units
     path('academic/courses/', academic_views.academic_courses_view, name='academic_courses'),
+    path('lecturer/setup/', admin_api.lecturer_setup, name='lecturer_setup'),
+    path('admin/overview/', admin_api.admin_overview, name='admin_overview'),
+    path('admin/users/', admin_api.admin_users, name='admin_users'),
+    path('admin/users/create/', admin_api.admin_create_user, name='admin_create_user'),
+    path('admin/users/<int:user_id>/<str:action>/', admin_api.admin_user_action, name='admin_user_action'),
+    path('admin/assignments/', admin_api.admin_assignments, name='admin_assignments'),
+    path('admin/assignments/unassigned/', admin_api.admin_unassigned_units, name='admin_unassigned_units'),
+    path('admin/lecturers/<int:lecturer_id>/load/', admin_api.admin_lecturer_load, name='admin_lecturer_load'),
+    path('admin/assignments/<int:assignment_id>/', admin_api.admin_assignment_delete, name='admin_assignment_delete'),
+    path('admin/groups/', admin_api.admin_groups, name='admin_groups'),
+    path('admin/groups/<int:group_id>/members/', admin_api.admin_group_members, name='admin_group_members'),
+    path('admin/groups/no-group/', admin_api.admin_students_without_group, name='admin_students_without_group'),
+    path('admin/groups/<int:group_id>/move-student/', admin_api.admin_move_student, name='admin_move_student'),
+    path('admin/groups/<int:group_id>/<str:action>/', admin_api.admin_group_action, name='admin_group_action'),
+    path('admin/catalog/', admin_api.admin_catalog, name='admin_catalog'),
+    path('admin/catalog/import/', admin_api.admin_import_catalog, name='admin_catalog_import'),
+    path('admin/catalog/<str:item_type>/', admin_api.admin_catalog_item, name='admin_catalog_create'),
+    path('admin/catalog/<str:item_type>/<int:item_id>/', admin_api.admin_catalog_item, name='admin_catalog_update'),
+    path('admin/settings/', admin_api.admin_settings, name='admin_settings'),
+    path('admin/announcements/', admin_api.admin_announcements, name='admin_announcements'),
+    path('admin/audit/', admin_api.admin_audit, name='admin_audit'),
+    path('admin/export/<str:export_type>/', admin_api.admin_export, name='admin_export'),
     path('student/current-units/', units_views.get_current_semester_units, name='current_semester_units'),
     path('units/<int:unit_id>/classmates/', group_access_views.unit_classmates, name='unit_classmates'),
     path('units/<int:unit_id>/groups/', group_access_views.unit_open_groups, name='unit_open_groups'),
