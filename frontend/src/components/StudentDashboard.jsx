@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api';
-import { Table } from 'antd';
+import { Button, Calendar, Table } from 'antd';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import {
   ArrowUpRight,
   Bell,
   BookOpen,
-  CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   CircleHelp,
   Copy,
@@ -77,41 +76,6 @@ function formatISODateOnly(d) {
   return `${year}-${month}-${day}`;
 }
 
-function monthGridMondayFirst(monthDate) {
-  const monthCursor = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-  const firstDayOfMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
-  const monthIndex = firstDayOfMonth.getMonth();
-
-  const weekOffset = firstDayOfMonth.getDay();
-
-  const daysInMonth = new Date(firstDayOfMonth.getFullYear(), monthIndex + 1, 0).getDate();
-
-  const totalCells = 42;
-  const cells = Array.from({ length: totalCells }, (_, idx) => {
-    const dayNumber = idx - weekOffset + 1;
-    const inThisMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
-
-    const date = inThisMonth ? new Date(firstDayOfMonth.getFullYear(), monthIndex, dayNumber) : null;
-    return {
-      idx,
-      dayNumber: inThisMonth ? dayNumber : null,
-      date,
-      inThisMonth,
-      dateOnlyKey: inThisMonth && date ? formatISODateOnly(date) : null
-    };
-  });
-
-  const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-  return {
-    firstDayOfMonth,
-    daysInMonth,
-    cells,
-    weekdays,
-    monthYearLabel: firstDayOfMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })
-  };
-}
-
 const StudentDashboard = () => {
   const [user, setUser] = useState(() => {
     try {
@@ -124,9 +88,6 @@ const StudentDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [units, setUnits] = useState([]);
   const [academic, setAcademic] = useState(null);
-  const [workloadSummary, setWorkloadSummary] = useState([]);
-  const [workloadLoading, setWorkloadLoading] = useState(true);
-  const [workloadError, setWorkloadError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const [showModal, setShowModal] = useState(false);
@@ -306,15 +267,6 @@ const StudentDashboard = () => {
         const dashRes = await axios.get(API.studentDashboard, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        axios.get('/api/accounts/student/workload-summary/', {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((response) => {
-          setWorkloadSummary(safeArray(response.data));
-        }).catch(() => {
-          setWorkloadSummary([]);
-          setWorkloadError('Unable to load workload information.');
-        }).finally(() => setWorkloadLoading(false));
-
         const dash = dashRes?.data ?? {};
         const dashboardUser = dash?.user || {};
         const fetchedUser = {
@@ -520,13 +472,9 @@ const StudentDashboard = () => {
   }, [tasks, completedWorkCount]);
 
   const [calendarMonth, setCalendarMonth] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
+    return new Date();
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
-
-  const calendar = useMemo(() => monthGridMondayFirst(calendarMonth), [calendarMonth]);
-  const todayKey = formatISODateOnly(now);
 
   const deadlineByDay = useMemo(() => {
     const map = new Map();
@@ -559,14 +507,6 @@ const StudentDashboard = () => {
       })
       .sort((left, right) => new Date(left.due_date) - new Date(right.due_date));
   }, [tasks, now]);
-
-  const handlePrevMonth = () => {
-    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  };
 
   const openCreateModal = (courseCode = '', unit = null) => {
     if (typeof courseCode === 'string' && courseCode) {
@@ -1651,6 +1591,7 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
+<<<<<<< Updated upstream
               <section className="rounded-lg border border-[#D7DEE6] bg-white p-5" aria-labelledby="workload-heading">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
@@ -1698,6 +1639,8 @@ const StudentDashboard = () => {
                 )}
               </section>
 
+=======
+>>>>>>> Stashed changes
               {/* ROW 2: ADVANCED SIDE-BY-SIDE WIDGET PLACEMENTS LAYOUT */}
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(230px,0.82fr)_minmax(0,1.8fr)] gap-5">
                 
@@ -1705,6 +1648,7 @@ const StudentDashboard = () => {
                 <div className="space-y-4">
                   
                   {/* STUDIO TEXTURED CARD COMPACT CALENDAR */}
+<<<<<<< Updated upstream
                   <div className="bg-white p-5 rounded-lg border border-[#D7DEE6]">
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#D7DEE6]">
                       <div className="flex items-center gap-2">
@@ -1753,6 +1697,52 @@ const StudentDashboard = () => {
                         );
                       })}
                     </div>
+=======
+                  <div className="student-dashboard-calendar rounded-lg border border-[#DDE7E2] bg-white p-5">
+                    <Calendar
+                      fullscreen={false}
+                      value={dayjs(calendarMonth)}
+                      onPanelChange={(date) => setCalendarMonth(date.toDate())}
+                      headerRender={({ value, onChange }) => (
+                        <div className="flex items-center justify-between px-2 pb-3">
+                          <span className="font-medium">{value.format('MMMM YYYY')}</span>
+                          <div className="flex gap-1">
+                            <Button
+                              onClick={() => {
+                                const today = dayjs();
+                                onChange(today);
+                                setCalendarMonth(today.toDate());
+                                setSelectedCalendarDay(null);
+                              }}
+                              size="small"
+                              type="link"
+                            >
+                              Today
+                            </Button>
+                            <Button
+                              aria-label="Previous month"
+                              icon={<LeftOutlined />}
+                              onClick={() => onChange(value.subtract(1, 'month'))}
+                              size="small"
+                              type="text"
+                            />
+                            <Button
+                              aria-label="Next month"
+                              icon={<RightOutlined />}
+                              onClick={() => onChange(value.add(1, 'month'))}
+                              size="small"
+                              type="text"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      onSelect={(date) => {
+                        const dateKey = date.format('YYYY-MM-DD');
+                        setCalendarMonth(date.toDate());
+                        setSelectedCalendarDay(deadlineByDay.has(dateKey) ? dateKey : null);
+                      }}
+                    />
+>>>>>>> Stashed changes
                     {selectedCalendarDay && (
                       <div className="mt-4 border-t border-[#D7DEE6] pt-3">
                         <div className="mb-2 flex items-center justify-between gap-2">
