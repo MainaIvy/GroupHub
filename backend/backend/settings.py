@@ -15,6 +15,7 @@ import sys
 import os
 from pathlib import Path
 from dotenv import load_dotenv; load_dotenv
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -252,6 +253,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'USER_ID_FIELD': 'id',
+       'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
+   'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
 SIMPLE_JWT_SERIALIZER = 'accounts.jwt.EmailTokenObtainPairSerializer'
