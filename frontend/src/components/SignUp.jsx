@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { GraduationCap, ShieldCheck, UserRound, X } from 'lucide-react';
+import { getAcademicCourses } from '../api';
 import logo from '../assets/images/groubhub logo.svg';
 
 const SignUp = () => {
-  const [accountType, setAccountType] = useState(null); // 'student' or 'lecturer'
+  const [accountType, setAccountType] = useState('student');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     regNumber: '', // e.g., dcs-00-0001/2025 (optional UI field)
     university: '',
+    academicLevel: '',
+    courseId: '',
     yearOfStudy: '',
     password: '',
     confirmPassword: '',
@@ -27,31 +31,50 @@ const SignUp = () => {
   });
 
   const [academicCourses, setAcademicCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [coursesError, setCoursesError] = useState('');
+  const [signupError, setSignupError] = useState('');
   const [unitsLoading, setUnitsLoading] = useState(false);
   const [unitsError, setUnitsError] = useState('');
   const [unitFilters, setUnitFilters] = useState({ courseId: '', year: '', semester: '' });
 
   useEffect(() => {
-    if (accountType !== 'lecturer') return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
-    setUnitsLoading(true);
-    setUnitsError('');
-    fetch('/api/accounts/academic/courses/')
-      .then((response) => {
-        if (!response.ok) throw new Error('Unable to load units.');
-        return response.json();
-      })
-      .then((data) => {
+    setCoursesLoading(true);
+    setCoursesError('');
+    if (accountType === 'lecturer') {
+      setUnitsLoading(true);
+      setUnitsError('');
+    }
+    getAcademicCourses()
+      .then((courses) => {
         if (!cancelled) {
-          setAcademicCourses(data.courses || []);
-          setUnitFilters({ courseId: '', year: '', semester: '' });
+          setAcademicCourses(courses);
+          if (accountType === 'lecturer') {
+            setUnitFilters({ courseId: '', year: '', semester: '' });
+          }
         }
       })
-      .catch(() => {
-        if (!cancelled) setUnitsError('Units could not be loaded. Please refresh and try again.');
+      .catch((error) => {
+        if (!cancelled) {
+          const message = error.response?.data?.error || 'Courses could not be loaded. Please refresh and try again.';
+          if (accountType === 'lecturer') setUnitsError(message);
+          else setCoursesError(message);
+        }
       })
       .finally(() => {
-        if (!cancelled) setUnitsLoading(false);
+        if (!cancelled) {
+          setCoursesLoading(false);
+          if (accountType === 'lecturer') setUnitsLoading(false);
+        }
       });
     return () => { cancelled = true; };
   }, [accountType]);
@@ -82,6 +105,23 @@ const SignUp = () => {
     && (!unitFilters.year || String(unit.year_of_study) === unitFilters.year)
     && (!unitFilters.semester || String(unit.semester) === unitFilters.semester)
   ));
+  const academicLevels = useMemo(
+    () => [...new Set(academicCourses.flatMap((course) => (course.units || [])
+      .map((unit) => unit.academic_level?.trim())
+      .filter(Boolean)))].sort(),
+    [academicCourses]
+  );
+  const studentCourses = academicCourses.filter((course) => (
+    formData.academicLevel
+    && (course.units || []).some((unit) => (
+      unit.academic_level?.trim() === formData.academicLevel
+      && (!formData.yearOfStudy || String(unit.year_of_study) === formData.yearOfStudy)
+    ))
+  ));
+  const selectedStudentCourse = academicCourses.find((course) => String(course.id) === formData.courseId);
+  const studentYears = [...new Set(studentCourses.flatMap((course) => (course.units || [])
+    .filter((unit) => unit.academic_level?.trim() === formData.academicLevel)
+    .map((unit) => String(unit.year_of_study))))].sort((a, b) => Number(a) - Number(b));
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -93,6 +133,7 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSignupError('');
 
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match');
@@ -109,17 +150,17 @@ const SignUp = () => {
     const normalizedUniversity = formData.university?.trim() || '';
     const normalizedPassword = formData.password || '';
 
-    // Your task request: registration number + year of study snake_case.
-    // However, your backend signup_view currently reads camelCase keys:
-    // - student: course, yearOfStudy
-    // - lecturer: salutation, staffId, department, coursesTaught
-    // It also reads fullName and university.
-    // To avoid the 400s, we send the exact keys your backend expects.
-    // We additionally include snake_case duplicates for compatibility with any future serializers.
-
     const studentRegistrationNumber = (formData.regNumber || formData.studentId || '').trim();
     const studentYearOfStudy = String(formData.yearOfStudy || '').trim();
-    const studentCourse = (formData.course || '').trim();
+    const studentCourse = (selectedStudentCourse?.name || formData.course || '').trim();
+    const studentLevelUnits = (selectedStudentCourse?.units || []).filter((unit) => (
+      unit.academic_level?.trim() === formData.academicLevel
+      && String(unit.year_of_study) === studentYearOfStudy
+    ));
+    const studentSemester = studentLevelUnits
+      .map((unit) => Number(unit.semester))
+      .filter((semester) => Number.isInteger(semester) && semester > 0)
+      .sort((a, b) => a - b)[0];
 
     const lecturerStaffId = (formData.staffId || '').trim();
     const lecturerDepartment = (formData.department || '').trim();
@@ -127,6 +168,11 @@ const SignUp = () => {
 
     if (accountType === 'lecturer' && !/^[A-Za-z]{2}\d{4}$/.test(lecturerStaffId)) {
       alert('Staff ID must be in the format XX1234 (for example, AB1234).');
+      return;
+    }
+
+    if (accountType === 'student' && (!formData.academicLevel || !formData.courseId || !studentYearOfStudy || !studentSemester)) {
+      setSignupError('Select an academic level, course, and year with available units.');
       return;
     }
 
@@ -152,12 +198,14 @@ const SignUp = () => {
     };
 
     if (accountType === 'student') {
+      signupData.admissionNumber = studentRegistrationNumber;
       signupData.course = studentCourse;
       signupData.course_snake_case = studentCourse;
-
-      // Backend reads: yearOfStudy
+      signupData.course_id = Number(formData.courseId);
+      signupData.academic_level = formData.academicLevel;
       signupData.yearOfStudy = studentYearOfStudy;
       signupData.year_of_study = studentYearOfStudy;
+      signupData.semester = studentSemester;
 
       // Not currently used by backend signup_view, but requested by you.
       signupData.registration_number = studentRegistrationNumber;
@@ -198,106 +246,91 @@ const SignUp = () => {
         window.location.href = '/login';
       } else {
         const data = await response.json().catch(() => null);
-        alert(data?.error || 'Signup failed. Please try again.');
+        if (accountType === 'student') setSignupError(data?.error || 'Signup failed. Please try again.');
+        else alert(data?.error || 'Signup failed. Please try again.');
       }
     } catch (error) {
       console.error('Signup error:', error);
-      alert('Network error. Please check your connection and try again.');
+      if (accountType === 'student') setSignupError('Network error. Please check your connection and try again.');
+      else alert('Network error. Please check your connection and try again.');
     }
   };
 
-  if (!accountType) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl w-full space-y-10">
-          <div className="text-center">
-            <Link
-              to="/"
-              className="inline-flex items-center px-4 py-2 border border-[#F57D67] rounded-lg shadow-md text-sm font-medium text-white bg-[#F57D67] hover:bg-[#e66b5b] transition-colors"
-            >
-              ← Back to Home
-            </Link>
-            <div className="mt-8">
-              <div className="flex justify-center mb-6">
-                <img src={logo} alt="GroupHub Logo" className="h-20 w-auto" />
-              </div>
-              <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Join GroupHub</h1>
-              <p className="text-lg text-gray-600">Choose your account type to get started</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div
-              onClick={() => setAccountType('student')}
-              className="cursor-pointer bg-white p-10 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 hover:scale-105 transform"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-6 p-4 bg-blue-50 rounded-full">
-                  <svg className="w-16 h-16 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.84L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.84l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Student</h3>
-                <p className="text-gray-600 text-center leading-relaxed">
-                  Join as a student to collaborate on group projects, track assignments, and work seamlessly with your
-                  grouopmates.
-                </p>
-              </div>
-            </div>
-            <div
-              onClick={() => setAccountType('lecturer')}
-              className="cursor-pointer bg-white p-10 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-green-500 hover:scale-105 transform"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-6 p-4 bg-green-50 rounded-full">
-                  <svg className="w-16 h-16 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Lecturer</h3>
-                <p className="text-gray-600 text-center leading-relaxed">
-                  Join as a lecturer to oversee student projects, and facilitate academic collaboration.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="flex justify-center">
-            <img src={logo} alt="GroupHub Logo" className="h-16 w-auto" />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {accountType === 'student' ? 'Student Sign Up' : 'Lecturer Sign Up'}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-slate-600 hover:text-slate-500">
-              Sign in
-            </Link>
-          </p>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Want to sign up as a {accountType === 'student' ? 'Lecturer' : 'Student'} instead?{' '}
-            <button onClick={() => setAccountType(null)} className="font-medium text-slate-600 hover:text-slate-500">
-              Switch
-            </button>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-slate-950/45 p-2 text-slate-900 backdrop-blur-sm sm:p-3">
+      <main
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="signup-title"
+        className="relative my-auto max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.3)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:p-5"
+      >
+        <header className="mb-2 flex items-center justify-between">
+          <img src={logo} alt="GroupHub" className="h-8 w-auto" />
+          <Link
+            to="/"
+            aria-label="Close sign up"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+          >
+            <X className="h-5 w-5" />
+          </Link>
+        </header>
+
+        <div className="mx-auto mb-2 max-w-lg text-center">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+            <span id="signup-title">Create your account</span>
+          </h1>
+          <p className="mt-1 text-sm leading-5 text-slate-500">
+            Join your campus community and make great things happen together.
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+        <div className="mb-2 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5" aria-label="Choose account type">
+            <button
+              type="button"
+              onClick={() => setAccountType('student')}
+              aria-pressed={accountType === 'student'}
+              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                accountType === 'student'
+                  ? 'bg-white text-violet-700 shadow-sm ring-1 ring-slate-200/70'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <GraduationCap className="h-4 w-4" />
+              Student
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountType('lecturer')}
+              aria-pressed={accountType === 'lecturer'}
+              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                accountType === 'lecturer'
+                  ? 'bg-white text-violet-700 shadow-sm ring-1 ring-slate-200/70'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <UserRound className="h-4 w-4" />
+              Lecturer
+            </button>
+        </div>
+
+        {accountType === 'lecturer' && (
+        <div className="mb-2 flex items-center gap-3 rounded-2xl bg-violet-50 p-2.5">
+            <div className="rounded-xl bg-violet-100 p-2 text-violet-700">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">
+                Your lecturer workspace
+              </p>
+            </div>
+        </div>
+        )}
+
+        <form className="signup-form space-y-2" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:min-h-[216px] sm:grid-cols-2">
             {accountType === 'student' && (
               <>
-                <div>
+                <div className="sm:col-span-2">
                   <label htmlFor="fullName" className="sr-only">
                     Full Name
                   </label>
@@ -346,7 +379,7 @@ const SignUp = () => {
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <label htmlFor="university" className="sr-only">
                     University/Institution
                   </label>
@@ -364,6 +397,33 @@ const SignUp = () => {
                 </div>
 
                 <div>
+                  <label htmlFor="academicLevel" className="sr-only">
+                    Academic Level
+                  </label>
+                  <select
+                    id="academicLevel"
+                    name="academicLevel"
+                    required
+                    disabled={coursesLoading}
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                    value={formData.academicLevel}
+                    aria-describedby={coursesError ? 'course-load-error' : undefined}
+                    onChange={(event) => setFormData((current) => ({
+                      ...current,
+                      academicLevel: event.target.value,
+                      courseId: '',
+                      yearOfStudy: '',
+                    }))}
+                  >
+                    <option value="">
+                      {coursesLoading ? 'Loading academic levels...' : academicLevels.length ? 'Select Academic Level' : 'No academic levels available'}
+                    </option>
+                    {academicLevels.map((level) => <option key={level} value={level}>{level}</option>)}
+                  </select>
+                  {coursesError && <p id="course-load-error" className="mt-1 text-xs text-red-600">{coursesError}</p>}
+                </div>
+
+                <div>
                   <label htmlFor="yearOfStudy" className="sr-only">
                     Year of Study
                   </label>
@@ -371,18 +431,46 @@ const SignUp = () => {
                     id="yearOfStudy"
                     name="yearOfStudy"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    disabled={!formData.academicLevel}
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm disabled:cursor-not-allowed disabled:opacity-60"
                     value={formData.yearOfStudy}
-                    onChange={handleChange}
+                    onChange={(event) => setFormData((current) => ({
+                      ...current,
+                      yearOfStudy: event.target.value,
+                      courseId: '',
+                    }))}
                   >
                     <option value="">Select Year of Study</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                    <option value="5">5th Year</option>
-                    <option value="6">6th Year</option>
+                    {studentYears.map((year) => <option key={year} value={year}>Year {year}</option>)}
                   </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label htmlFor="courseId" className="sr-only">
+                    Course
+                  </label>
+                  <select
+                    id="courseId"
+                    name="courseId"
+                    required
+                    disabled={!formData.academicLevel || !formData.yearOfStudy || coursesLoading || studentCourses.length === 0}
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                    value={formData.courseId}
+                    onChange={(event) => setFormData((current) => ({
+                      ...current,
+                      courseId: event.target.value,
+                    }))}
+                  >
+                    <option value="">
+                      {coursesLoading ? 'Loading courses...' : 'Select Course'}
+                    </option>
+                    {studentCourses.map((course) => (
+                      <option key={course.id} value={course.id}>{course.code} — {course.name}</option>
+                    ))}
+                  </select>
+                  {!coursesLoading && formData.academicLevel && studentCourses.length === 0 && !coursesError && (
+                    <p className="mt-1 text-xs text-slate-500">No courses are available for this academic level and year.</p>
+                  )}
                 </div>
 
                 <div>
@@ -395,7 +483,7 @@ const SignUp = () => {
                     type="password"
                     autoComplete="new-password"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     placeholder="Password"
                     value={formData.password}
                     onChange={handleChange}
@@ -412,7 +500,7 @@ const SignUp = () => {
                     type="password"
                     autoComplete="new-password"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     placeholder="Confirm Password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
@@ -434,7 +522,7 @@ const SignUp = () => {
                   <select
                     id="salutation"
                     name="salutation"
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     value={formData.salutation}
                     onChange={handleChange}
                   >
@@ -456,7 +544,7 @@ const SignUp = () => {
                     name="fullName"
                     type="text"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     placeholder="Full Name"
                     value={formData.fullName}
                     onChange={handleChange}
@@ -473,7 +561,7 @@ const SignUp = () => {
                     type="email"
                     autoComplete="email"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     placeholder="Email address (e.g., email@zetech.ac.ke)"
                     value={formData.email}
                     onChange={handleChange}
@@ -492,14 +580,14 @@ const SignUp = () => {
                     pattern="[A-Za-z]{2}[0-9]{4}"
                     maxLength={6}
                     title="Enter two letters followed by four digits, for example AB1234."
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     placeholder="Staff ID (e.g., AB1234)"
                     value={formData.staffId}
                     onChange={handleChange}
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <label htmlFor="university" className="sr-only">
                     University/Institution
                   </label>
@@ -507,7 +595,7 @@ const SignUp = () => {
                     id="university"
                     name="university"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     value={formData.university}
                     onChange={handleChange}
                   >
@@ -619,7 +707,7 @@ const SignUp = () => {
                     type="password"
                     autoComplete="new-password"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     placeholder="Password"
                     value={formData.password}
                     onChange={handleChange}
@@ -636,7 +724,7 @@ const SignUp = () => {
                     type="password"
                     autoComplete="new-password"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                     placeholder="Confirm Password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
@@ -646,22 +734,28 @@ const SignUp = () => {
             )}
           </div>
 
+          {signupError && (
+            <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {signupError}
+            </p>
+          )}
+
           <div className="flex items-center">
             <input
               id="agreeToTerms"
               name="agreeToTerms"
               type="checkbox"
-              className={`h-4 w-4 focus:ring-slate-500 border-gray-300 rounded ${accountType === 'student' ? 'text-blue-600' : 'text-green-600'}`}
+              className="h-4 w-4 rounded border-slate-300 accent-violet-600 focus:ring-violet-500"
               checked={formData.agreeToTerms}
               onChange={handleChange}
             />
-            <label htmlFor="agreeToTerms" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="agreeToTerms" className="ml-2 block text-sm leading-6 text-slate-600">
               I agree to the{' '}
-              <Link to="/terms" className="text-slate-600 hover:text-slate-500">
+              <Link to="/terms" className="font-medium text-violet-700 hover:text-violet-900">
                 Terms and Conditions
               </Link>{' '}
               and{' '}
-              <Link to="/privacy" className="text-slate-600 hover:text-slate-500">
+              <Link to="/privacy" className="font-medium text-violet-700 hover:text-violet-900">
                 Privacy Policy
               </Link>
             </label>
@@ -670,13 +764,19 @@ const SignUp = () => {
           <div>
             <button
               type="submit"
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${accountType === 'student' ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'}`}
+              className="group relative flex w-full justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-violet-500/30 focus:ring-offset-2"
             >
               Create Account
             </button>
           </div>
         </form>
-      </div>
+        <p className="mt-2 border-t border-slate-100 pt-2 text-center text-sm text-slate-500">
+          Already have an account?{' '}
+          <Link to="/login" className="font-semibold text-violet-700 transition hover:text-violet-900">
+            Sign in
+          </Link>
+        </p>
+      </main>
     </div>
   );
 };

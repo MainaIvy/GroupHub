@@ -50,6 +50,21 @@ const Chat = ({ onCreateGroup, onGroupDeleted = () => {}, groupRefreshKey = 0, g
   const socketRef = useRef(null);
   const draftRef = useRef(null);
 
+  useEffect(() => {
+    if (roomMenuId === null && !taskPickerOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (event.target.closest?.('[data-popover-root]') || event.target === draftRef.current) return;
+      setRoomMenuId(null);
+      setTaskPickerOpen(false);
+    };
+    const handleKeyDown = (event) => { if (event.key === 'Escape') setRoomMenuId(null); };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [roomMenuId, taskPickerOpen]);
   const activeRoom = rooms.find((room) => String(room.id) === String(activeRoomId));
   const filteredRooms = useMemo(() => {
     const query = roomSearch.trim().toLowerCase();
@@ -342,7 +357,7 @@ const Chat = ({ onCreateGroup, onGroupDeleted = () => {}, groupRefreshKey = 0, g
                 </span>
                 {Number(unreadCounts[String(room.id)] ?? room.unread_count ?? 0) > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1F6B5C] px-1 text-[9px] font-bold text-white">{unreadCounts[String(room.id)] ?? room.unread_count}</span>}
               </button>
-              {(room.type === 'direct' || room.can_delete) && <div className="relative"><button type="button" onClick={() => setRoomMenuId((current) => current === room.id ? null : room.id)} aria-label={`More actions for ${room.name}`} aria-expanded={roomMenuId === room.id} title="More actions" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#68817A] hover:bg-white"><MoreHorizontal size={16} aria-hidden="true" /></button>{roomMenuId === room.id && <div role="menu" className="absolute right-0 top-full z-30 mt-1 w-40 rounded-md border border-[#DDE7E2] bg-white p-1 shadow-lg"><button type="button" role="menuitem" onClick={() => deleteConversation(room)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50"><Trash2 size={13} aria-hidden="true" />{room.type === 'direct' ? 'Delete conversation' : 'Delete group'}</button></div>}</div>}
+              {(room.type === 'direct' || room.can_delete) && <div className="relative" data-popover-root><button type="button" onClick={() => setRoomMenuId((current) => current === room.id ? null : room.id)} aria-label={`More actions for ${room.name}`} aria-expanded={roomMenuId === room.id} title="More actions" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#68817A] hover:bg-white"><MoreHorizontal size={16} aria-hidden="true" /></button>{roomMenuId === room.id && <div role="menu" className="absolute right-0 top-full z-30 mt-1 w-40 rounded-md border border-[#DDE7E2] bg-white p-1 shadow-lg"><button type="button" role="menuitem" onClick={() => deleteConversation(room)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50"><Trash2 size={13} aria-hidden="true" />{room.type === 'direct' ? 'Delete conversation' : 'Delete group'}</button></div>}</div>}
             </div>
           ))}
           {showContacts && !loadingContacts && !filteredContacts.length && (
@@ -394,7 +409,7 @@ const Chat = ({ onCreateGroup, onGroupDeleted = () => {}, groupRefreshKey = 0, g
                 <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.webp,.gif,.heic" onChange={(event) => { const file = event.target.files?.[0] || null; setSelectedFile(file); setError(file && file.size > 10 * 1024 * 1024 ? 'That file is over 10 MB. Choose a smaller file.' : ''); }} className="hidden" />
                 <button type="button" aria-label="Attach a document" title="Attach a document (max 10 MB)" onClick={() => fileInputRef.current?.click()} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#68817A] hover:bg-[#EAF4F0] hover:text-[#1F6B5C]"><Paperclip size={17} aria-hidden="true" /></button>
                 <div className="relative min-w-0 flex-1">
-                  {taskPickerOpen && activeRoom.type === 'group' && <div className="absolute bottom-full left-0 z-30 mb-2 max-h-48 w-full overflow-y-auto rounded-md border border-[#DDE7E2] bg-white p-1 shadow-lg">{taskPickerItems.length ? taskPickerItems.slice(0, 8).map((task) => <button key={task.id} type="button" onClick={() => insertTaskReference(task)} className="flex w-full items-center justify-between gap-2 rounded px-2.5 py-2 text-left hover:bg-[#EAF4F0]"><span className="truncate text-xs font-medium text-[#17332F]">{task.title}</span><span className="shrink-0 text-[9px] text-[#789089]">#{task.id}</span></button>) : <p className="px-2.5 py-2 text-[10px] text-[#789089]">No matching tasks.</p>}</div>}
+                  {taskPickerOpen && activeRoom.type === 'group' && <div data-popover-root className="absolute bottom-full left-0 z-30 mb-2 max-h-48 w-full overflow-y-auto rounded-md border border-[#DDE7E2] bg-white p-1 shadow-lg">{taskPickerItems.length ? taskPickerItems.slice(0, 8).map((task) => <button key={task.id} type="button" onClick={() => insertTaskReference(task)} className="flex w-full items-center justify-between gap-2 rounded px-2.5 py-2 text-left hover:bg-[#EAF4F0]"><span className="truncate text-xs font-medium text-[#17332F]">{task.title}</span><span className="shrink-0 text-[9px] text-[#789089]">#{task.id}</span></button>) : <p className="px-2.5 py-2 text-[10px] text-[#789089]">No matching tasks.</p>}</div>}
                   <textarea ref={draftRef} value={draft} onChange={(event) => { const value = event.target.value; setDraft(value); const cursor = event.target.selectionStart; const prefix = value.slice(0, cursor); const hashIndex = prefix.lastIndexOf('#'); const query = hashIndex >= 0 ? prefix.slice(hashIndex + 1) : ''; const isTaskQuery = hashIndex >= 0 && !/\s/.test(query); setTaskPickerOpen(activeRoom.type === 'group' && isTaskQuery); setTaskPickerQuery(query.replace(/^task-?/i, '')); }} onKeyDown={(event) => { if (event.key === 'Escape') setTaskPickerOpen(false); if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); setTaskPickerOpen(false); event.currentTarget.form.requestSubmit(); } }} rows={1} placeholder="Write a message…" className="max-h-24 min-h-8 w-full resize-y bg-transparent px-1 py-1.5 text-xs text-[#17332F] outline-none placeholder:text-[#94A8A1]" />
                 </div>
                 <button type="submit" disabled={sending || (!draft.trim() && !selectedFile)} aria-label="Send message" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#163F3A] text-white hover:bg-[#24564F] disabled:cursor-not-allowed disabled:opacity-40"><Send size={15} aria-hidden="true" /></button>

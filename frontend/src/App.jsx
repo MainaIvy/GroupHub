@@ -18,7 +18,12 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const loginPage = <Login googleEnabled={Boolean(googleClientId)} />;
+  const loginPage = (
+    <>
+      <Home />
+      <Login googleEnabled={Boolean(googleClientId)} />
+    </>
+  );
 
   return (
     <Router
@@ -33,7 +38,15 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/signup" element={<SignUp />} />
+        <Route
+          path="/signup"
+          element={
+            <>
+              <Home />
+              <SignUp />
+            </>
+          }
+        />
         <Route path="/join/:code" element={<JoinLink />} />
         <Route path="/groupchatroom" element={<GroupChatRoom />} />
         <Route path="/groups/:groupId/chat" element={<GroupChatRoom />} />
@@ -52,6 +65,7 @@ function App() {
 
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
+        <Route path="/student/groups/:groupId" element={<StudentDashboard />} />
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer/setup" element={<LecturerSetup />} />
