@@ -182,8 +182,8 @@ class StudentSignupEnrollmentTests(TestCase):
             'password': 'StrongPass123',
             'confirmPassword': 'StrongPass123',
             'course_id': course.id,
+            'academic_level': "Bachelor's",
             'yearOfStudy': 2,
-            'semester': 1,
         }, format='json')
 
         self.assertEqual(response.status_code, 201, response.json())
@@ -192,6 +192,7 @@ class StudentSignupEnrollmentTests(TestCase):
         self.assertEqual(user.username, 'ZEC/002/2024')
         self.assertTrue(user.check_password('StrongPass123'))
         self.assertEqual(user.course, 'BSc Computer Science')
+        self.assertEqual(user.academic_level, "Bachelor's")
         self.assertEqual(user.year_of_study, '2')
         self.assertEqual(user.enrolled_course_id, course.id)
         self.assertEqual(user.semester, 1)
@@ -252,14 +253,18 @@ class StudentSignupEnrollmentTests(TestCase):
 
     def test_academic_courses_endpoint_builds_structure_from_units(self):
         course = Course.objects.create(code='BCS-STRUCT', name='Structure Course', department='Computing')
-        Unit.objects.create(course=course, code='BCS 102', name='Second Semester', year_of_study=1, semester=2)
-        Unit.objects.create(course=course, code='BCS 101', name='First Semester', year_of_study=1, semester=1)
-        Unit.objects.create(course=course, code='BCS 201', name='Year Two', year_of_study=2, semester=1)
+        Unit.objects.create(course=course, code='BCS 102', name='Second Semester', academic_level="Bachelor's", year_of_study=1, semester=2)
+        Unit.objects.create(course=course, code='BCS 101', name='First Semester', academic_level="Bachelor's", year_of_study=1, semester=1)
+        Unit.objects.create(course=course, code='BCS 201', name='Year Two', academic_level='Diploma', year_of_study=2, semester=1)
 
         response = APIClient().get('/api/accounts/academic/courses/')
         self.assertEqual(response.status_code, 200)
         course_payload = next(item for item in response.json()['courses'] if item['id'] == course.id)
         self.assertEqual(course_payload['structure'], {'1': [1, 2], '2': [1]})
+        self.assertEqual(
+            [unit['academic_level'] for unit in course_payload['units']],
+            ["Bachelor's", "Bachelor's", 'Diploma'],
+        )
 
     def test_student_dashboard_returns_only_enrolled_course_year_and_semester_units(self):
         course = Course.objects.create(code='BCS-DASH', name='Dashboard Course', department='Computing')

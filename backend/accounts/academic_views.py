@@ -28,6 +28,7 @@ def academic_courses_view(request):
                 'id': unit.id,
                 'code': unit.code,
                 'name': unit.name,
+                'academic_level': unit.academic_level,
                 'year_of_study': unit.year_of_study,
                 'semester': unit.semester,
                 'assigned_lecturer_id': unit.assigned_lecturer_id,
