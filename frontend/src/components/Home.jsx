@@ -130,7 +130,7 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="py-20 bg-[#F5F5F5] border-y border-[#e5e7eb]">
+      <section className="py-20 bg-[#FAFAFA] border-y border-[#e5e7eb]">
         <div className="container mx-auto px-4 sm:px-6">
           <h2 className="text-3xl font-bold text-center text-[#0f172a] mb-12">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -158,14 +158,6 @@ const Home = () => {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-[#EBEBDD]">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#0f172a] mb-4">
-            Join 10,000+ students managing their projects better
-          </h2>
         </div>
       </section>
 
