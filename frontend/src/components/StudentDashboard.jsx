@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 
 import Chat from './Chat';
+import PollPanel from './PollPanel';
+import ProjectFormModal from './ProjectFormModal';
 
 const API = {
   studentDashboard: '/api/accounts/dashboard/student/',
@@ -117,6 +119,21 @@ const StudentDashboard = () => {
   const [maxMembers, setMaxMembers] = useState('6');
   const [inviteUsernames, setInviteUsernames] = useState('');
   const [groupMenuId, setGroupMenuId] = useState(null);
+
+  useEffect(() => {
+    if (!avatarOpen && !notificationsOpen && groupMenuId === null) return undefined;
+    const closeAll = () => { setAvatarOpen(false); setNotificationsOpen(false); setGroupMenuId(null); };
+    const handlePointerDown = (event) => {
+      if (!event.target.closest?.('[data-popover-root]')) closeAll();
+    };
+    const handleKeyDown = (event) => { if (event.key === 'Escape') closeAll(); };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [avatarOpen, notificationsOpen, groupMenuId]);
   const [chatGroupId, setChatGroupId] = useState(null);
   const [createBusy, setCreateBusy] = useState(false);
 
@@ -129,6 +146,8 @@ const StudentDashboard = () => {
   const [taskWorkspaceLoading, setTaskWorkspaceLoading] = useState(false);
   const [taskWorkspaceError, setTaskWorkspaceError] = useState('');
   const [groupActivity, setGroupActivity] = useState([]);
+  const [taskGroupProjects, setTaskGroupProjects] = useState([]);
+  const [projectModal, setProjectModal] = useState(null);
   const [activityLoading, setActivityLoading] = useState(false);
   const [selectedGroupDetail, setSelectedGroupDetail] = useState(null);
   const [groupDetailWorkspace, setGroupDetailWorkspace] = useState(null);
@@ -622,18 +641,21 @@ const StudentDashboard = () => {
     setTaskWorkspace(null);
     setTaskBalance(null);
     setGroupActivity([]);
+    setTaskGroupProjects([]);
     setTaskWorkspaceLoading(true);
     setActivityLoading(true);
     setTaskWorkspaceError('');
     try {
       const token = getStoredToken();
       const headers = { Authorization: `Bearer ${token}` };
-      const [detailsResponse, balanceResponse, activityResponse, commentsResponse] = await Promise.all([
+      const [detailsResponse, balanceResponse, activityResponse, commentsResponse, projectsResponse] = await Promise.all([
         axios.get(`/api/accounts/groups/${group.id}/workspace/`, { headers }),
         axios.get(`/api/accounts/groups/${group.id}/balance/`, { headers }),
         axios.get(`/api/accounts/groups/${group.id}/activity/`, { headers }),
         axios.get(`/api/accounts/groups/${group.id}/comments/`, { headers }),
+        axios.get(`/api/accounts/groups/${group.id}/projects/`, { headers }).catch(() => ({ data: [] })),
       ]);
+      setTaskGroupProjects(safeArray(projectsResponse.data));
       setTaskWorkspace(detailsResponse.data);
       setTaskBalance(balanceResponse.data);
       setGroupActivity(safeArray(activityResponse.data));
@@ -849,7 +871,13 @@ const StudentDashboard = () => {
   };
 
   const handleDeleteGroup = async (group) => {
-    if (!group?.is_leader || !window.confirm(`Delete “${group.name}” and its group chat? This cannot be undone.`)) return;
+    if (!group) return;
+    if (!window.confirm(`Are you sure you want to delete “${group.name}” and its group chat? This cannot be undone.`)) return;
+    if (!group.is_leader) {
+      setGroupMenuId(null);
+      setError('Only the group leader can delete this group.');
+      return;
+    }
     try {
       const token = getStoredToken();
       await axios.delete(`/api/accounts/groups/${group.id}/delete/`, {
@@ -868,7 +896,12 @@ const StudentDashboard = () => {
   };
 
   const handleLeaveGroup = async (group) => {
-    if (!window.confirm(`Leave “${group.name}”? You will need its join code to come back.`)) return;
+    if (!window.confirm(`Are you sure you want to leave “${group.name}”? You will need its join code to come back.`)) return;
+    if (group.is_leader) {
+      setGroupMenuId(null);
+      setError('The group leader cannot leave. Delete the group instead.');
+      return;
+    }
     try {
       await axios.post(`/api/accounts/groups/${group.id}/leave/`, {}, {
         headers: { Authorization: `Bearer ${getStoredToken()}` },
@@ -1086,7 +1119,7 @@ const StudentDashboard = () => {
             </label>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div className="relative">
+            <div className="relative" data-popover-root>
               <button
                 type="button"
                 aria-label="Notifications"
@@ -1111,7 +1144,7 @@ const StudentDashboard = () => {
             >
               <Settings size={16} aria-hidden="true" />
             </button>
-            <div className="relative">
+            <div className="relative" data-popover-root>
             <button
               type="button"
               aria-label="Profile"
@@ -1373,6 +1406,32 @@ const StudentDashboard = () => {
                       <p className="rounded-md bg-[#F3F5F7] px-3 py-5 text-center text-xs text-[#718094]">{activityLoading ? 'Loading activity…' : 'No activity yet. Task updates will appear here.'}</p>
                     )}
                   </section>
+                  <section className="space-y-3 xl:col-span-2" aria-label="Group projects">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#354B63]">Projects</h3>
+                        <p className="text-xs text-[#718094]">Milestones and deliverables for this group.</p>
+                      </div>
+                      <button type="button" onClick={() => setProjectModal({})} className="rounded-md bg-[#35475C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#435B76]">New project</button>
+                    </div>
+                    {taskGroupProjects.length ? (
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {taskGroupProjects.map((project) => (
+                          <article key={project.id} className="rounded-lg border border-[#D7DEE6] bg-white p-4">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-xs font-bold uppercase text-[#29384A]">{project.title}</h4>
+                              <span className="shrink-0 rounded bg-[#EEF1F4] px-2 py-0.5 text-[9px] font-semibold capitalize text-[#435B76]">{String(project.status || 'planning').replaceAll('_', ' ')}</span>
+                            </div>
+                            {project.description && <p className="mt-1 text-xs text-[#718094]">{project.description}</p>}
+                            <p className="mt-2 text-[10px] text-[#718094]">{pluralize(project.task_count || 0, 'task')}{project.deadline ? ` · Due ${new Date(project.deadline).toLocaleDateString()}` : ''}</p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : <p className="rounded-lg border border-dashed border-[#CBD5E1] bg-white px-3 py-5 text-center text-xs text-[#718094]">No projects yet. Create one or start a poll to decide.</p>}
+                  </section>
+                  <div className="xl:col-span-2">
+                    <PollPanel groupId={selectedTaskGroup.id} onCreateProject={(initial) => setProjectModal(initial)} />
+                  </div>
                 </div>
               ) : !selectedTaskGroup ? (
                 <div className="rounded-xl border border-dashed border-[#D7DEE6] bg-white p-8 text-center"><p className="text-sm font-medium text-[#354B63]">No groups yet.</p><button type="button" onClick={() => setActiveTab('groups')} className="mt-3 rounded-md bg-[#35475C] px-4 py-2 text-xs font-semibold text-white">Browse groups</button></div>
@@ -1530,9 +1589,9 @@ const StudentDashboard = () => {
                         <span className="mt-2 flex items-center gap-2"><span className="text-sm font-semibold text-[#29384A]">{group.name}</span>{group.is_leader && <span className="shrink-0 rounded-md bg-[#EEF1F4] px-2 py-0.5 text-[9px] font-semibold text-[#4A6079]">Leader</span>}</span>
                         <span className="mt-1 block text-xs text-[#718094]">{pluralize(group.members_count || 0, 'member')}{group.max_members ? ` of ${group.max_members}` : ''} · {pluralize(group.projects?.length || 0, 'project')}</span>
                       </button>
-                      <div className="relative shrink-0">
+                      <div className="relative shrink-0" data-popover-root>
                         <button type="button" aria-label={`Group actions for ${group.name}`} aria-expanded={groupMenuId === group.id} onClick={() => setGroupMenuId((current) => current === group.id ? null : group.id)} className="flex h-8 w-8 items-center justify-center rounded-md text-[#718094] hover:bg-[#E2E8F0]"><MoreHorizontal size={17} aria-hidden="true" /></button>
-                        {groupMenuId === group.id && <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-[#D7DEE6] bg-white p-1 shadow-lg">{group.is_leader ? <button type="button" role="menuitem" onClick={() => handleDeleteGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50"><Trash2 size={13} aria-hidden="true" /> Delete group</button> : <button type="button" role="menuitem" onClick={() => handleLeaveGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-[#435B76] hover:bg-[#E2E8F0]"><LogOut size={13} aria-hidden="true" /> Leave group</button>}</div>}
+                        {groupMenuId === group.id && <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-[#D7DEE6] bg-white p-1 shadow-lg"><button type="button" role="menuitem" onClick={() => handleLeaveGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-[#435B76] hover:bg-[#E2E8F0]"><LogOut size={13} aria-hidden="true" /> Leave group</button><button type="button" role="menuitem" onClick={() => handleDeleteGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50"><Trash2 size={13} aria-hidden="true" /> Delete group</button></div>}
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-[#EEF1F4] px-3 py-2">
@@ -1598,27 +1657,39 @@ const StudentDashboard = () => {
                 <div className="space-y-4">
                   
                   {/* STUDIO TEXTURED CARD COMPACT CALENDAR */}
-                  <div className="student-dashboard-calendar rounded-lg border border-[#DDE7E2] bg-white p-5">
+                  <div className="student-dashboard-calendar rounded-lg border border-[#D7DEE6] bg-white p-5 shadow-sm">
+                    <style>{`
+                      .student-dashboard-calendar .ant-picker-calendar { background: transparent; }
+                      .student-dashboard-calendar .ant-picker-content th { color: #718094; font-size: 11px; font-weight: 600; text-transform: uppercase; padding-bottom: 6px; }
+                      .student-dashboard-calendar .ant-picker-cell { padding: 2px 0; }
+                      .student-dashboard-calendar .ant-picker-cell-inner { position: relative; width: 32px !important; height: 32px !important; line-height: 32px !important; border-radius: 10px !important; font-size: 12px; color: #29384A; transition: background .15s; }
+                      .student-dashboard-calendar .ant-picker-cell:not(.ant-picker-cell-disabled):hover .ant-picker-cell-inner { background: #E2E8F0; }
+                      .student-dashboard-calendar .ant-picker-cell:not(.ant-picker-cell-in-view) .ant-picker-cell-inner { color: #CBD5E1; }
+                      .student-dashboard-calendar .ant-picker-cell-today .ant-picker-cell-inner::before { border-color: #4A6079 !important; border-radius: 10px !important; }
+                      .student-dashboard-calendar .ant-picker-cell-selected .ant-picker-cell-inner { background: #35475C !important; color: #fff !important; }
+                      .student-dashboard-calendar .cal-dot { position: absolute; left: 50%; bottom: 3px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 9999px; background: #4A6079; }
+                      .student-dashboard-calendar .cal-dot.overdue { background: #DC2626; }
+                      .student-dashboard-calendar .ant-picker-cell-selected .cal-dot { background: #fff; }
+                    `}</style>
                     <Calendar
                       fullscreen={false}
                       value={dayjs(calendarMonth)}
+                      fullCellRender={(date, info) => {
+                        if (info.type !== 'date') return info.originNode;
+                        const dayTasks = deadlineByDay.get(date.format('YYYY-MM-DD')) || [];
+                        const hasOverdue = dayTasks.some((t) => t.isOverdue);
+                        return (
+                          <div className="ant-picker-cell-inner" title={dayTasks.length ? `${dayTasks.length} task${dayTasks.length > 1 ? 's' : ''} due` : undefined}>
+                            {date.date()}
+                            {dayTasks.length > 0 && <span className={`cal-dot ${hasOverdue ? 'overdue' : ''}`} />}
+                          </div>
+                        );
+                      }}
                       onPanelChange={(date) => setCalendarMonth(date.toDate())}
                       headerRender={({ value, onChange }) => (
                         <div className="flex items-center justify-between px-2 pb-3">
-                          <span className="font-medium">{value.format('MMMM YYYY')}</span>
+                          <span className="text-sm font-semibold text-[#29384A]">{value.format('MMMM YYYY')}</span>
                           <div className="flex gap-1">
-                            <Button
-                              onClick={() => {
-                                const today = dayjs();
-                                onChange(today);
-                                setCalendarMonth(today.toDate());
-                                setSelectedCalendarDay(null);
-                              }}
-                              size="small"
-                              type="link"
-                            >
-                              Today
-                            </Button>
                             <Button
                               aria-label="Previous month"
                               icon={<LeftOutlined />}
@@ -1642,13 +1713,17 @@ const StudentDashboard = () => {
                         setSelectedCalendarDay(deadlineByDay.has(dateKey) ? dateKey : null);
                       }}
                     />
+                    <div className="mt-3 flex items-center gap-4 text-[10px] text-[#718094]">
+                      <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#4A6079]" />Task due</span>
+                      <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-red-600" />Overdue</span>
+                    </div>
                     {selectedCalendarDay && (
                       <div className="mt-4 border-t border-[#D7DEE6] pt-3">
                         <div className="mb-2 flex items-center justify-between gap-2">
                           <h4 className="text-xs font-semibold text-[#29384A]">Tasks for {new Date(`${selectedCalendarDay}T00:00:00`).toLocaleDateString()}</h4>
                           <button type="button" onClick={() => setSelectedCalendarDay(null)} className="text-[10px] font-medium text-[#4A6079]">Clear</button>
                         </div>
-                        {selectedDayTasks.length ? <ul className="space-y-2">{selectedDayTasks.map((task) => <li key={task.id} className={`rounded-md px-3 py-2 ${task.is_overdue ? 'bg-red-50 text-red-800' : 'bg-[#E2E8F0] text-[#354B63]'}`}><p className="text-xs font-semibold">{task.title}</p><p className="mt-0.5 text-[10px]">{task.group_name || task.group || 'Group'} · {pluralize(task.weight || 1, 'point')}</p></li>)}</ul> : <p className="text-xs text-[#718094]">No tasks due that day.</p>}
+                        {selectedDayTasks.length ? <ul className="space-y-2">{selectedDayTasks.map((task) => <li key={task.id} className={`rounded-md px-3 py-2 ${task.isOverdue ? 'bg-red-50 text-red-800' : 'bg-[#E2E8F0] text-[#354B63]'}`}><p className="text-xs font-semibold">{task.title}</p><p className="mt-0.5 text-[10px]">{task.group_name || task.group || 'Group'} · {pluralize(task.weight || 1, 'point')}</p></li>)}</ul> : <p className="text-xs text-[#718094]">No tasks due that day.</p>}
                       </div>
                     )}
                   </div>
@@ -1804,6 +1879,14 @@ const StudentDashboard = () => {
         </div>
       )}
 
+      {projectModal && selectedTaskGroup && (
+        <ProjectFormModal
+          groupId={selectedTaskGroup.id}
+          initial={projectModal}
+          onClose={() => setProjectModal(null)}
+          onCreated={(project) => { setTaskGroupProjects((current) => [...current, project]); setProjectModal(null); }}
+        />
+      )}
       {taskModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 p-4 backdrop-blur-sm">
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-stone-700 dark:bg-stone-900">
