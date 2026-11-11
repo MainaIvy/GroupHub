@@ -1019,28 +1019,28 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div role="status" className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#F3F6F4] text-[#35475C]">
-        <div aria-hidden="true" className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1F6B5C]" />
+      <div role="status" className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#E2E8F0] text-[#35475C]">
+        <div aria-hidden="true" className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4A6079]" />
         <p className="text-sm">Loading your workspace…</p>
       </div>
     );
   }
 
   return (
-    <div data-dashboard-theme="school" className="min-h-screen bg-[#F3F6F4] flex flex-col lg:flex-row text-[#17332F] font-sans antialiased selection:bg-[#B7E3D4] tracking-normal">
+    <div data-dashboard-theme="school" className="min-h-screen bg-[#E2E8F0] flex flex-col lg:flex-row text-[#29384A] font-sans antialiased selection:bg-[#D7DEE6] tracking-normal">
       
       {/* 🏛️ ARCHITECTURAL SIDEBAR NAVIGATION */}
-      <aside className="w-full shrink-0 bg-[#163F3A] text-white flex flex-col lg:justify-between lg:fixed lg:inset-y-0 lg:left-0 lg:h-full lg:w-64 z-30 px-4 py-3 lg:p-5 shadow-[4px_0_24px_rgba(12,46,41,0.10)]">
+      <aside className="w-full shrink-0 bg-[#35475C] text-white flex flex-col lg:justify-between lg:fixed lg:inset-y-0 lg:left-0 lg:h-full lg:w-64 z-30 px-4 py-3 lg:p-5 shadow-[4px_0_24px_rgba(53,71,92,0.10)]">
         <div>
           <div className="flex items-center px-2 py-1 lg:py-3">
             <div className="leading-tight">
               <div className="font-bold text-white text-base">GroupHub</div>
-              <p className="text-[10px] text-[#C2D6D1] font-medium mt-0.5">Student workspace</p>
+              <p className="text-[10px] text-[#CBD5E1] font-medium mt-0.5">Student workspace</p>
             </div>
           </div>
 
           <nav className="mt-3 lg:mt-8 grid grid-cols-3 gap-1 lg:block lg:space-y-1">
-            <p className="hidden lg:block text-[10px] font-semibold text-[#A6C3BC] uppercase tracking-widest px-3 mb-2">Workspace</p>
+            <p className="hidden lg:block text-[10px] font-semibold text-[#CBD5E1] uppercase tracking-widest px-3 mb-2">Workspace</p>
             {[
               { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
               { id: 'groups', label: 'Groups', icon: UsersRound, badge: activeGroupsCount },
@@ -1059,8 +1059,8 @@ const StudentDashboard = () => {
                 }}
                 className={`w-full min-w-0 px-2 py-2 lg:px-3 lg:py-2.5 rounded-lg text-[10px] lg:text-xs font-semibold flex items-center justify-center lg:justify-between transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-[#B7E3D4] text-[#163F3A] shadow-sm'
-                    : 'text-[#D5E4E0] hover:bg-white/10 hover:text-white'
+                    ? 'bg-[#D7DEE6] text-[#35475C] shadow-sm'
+                    : 'text-[#D7DEE6] hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -1080,12 +1080,12 @@ const StudentDashboard = () => {
         {/* PROFILE ANCHOR FOOTER CONTAINER */}
         <div className="hidden lg:flex border-t border-white/15 pt-4 flex-col gap-3">
           <div className="flex items-center gap-3 px-2">
-            <div className="h-9 w-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs font-bold text-[#B7E3D4]">
+            <div className="h-9 w-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-xs font-bold text-[#D7DEE6]">
               {avatarInitials}
             </div>
             <div className="leading-tight truncate max-w-[140px]">
               <div className="text-xs font-semibold text-white truncate">{`${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Student'}</div>
-              <span className="text-[10px] text-[#B9D0CA]">{user?.year_of_study ? `Year ${user.year_of_study} · ` : ''}Student</span>
+              <span className="text-[10px] text-[#CBD5E1]">{user?.year_of_study ? `Year ${user.year_of_study} · ` : ''}Student</span>
             </div>
           </div>
           <button
@@ -1106,7 +1106,7 @@ const StudentDashboard = () => {
       <div className="flex-1 min-w-0 lg:pl-64 flex flex-col min-h-screen">
         
         {/* TOP INTERACTIVE DESKTOP BAR */}
-        <header className="min-h-16 bg-white border-b border-[#DDE7E2] px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+        <header className="min-h-16 bg-white border-b border-[#D7DEE6] px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             <label className="relative w-full max-w-[230px] shrink-0">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full bg-[#F8E3ED] text-[#A64F70]">
@@ -1120,10 +1120,10 @@ const StudentDashboard = () => {
                 aria-label="Search groups and tasks"
                 aria-controls="dashboard-search-results"
                 aria-expanded={Boolean(searchText)}
-                className="h-9 w-full rounded-lg border border-[#E6E9E7] bg-[#FAFBFA] pl-11 pr-3 text-xs text-[#17332F] outline-none focus:border-[#1F6B5C]"
+                className="h-9 w-full rounded-lg border border-[#E6E9E7] bg-[#FAFBFA] pl-11 pr-3 text-xs text-[#29384A] outline-none focus:border-[#4A6079]"
               />
               {searchText && (
-                <div id="dashboard-search-results" role="listbox" className="absolute left-0 top-full z-50 mt-2 max-h-80 w-[min(360px,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-[#DDE7E2] bg-white p-1.5 shadow-xl">
+                <div id="dashboard-search-results" role="listbox" className="absolute left-0 top-full z-50 mt-2 max-h-80 w-[min(360px,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-[#D7DEE6] bg-white p-1.5 shadow-xl">
                   {searchResults.length ? searchResults.map((result) => (
                     <button
                       key={result.id}
@@ -1133,13 +1133,13 @@ const StudentDashboard = () => {
                         setActiveTab(result.tab);
                         setSearchQuery('');
                       }}
-                      className="flex w-full flex-col items-start rounded-md px-3 py-2 text-left hover:bg-[#EAF4F0]"
+                      className="flex w-full flex-col items-start rounded-md px-3 py-2 text-left hover:bg-[#EEF1F4]"
                     >
-                      <span className="text-xs font-semibold text-[#17332F]">{result.label}</span>
-                      <span className="mt-0.5 text-[10px] text-[#68817A]">{result.detail}</span>
+                      <span className="text-xs font-semibold text-[#29384A]">{result.label}</span>
+                      <span className="mt-0.5 text-[10px] text-[#718094]">{result.detail}</span>
                     </button>
                   )) : (
-                    <p className="px-3 py-3 text-xs text-[#68817A]">No groups, tasks, or units match “{searchQuery}”.</p>
+                    <p className="px-3 py-3 text-xs text-[#718094]">No groups, tasks, or units match “{searchQuery}”.</p>
                   )}
                 </div>
               )}
@@ -1152,14 +1152,14 @@ const StudentDashboard = () => {
                 aria-label="Notifications"
                 aria-expanded={notificationsOpen}
                 onClick={() => { setNotificationsOpen(!notificationsOpen); setAvatarOpen(false); }}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#163F3A] text-white hover:bg-[#24564F]"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#35475C] text-white hover:bg-[#435B76]"
               >
                 <Bell size={16} aria-hidden="true" />
               </button>
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-lg border border-[#DDE7E2] bg-white p-4 shadow-lg">
-                  <p className="text-xs font-semibold text-[#17332F]">Notifications</p>
-                  <p className="mt-2 text-xs text-[#68817A]">You’re all caught up.</p>
+                <div className="absolute right-0 mt-2 w-64 rounded-lg border border-[#D7DEE6] bg-white p-4 shadow-lg">
+                  <p className="text-xs font-semibold text-[#29384A]">Notifications</p>
+                  <p className="mt-2 text-xs text-[#718094]">You’re all caught up.</p>
                 </div>
               )}
             </div>
@@ -1167,7 +1167,7 @@ const StudentDashboard = () => {
               type="button"
               aria-label="Settings"
               onClick={() => setActiveTab('settings')}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#163F3A] text-white hover:bg-[#24564F]"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#35475C] text-white hover:bg-[#435B76]"
             >
               <Settings size={16} aria-hidden="true" />
             </button>
@@ -1177,15 +1177,15 @@ const StudentDashboard = () => {
               aria-label="Profile"
               aria-expanded={avatarOpen}
               onClick={() => { setAvatarOpen(!avatarOpen); setNotificationsOpen(false); }}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#163F3A] text-white hover:bg-[#24564F]"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#35475C] text-white hover:bg-[#435B76]"
             >
               <span className="text-[10px] font-bold">{avatarInitials}</span>
             </button>
             {avatarOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white border border-[#DDE7E2] rounded-lg shadow-lg p-4 z-40">
-                <p className="text-xs font-semibold text-[#17332F] truncate">{`${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Student'}</p>
-                <p className="text-[10px] text-[#68817A] truncate mt-1">{academic?.course_name || user?.course || ''}</p>
-                <p className="text-[10px] text-[#68817A] mt-1 truncate">{user?.email || ''}</p>
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-[#D7DEE6] rounded-lg shadow-lg p-4 z-40">
+                <p className="text-xs font-semibold text-[#29384A] truncate">{`${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Student'}</p>
+                <p className="text-[10px] text-[#718094] truncate mt-1">{academic?.course_name || user?.course || ''}</p>
+                <p className="text-[10px] text-[#718094] mt-1 truncate">{user?.email || ''}</p>
                 <button type="button" onClick={() => { localStorage.clear(); window.location.href = '/login'; }} className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#A54136]">
                   <LogOut size={14} aria-hidden="true" /> Sign out
                 </button>
@@ -1196,7 +1196,7 @@ const StudentDashboard = () => {
         </header>
 
         {/* COMPONENT VIEW CONTEXT SYSTEM */}
-        <div className="flex-1 p-4 sm:p-6 xl:p-8 bg-[#F3F6F4]">
+        <div className="flex-1 p-4 sm:p-6 xl:p-8 bg-[#E2E8F0]">
           {error ? <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"><span>{error}</span><button type="button" onClick={() => window.location.reload()} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100">Retry</button></div> : null}
           {activeTab === 'chat' ? (
             <div className="bg-white rounded-2xl border border-stone-200/50 p-6 min-h-[calc(100vh-140px)] shadow-sm">
@@ -1285,27 +1285,27 @@ const StudentDashboard = () => {
             </div>
           ) : activeTab === 'group-detail' ? (
             <section className="space-y-5">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#DDE7E2] pb-4">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#D7DEE6] pb-4">
                 <div>
-                  <button type="button" onClick={() => setActiveTab('groups')} className="mb-2 text-xs font-semibold text-[#1F6B5C] hover:underline">← Your groups</button>
-                  <div className="flex items-center gap-2"><h2 className="text-xl font-bold text-[#17332F]">{selectedGroupDetail?.name || 'Group'}</h2>{selectedGroupDetail?.is_leader && <span className="rounded-md bg-[#EAF4F0] px-2 py-1 text-[10px] font-semibold text-[#1F6B5C]">Leader</span>}</div>
-                  <p className="mt-1 text-xs text-[#68817A]">{selectedGroupDetail?.unit_code ? `${selectedGroupDetail.unit_code}${selectedGroupDetail.unit_name ? ` · ${selectedGroupDetail.unit_name}` : ''}` : selectedGroupDetail?.course || 'Group workspace'}</p>
+                  <button type="button" onClick={() => setActiveTab('groups')} className="mb-2 text-xs font-semibold text-[#4A6079] hover:underline">← Your groups</button>
+                  <div className="flex items-center gap-2"><h2 className="text-xl font-bold text-[#29384A]">{selectedGroupDetail?.name || 'Group'}</h2>{selectedGroupDetail?.is_leader && <span className="rounded-md bg-[#EEF1F4] px-2 py-1 text-[10px] font-semibold text-[#4A6079]">Leader</span>}</div>
+                  <p className="mt-1 text-xs text-[#718094]">{selectedGroupDetail?.unit_code ? `${selectedGroupDetail.unit_code}${selectedGroupDetail.unit_name ? ` · ${selectedGroupDetail.unit_name}` : ''}` : selectedGroupDetail?.course || 'Group workspace'}</p>
                 </div>
-                {groupDetailWorkspace?.group?.join_code && <div className="flex items-center gap-3 rounded-md border border-[#DDE7E2] bg-white px-3 py-2"><div><span className="block text-[9px] font-semibold uppercase text-[#789089]">Join code</span><code className="text-sm font-bold tracking-widest text-[#1F6B5C]">{groupDetailWorkspace.group.join_code}</code></div><button type="button" title="Copy join code" aria-label="Copy join code" onClick={() => navigator.clipboard?.writeText(groupDetailWorkspace.group.join_code)} className="flex h-8 w-8 items-center justify-center rounded-md text-[#68817A] hover:bg-[#EAF4F0]"><Copy size={15} aria-hidden="true" /></button></div>}
+                {groupDetailWorkspace?.group?.join_code && <div className="flex items-center gap-3 rounded-md border border-[#D7DEE6] bg-white px-3 py-2"><div><span className="block text-[9px] font-semibold uppercase text-[#718094]">Join code</span><code className="text-sm font-bold tracking-widest text-[#4A6079]">{groupDetailWorkspace.group.join_code}</code></div><button type="button" title="Copy join code" aria-label="Copy join code" onClick={() => navigator.clipboard?.writeText(groupDetailWorkspace.group.join_code)} className="flex h-8 w-8 items-center justify-center rounded-md text-[#718094] hover:bg-[#EEF1F4]"><Copy size={15} aria-hidden="true" /></button></div>}
               </div>
-              {groupDetailLoading ? <p className="rounded-lg border border-[#DDE7E2] bg-white p-8 text-center text-sm text-[#68817A]">Loading group…</p> : groupDetailError ? <p role="alert" className="rounded-lg border border-red-200 bg-white p-5 text-sm text-red-700">{groupDetailError}</p> : groupDetailWorkspace ? (
+              {groupDetailLoading ? <p className="rounded-lg border border-[#D7DEE6] bg-white p-8 text-center text-sm text-[#718094]">Loading group…</p> : groupDetailError ? <p role="alert" className="rounded-lg border border-red-200 bg-white p-5 text-sm text-red-700">{groupDetailError}</p> : groupDetailWorkspace ? (
                 <>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <section className="rounded-lg border border-[#DDE7E2] bg-white p-4"><h3 className="text-xs font-semibold text-[#68817A]">Project progress</h3><p className="mt-2 text-2xl font-bold text-[#17332F]">{groupDetailWorkspace.project_progress}%</p><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E4EBE7]"><div className="h-full rounded-full bg-[#438E68]" style={{ width: `${groupDetailWorkspace.project_progress}%` }} /></div><p className="mt-1 text-[10px] capitalize text-[#789089]">{String(groupDetailWorkspace.project_status || 'planning').replaceAll('_', ' ')}</p></section>
-                    <section className="rounded-lg border border-[#DDE7E2] bg-white p-4"><h3 className="text-xs font-semibold text-[#68817A]">Members</h3><p className="mt-2 text-2xl font-bold text-[#17332F]">{groupDetailWorkspace.members.length}{groupDetailWorkspace.group.max_members ? <span className="text-sm font-medium text-[#789089]"> / {groupDetailWorkspace.group.max_members}</span> : null}</p><p className="mt-1 text-[10px] text-[#789089]">Working in this group</p></section>
-                    <section className="rounded-lg border border-[#DDE7E2] bg-white p-4"><h3 className="text-xs font-semibold text-[#68817A]">Next deadline</h3><p className="mt-2 text-sm font-bold text-[#17332F]">{groupDetailWorkspace.group.next_deadline ? new Date(groupDetailWorkspace.group.next_deadline).toLocaleString() : 'No upcoming deadline'}</p><p className="mt-1 text-[10px] text-[#789089]">From a project or task</p></section>
+                    <section className="rounded-lg border border-[#D7DEE6] bg-white p-4"><h3 className="text-xs font-semibold text-[#718094]">Project progress</h3><p className="mt-2 text-2xl font-bold text-[#29384A]">{groupDetailWorkspace.project_progress}%</p><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E4E9EF]"><div className="h-full rounded-full bg-[#4A6079]" style={{ width: `${groupDetailWorkspace.project_progress}%` }} /></div><p className="mt-1 text-[10px] capitalize text-[#718094]">{String(groupDetailWorkspace.project_status || 'planning').replaceAll('_', ' ')}</p></section>
+                    <section className="rounded-lg border border-[#D7DEE6] bg-white p-4"><h3 className="text-xs font-semibold text-[#718094]">Members</h3><p className="mt-2 text-2xl font-bold text-[#29384A]">{groupDetailWorkspace.members.length}{groupDetailWorkspace.group.max_members ? <span className="text-sm font-medium text-[#718094]"> / {groupDetailWorkspace.group.max_members}</span> : null}</p><p className="mt-1 text-[10px] text-[#718094]">Working in this group</p></section>
+                    <section className="rounded-lg border border-[#D7DEE6] bg-white p-4"><h3 className="text-xs font-semibold text-[#718094]">Next deadline</h3><p className="mt-2 text-sm font-bold text-[#29384A]">{groupDetailWorkspace.group.next_deadline ? new Date(groupDetailWorkspace.group.next_deadline).toLocaleString() : 'No upcoming deadline'}</p><p className="mt-1 text-[10px] text-[#718094]">From a project or task</p></section>
                   </div>
-                  <section className="rounded-lg border border-[#DDE7E2] bg-white p-5"><h3 className="text-sm font-semibold text-[#17332F]">Group members</h3><div className="mt-3 flex flex-wrap gap-2">{groupDetailWorkspace.members.map((member) => <span key={member.id} className="rounded-md bg-[#EAF4F0] px-3 py-2 text-xs font-medium text-[#1F6B5C]">{member.name}{member.is_leader ? ' · Leader' : ''}</span>)}</div></section>
-                  <section className="rounded-lg border border-[#DDE7E2] bg-white p-5">
-                    <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-[#17332F]">Lecturer comments</h3><p className="mt-1 text-[10px] text-[#789089]">Updates refresh automatically.</p></div>{groupCommentsLoading && <span className="text-[10px] text-[#789089]">Checking…</span>}</div>
-                    {groupCommentsError ? <p role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-4 text-sm text-red-800">{groupCommentsError} Updates will be checked again shortly.</p> : groupComments.length ? <ol className="mt-3 space-y-3">{groupComments.map((comment) => <li key={comment.id} className="border-l-2 border-[#B7D7CA] pl-3"><p className="text-xs leading-5 text-[#354B63]">{comment.content}</p><p className="mt-1 text-[10px] text-[#789089]">{comment.author_name} · {comment.task_title} · {timeAgo(comment.created_at)}</p></li>)}</ol> : <p className="mt-3 rounded-md bg-[#F3F6F4] px-3 py-5 text-center text-xs text-[#789089]">{groupCommentsLoading ? 'Loading comments…' : 'No lecturer comments yet.'}</p>}
+                  <section className="rounded-lg border border-[#D7DEE6] bg-white p-5"><h3 className="text-sm font-semibold text-[#29384A]">Group members</h3><div className="mt-3 flex flex-wrap gap-2">{groupDetailWorkspace.members.map((member) => <span key={member.id} className="rounded-md bg-[#EEF1F4] px-3 py-2 text-xs font-medium text-[#4A6079]">{member.name}{member.is_leader ? ' · Leader' : ''}</span>)}</div></section>
+                  <section className="rounded-lg border border-[#D7DEE6] bg-white p-5">
+                    <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-[#29384A]">Lecturer comments</h3><p className="mt-1 text-[10px] text-[#718094]">Updates refresh automatically.</p></div>{groupCommentsLoading && <span className="text-[10px] text-[#718094]">Checking…</span>}</div>
+                    {groupCommentsError ? <p role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-4 text-sm text-red-800">{groupCommentsError} Updates will be checked again shortly.</p> : groupComments.length ? <ol className="mt-3 space-y-3">{groupComments.map((comment) => <li key={comment.id} className="border-l-2 border-[#CBD5E1] pl-3"><p className="text-xs leading-5 text-[#354B63]">{comment.content}</p><p className="mt-1 text-[10px] text-[#718094]">{comment.author_name} · {comment.task_title} · {timeAgo(comment.created_at)}</p></li>)}</ol> : <p className="mt-3 rounded-md bg-[#E2E8F0] px-3 py-5 text-center text-xs text-[#718094]">{groupCommentsLoading ? 'Loading comments…' : 'No lecturer comments yet.'}</p>}
                   </section>
-                  <section className="space-y-3"><h3 className="text-sm font-semibold text-[#17332F]">Group chat</h3><Chat key={`group-${selectedGroupDetail.id}`} groupId={selectedGroupDetail.id} groupTasks={groupDetailWorkspace.tasks} onCreateGroup={() => openCreateModal()} onTaskReference={openReferencedTask} onAssignTask={openChatTaskAssignment} /></section>
+                  <section className="space-y-3"><h3 className="text-sm font-semibold text-[#29384A]">Group chat</h3><Chat key={`group-${selectedGroupDetail.id}`} groupId={selectedGroupDetail.id} groupTasks={groupDetailWorkspace.tasks} onCreateGroup={() => openCreateModal()} onTaskReference={openReferencedTask} onAssignTask={openChatTaskAssignment} /></section>
                 </>
               ) : null}
             </section>
@@ -1384,7 +1384,7 @@ const StudentDashboard = () => {
                     <div className="space-y-4">
                       {safeArray(taskBalance?.members).map((member) => {
                         const level = member.warning_level || 'ok';
-                        const fillColor = level === 'too_early' ? '#9CA3AF' : level === 'critical' ? '#C64F5D' : level === 'warning' ? '#D69A32' : '#438E68';
+                        const fillColor = level === 'too_early' ? '#9CA3AF' : level === 'critical' ? '#C64F5D' : level === 'warning' ? '#D69A32' : '#4A6079';
                         const levelLabel = level === 'too_early' ? 'Too early to judge' : level === 'critical' ? 'Critical' : level === 'warning' ? 'Warning' : 'OK';
                         return (
                           <div key={member.user_id}>
@@ -1515,14 +1515,14 @@ const StudentDashboard = () => {
             </section>
           ) : activeTab === 'units' ? (
             <section className="space-y-5">
-              <div className="flex items-center justify-between gap-3 border-b border-[#DDE7E2] pb-4">
+              <div className="flex items-center justify-between gap-3 border-b border-[#D7DEE6] pb-4">
                 <div>
-                  <h2 className="text-lg font-bold text-[#17332F]">My units</h2>
-                  <p className="mt-1 text-xs text-[#68817A]">
+                  <h2 className="text-lg font-bold text-[#29384A]">My units</h2>
+                  <p className="mt-1 text-xs text-[#718094]">
                     {academic ? `${academic.course_name} · Year ${academic.year_of_study} · Semester ${academic.semester}` : 'Your current academic enrollment.'}
                   </p>
                 </div>
-                <button type="button" onClick={() => openCreateModal()} className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#1F6B5C] px-3 py-2 text-xs font-semibold text-white"><Plus size={14} aria-hidden="true" /> Create group</button>
+                <button type="button" onClick={() => openCreateModal()} className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#4A6079] px-3 py-2 text-xs font-semibold text-white"><Plus size={14} aria-hidden="true" /> Create group</button>
               </div>
               {visibleUnits.length ? (
                 <Table
@@ -1536,13 +1536,13 @@ const StudentDashboard = () => {
                       dataIndex: 'code',
                       key: 'code',
                       width: 140,
-                      render: (code) => <span className="font-mono text-xs font-semibold text-[#1F6B5C]">{code}</span>,
+                      render: (code) => <span className="font-mono text-xs font-semibold text-[#4A6079]">{code}</span>,
                     },
                     {
                       title: 'Unit name',
                       dataIndex: 'name',
                       key: 'name',
-                      render: (name) => <span className="text-sm font-medium capitalize text-[#17332F]">{name}</span>,
+                      render: (name) => <span className="text-sm font-medium capitalize text-[#29384A]">{name}</span>,
                     },
                     {
                       title: 'Group',
@@ -1551,61 +1551,61 @@ const StudentDashboard = () => {
                         const unitGroup = groups.find((group) => String(group.unit_id) === String(unit.id));
                         return unitGroup ? (
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-semibold text-[#68817A]">{unitGroup.name} · {pluralize(unitGroup.members_count || 0, 'member')}</span>
-                            <button type="button" onClick={() => openGroupDetails(unitGroup)} className="rounded-md border border-[#DDE7E2] px-3 py-1.5 text-[10px] font-semibold text-[#1F6B5C] hover:bg-[#F3F6F4]">Open</button>
+                            <span className="text-xs font-semibold text-[#718094]">{unitGroup.name} · {pluralize(unitGroup.members_count || 0, 'member')}</span>
+                            <button type="button" onClick={() => openGroupDetails(unitGroup)} className="rounded-md border border-[#D7DEE6] px-3 py-1.5 text-[10px] font-semibold text-[#4A6079] hover:bg-[#E2E8F0]">Open</button>
                           </div>
-                        ) : <span className="text-xs font-semibold text-[#68817A]">No group yet</span>;
+                        ) : <span className="text-xs font-semibold text-[#718094]">No group yet</span>;
                       },
                     },
                   ]}
                 />
               ) : (
-                <p className="rounded-lg border border-dashed border-[#C7D7D1] bg-white px-5 py-10 text-center text-sm text-[#68817A]">
+                <p className="rounded-lg border border-dashed border-[#CBD5E1] bg-white px-5 py-10 text-center text-sm text-[#718094]">
                   {units.length ? 'No units match your search.' : 'No units are available for your current programme and semester.'}
                 </p>
               )}
             </section>
           ) : activeTab === 'groups' ? (
                 <div className="space-y-5">
-              <div className="flex items-center justify-between gap-3 border-b border-[#DDE7E2] pb-4">
+              <div className="flex items-center justify-between gap-3 border-b border-[#D7DEE6] pb-4">
                 <div>
-                  <h2 className="text-lg font-bold text-[#17332F]">Your groups</h2>
-                  <p className="mt-1 text-xs text-[#68817A]">Projects and classmates you work with.</p>
+                  <h2 className="text-lg font-bold text-[#29384A]">Your groups</h2>
+                  <p className="mt-1 text-xs text-[#718094]">Projects and classmates you work with.</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => openJoinModal()} className="inline-flex items-center gap-2 border border-[#DDE7E2] bg-white px-3 py-2 text-xs font-semibold text-[#17332F] rounded-lg">
+                  <button onClick={() => openJoinModal()} className="inline-flex items-center gap-2 border border-[#D7DEE6] bg-white px-3 py-2 text-xs font-semibold text-[#29384A] rounded-lg">
                     Join a group
                   </button>
-                  <button onClick={() => openCreateModal()} className="inline-flex items-center gap-2 bg-[#1F6B5C] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#18584B]">
+                  <button onClick={() => openCreateModal()} className="inline-flex items-center gap-2 bg-[#4A6079] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#35475C]">
                     <Plus size={14} aria-hidden="true" /> Create group
                   </button>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {visibleGroups.map((group) => (
-                  <article key={group.id} className="relative rounded-lg border border-[#DDE7E2] bg-white p-5 hover:border-[#9ABCAF]">
+                  <article key={group.id} className="relative rounded-lg border border-[#D7DEE6] bg-white p-5 hover:border-[#CBD5E1]">
                     <div className="flex items-start justify-between gap-3">
                       <button type="button" onClick={() => openGroupDetails(group)} className="min-w-0 flex-1 text-left">
-                        <span className="text-[10px] font-semibold text-[#1F6B5C]">{group.unit_code ? `${group.unit_code}${group.unit_name ? ` · ${group.unit_name}` : ''}` : group.course || 'Group'}</span>
-                        <span className="mt-2 flex items-center gap-2"><span className="text-sm font-semibold text-[#17332F]">{group.name}</span>{group.is_leader && <span className="shrink-0 rounded-md bg-[#EAF4F0] px-2 py-0.5 text-[9px] font-semibold text-[#1F6B5C]">Leader</span>}</span>
-                        <span className="mt-1 block text-xs text-[#68817A]">{pluralize(group.members_count || 0, 'member')}{group.max_members ? ` of ${group.max_members}` : ''} · {pluralize(group.projects?.length || 0, 'project')}</span>
+                        <span className="text-[10px] font-semibold text-[#4A6079]">{group.unit_code ? `${group.unit_code}${group.unit_name ? ` · ${group.unit_name}` : ''}` : group.course || 'Group'}</span>
+                        <span className="mt-2 flex items-center gap-2"><span className="text-sm font-semibold text-[#29384A]">{group.name}</span>{group.is_leader && <span className="shrink-0 rounded-md bg-[#EEF1F4] px-2 py-0.5 text-[9px] font-semibold text-[#4A6079]">Leader</span>}</span>
+                        <span className="mt-1 block text-xs text-[#718094]">{pluralize(group.members_count || 0, 'member')}{group.max_members ? ` of ${group.max_members}` : ''} · {pluralize(group.projects?.length || 0, 'project')}</span>
                       </button>
                       <div className="relative shrink-0">
-                        <button type="button" aria-label={`Group actions for ${group.name}`} aria-expanded={groupMenuId === group.id} onClick={() => setGroupMenuId((current) => current === group.id ? null : group.id)} className="flex h-8 w-8 items-center justify-center rounded-md text-[#68817A] hover:bg-[#F3F6F4]"><MoreHorizontal size={17} aria-hidden="true" /></button>
-                        {groupMenuId === group.id && <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-[#DDE7E2] bg-white p-1 shadow-lg">{group.is_leader ? <button type="button" role="menuitem" onClick={() => handleDeleteGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50"><Trash2 size={13} aria-hidden="true" /> Delete group</button> : <button type="button" role="menuitem" onClick={() => handleLeaveGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-[#435B76] hover:bg-[#F3F6F4]"><LogOut size={13} aria-hidden="true" /> Leave group</button>}</div>}
+                        <button type="button" aria-label={`Group actions for ${group.name}`} aria-expanded={groupMenuId === group.id} onClick={() => setGroupMenuId((current) => current === group.id ? null : group.id)} className="flex h-8 w-8 items-center justify-center rounded-md text-[#718094] hover:bg-[#E2E8F0]"><MoreHorizontal size={17} aria-hidden="true" /></button>
+                        {groupMenuId === group.id && <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-[#D7DEE6] bg-white p-1 shadow-lg">{group.is_leader ? <button type="button" role="menuitem" onClick={() => handleDeleteGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50"><Trash2 size={13} aria-hidden="true" /> Delete group</button> : <button type="button" role="menuitem" onClick={() => handleLeaveGroup(group)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs font-medium text-[#435B76] hover:bg-[#E2E8F0]"><LogOut size={13} aria-hidden="true" /> Leave group</button>}</div>}
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-[#F3F7F5] px-3 py-2">
-                      <div><span className="block text-[9px] font-semibold uppercase text-[#789089]">Join code</span><code className="text-xs font-bold tracking-widest text-[#1F6B5C]">{group.join_code}</code></div>
-                      <button type="button" title="Copy join code" aria-label={`Copy join code for ${group.name}`} onClick={() => navigator.clipboard?.writeText(group.join_code || '')} className="flex h-8 w-8 items-center justify-center rounded-md text-[#68817A] hover:bg-white"><Copy size={14} aria-hidden="true" /></button>
+                    <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-[#EEF1F4] px-3 py-2">
+                      <div><span className="block text-[9px] font-semibold uppercase text-[#718094]">Join code</span><code className="text-xs font-bold tracking-widest text-[#4A6079]">{group.join_code}</code></div>
+                      <button type="button" title="Copy join code" aria-label={`Copy join code for ${group.name}`} onClick={() => navigator.clipboard?.writeText(group.join_code || '')} className="flex h-8 w-8 items-center justify-center rounded-md text-[#718094] hover:bg-white"><Copy size={14} aria-hidden="true" /></button>
                     </div>
                     <div className="mt-3 flex gap-2">
-                      <button type="button" onClick={() => { setChatGroupId(group.id); setActiveTab('chat'); }} className="flex-1 rounded-md border border-[#DDE7E2] px-3 py-2 text-xs font-semibold text-[#17332F] hover:bg-[#F3F6F4]">Open chat</button>
-                      <button type="button" onClick={() => { setActiveTab('tasks'); openGroupTasks(group); }} className="flex-1 rounded-md bg-[#163F3A] px-3 py-2 text-xs font-semibold text-white hover:bg-[#24564F]">View tasks</button>
+                      <button type="button" onClick={() => { setChatGroupId(group.id); setActiveTab('chat'); }} className="flex-1 rounded-md border border-[#D7DEE6] px-3 py-2 text-xs font-semibold text-[#29384A] hover:bg-[#E2E8F0]">Open chat</button>
+                      <button type="button" onClick={() => { setActiveTab('tasks'); openGroupTasks(group); }} className="flex-1 rounded-md bg-[#35475C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#435B76]">View tasks</button>
                     </div>
                   </article>
                 ))}
-                {!visibleGroups.length && <p className="col-span-full rounded-lg border border-dashed border-[#C7D7D1] bg-white px-5 py-10 text-center text-sm text-[#68817A]">{groups.length ? 'No groups match your search.' : 'You haven’t joined a group yet. Join with a code or create one to start collaborating.'}</p>}
+                {!visibleGroups.length && <p className="col-span-full rounded-lg border border-dashed border-[#CBD5E1] bg-white px-5 py-10 text-center text-sm text-[#718094]">{groups.length ? 'No groups match your search.' : 'You haven’t joined a group yet. Join with a code or create one to start collaborating.'}</p>}
               </div>
             </div>
           ) : (
@@ -1614,17 +1614,17 @@ const StudentDashboard = () => {
             <div className="space-y-6">
               
               {/* TOP HEADER LABELS */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#DDE7E2] pb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D7DEE6] pb-5">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1F6B5C]">Student workspace</p>
-                  <h2 className="mt-1 text-2xl font-bold text-[#17332F]">{greeting}</h2>
-                  <p className="text-sm text-[#68817A] mt-1">Your groups, coursework, and deadlines in one place.</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#4A6079]">Student workspace</p>
+                  <h2 className="mt-1 text-2xl font-bold text-[#29384A]">{greeting}</h2>
+                  <p className="text-sm text-[#718094] mt-1">Your groups, coursework, and deadlines in one place.</p>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <button type="button" onClick={openJoinModal} className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#DDE7E2] bg-white px-3 py-2.5 text-xs font-semibold text-[#17332F] hover:bg-[#F3F6F4]">
+                  <button type="button" onClick={openJoinModal} className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-xs font-semibold text-[#29384A] hover:bg-[#E2E8F0]">
                     Join with code
                   </button>
-                  <button type="button" onClick={() => openCreateModal()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1F6B5C] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#18584B]">
+                  <button type="button" onClick={() => openCreateModal()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4A6079] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#35475C]">
                     <Plus size={15} aria-hidden="true" /> Create group
                   </button>
                 </div>
@@ -1633,16 +1633,16 @@ const StudentDashboard = () => {
               {/* 📊 ROW 1: THE FOUR SYMMETRICAL DYNAMIC ANALYTIC COUNTER CARDS */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: 'My groups', count: activeGroupsCount, meta: `${activeGroupsCount} joined`, icon: UsersRound, border: 'border-l-[#1F6B5C]', iconStyle: 'bg-[#E6F3EE] text-[#1F6B5C]' },
+                  { label: 'My groups', count: activeGroupsCount, meta: `${activeGroupsCount} joined`, icon: UsersRound, border: 'border-l-[#4A6079]', iconStyle: 'bg-[#E4E9EF] text-[#4A6079]' },
                   { label: 'Upcoming · 14 days', count: assignmentsDueCount, meta: 'Tasks due in the next 14 days', icon: Clock3, border: 'border-l-[#D89B32]', iconStyle: 'bg-[#FFF3D9] text-[#96620C]' },
                   { label: 'Completed tasks', count: completedWorkCount, meta: completionRatePercentage, icon: CheckCircle2, border: 'border-l-[#4C83B6]', iconStyle: 'bg-[#EAF2FA] text-[#3D6F9F]' },
                   { label: 'My programme', count: user?.year_of_study ? `Year ${user.year_of_study}` : '—', meta: academic?.course_name || user?.course || '', icon: BookOpen, border: 'border-l-[#C76E5B]', iconStyle: 'bg-[#F9ECE8] text-[#A64F3E]' }
                 ].map((card, idx) => (
-                  <div key={idx} className={`min-w-0 bg-white p-4 rounded-lg border border-[#DDE7E2] border-l-4 ${card.border} flex items-center justify-between gap-2`}>
+                  <div key={idx} className={`min-w-0 bg-white p-4 rounded-lg border border-[#D7DEE6] border-l-4 ${card.border} flex items-center justify-between gap-2`}>
                     <div>
-                      <div className="text-xl font-bold text-[#17332F]">{card.count}</div>
-                      <p className="text-xs text-[#47645D] font-semibold mt-1">{card.label}</p>
-                      <span className="text-[10px] text-[#789089] mt-1 block truncate max-w-40">{card.meta}</span>
+                      <div className="text-xl font-bold text-[#29384A]">{card.count}</div>
+                      <p className="text-xs text-[#435B76] font-semibold mt-1">{card.label}</p>
+                      <span className="text-[10px] text-[#718094] mt-1 block truncate max-w-40">{card.meta}</span>
                     </div>
                     <div className={`shrink-0 h-9 w-9 rounded-lg flex items-center justify-center ${card.iconStyle}`}>
                       <card.icon size={18} strokeWidth={1.9} aria-hidden="true" />
@@ -1674,7 +1674,7 @@ const StudentDashboard = () => {
                   <div className="space-y-5">
                     {workloadSummary.map((item) => {
                       const level = item.warning_level || 'ok';
-                      const fill = level === 'too_early' ? '#9CA3AF' : level === 'critical' ? '#C64F5D' : level === 'warning' ? '#D69A32' : '#438E68';
+                      const fill = level === 'too_early' ? '#9CA3AF' : level === 'critical' ? '#C64F5D' : level === 'warning' ? '#D69A32' : '#4A6079';
                       return (
                         <div key={item.group_id}>
                           <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
@@ -1705,20 +1705,20 @@ const StudentDashboard = () => {
                 <div className="space-y-4">
                   
                   {/* STUDIO TEXTURED CARD COMPACT CALENDAR */}
-                  <div className="bg-white p-5 rounded-lg border border-[#DDE7E2]">
-                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E8EFEC]">
+                  <div className="bg-white p-5 rounded-lg border border-[#D7DEE6]">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#D7DEE6]">
                       <div className="flex items-center gap-2">
-                        <CalendarDays size={16} className="text-[#1F6B5C]" aria-hidden="true" />
-                        <h3 className="text-sm font-semibold text-[#17332F]">{calendar.monthYearLabel}</h3>
+                        <CalendarDays size={16} className="text-[#4A6079]" aria-hidden="true" />
+                        <h3 className="text-sm font-semibold text-[#29384A]">{calendar.monthYearLabel}</h3>
                       </div>
                       <div className="flex items-center gap-1">
-                        <button aria-label="Previous month" onClick={handlePrevMonth} className="w-7 h-7 bg-white border border-[#DDE7E2] rounded-md flex items-center justify-center hover:bg-[#F3F6F4] text-[#47645D]"><ChevronLeft size={15} /></button>
-                        <button aria-label="Next month" onClick={handleNextMonth} className="w-7 h-7 bg-white border border-[#DDE7E2] rounded-md flex items-center justify-center hover:bg-[#F3F6F4] text-[#47645D]"><ChevronRight size={15} /></button>
+                        <button aria-label="Previous month" onClick={handlePrevMonth} className="w-7 h-7 bg-white border border-[#D7DEE6] rounded-md flex items-center justify-center hover:bg-[#E2E8F0] text-[#435B76]"><ChevronLeft size={15} /></button>
+                        <button aria-label="Next month" onClick={handleNextMonth} className="w-7 h-7 bg-white border border-[#D7DEE6] rounded-md flex items-center justify-center hover:bg-[#E2E8F0] text-[#435B76]"><ChevronRight size={15} /></button>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-7 gap-1 text-center mb-1">
-                      {calendar.weekdays.map(d => <div key={d} className="text-[10px] font-semibold text-[#789089] uppercase">{d}</div>)}
+                      {calendar.weekdays.map(d => <div key={d} className="text-[10px] font-semibold text-[#718094] uppercase">{d}</div>)}
                     </div>
 
                     <div className="grid grid-cols-7 gap-1">
@@ -1739,13 +1739,13 @@ const StudentDashboard = () => {
                             aria-label={cell.inThisMonth ? dayLabel : undefined}
                             className={`h-8 flex items-center justify-center relative text-xs font-semibold rounded-md transition-colors ${
                               !cell.inThisMonth
-                                ? 'text-[#C4D0CC]'
+                                ? 'text-[#CBD5E1]'
                                 : hasOverdue
                                   ? 'bg-[#F9E8E5] text-[#A54136]'
                                   : dayTasks.length
                                     ? 'bg-[#FFF2D6] text-[#80550A]'
-                                    : 'text-[#29443E] hover:bg-[#EAF4F0]'
-                            } ${isToday ? 'ring-2 ring-inset ring-[#1F6B5C]' : ''} ${selectedCalendarDay === cell.dateOnlyKey ? 'ring-2 ring-[#35475C]' : ''}`}
+                                    : 'text-[#354B63] hover:bg-[#EEF1F4]'
+                            } ${isToday ? 'ring-2 ring-inset ring-[#4A6079]' : ''} ${selectedCalendarDay === cell.dateOnlyKey ? 'ring-2 ring-[#35475C]' : ''}`}
                           >
                             <span>{cell.dayNumber}</span>
                             {dayTasks.length > 0 && <span className={`absolute bottom-1 w-1 h-1 rounded-full ${hasOverdue ? 'bg-[#A54136]' : 'bg-[#B77A10]'}`} />}
@@ -1754,12 +1754,12 @@ const StudentDashboard = () => {
                       })}
                     </div>
                     {selectedCalendarDay && (
-                      <div className="mt-4 border-t border-[#E8EFEC] pt-3">
+                      <div className="mt-4 border-t border-[#D7DEE6] pt-3">
                         <div className="mb-2 flex items-center justify-between gap-2">
-                          <h4 className="text-xs font-semibold text-[#17332F]">Tasks for {new Date(`${selectedCalendarDay}T00:00:00`).toLocaleDateString()}</h4>
-                          <button type="button" onClick={() => setSelectedCalendarDay(null)} className="text-[10px] font-medium text-[#1F6B5C]">Clear</button>
+                          <h4 className="text-xs font-semibold text-[#29384A]">Tasks for {new Date(`${selectedCalendarDay}T00:00:00`).toLocaleDateString()}</h4>
+                          <button type="button" onClick={() => setSelectedCalendarDay(null)} className="text-[10px] font-medium text-[#4A6079]">Clear</button>
                         </div>
-                        {selectedDayTasks.length ? <ul className="space-y-2">{selectedDayTasks.map((task) => <li key={task.id} className={`rounded-md px-3 py-2 ${task.is_overdue ? 'bg-red-50 text-red-800' : 'bg-[#F3F6F4] text-[#354B63]'}`}><p className="text-xs font-semibold">{task.title}</p><p className="mt-0.5 text-[10px]">{task.group_name || task.group || 'Group'} · {pluralize(task.weight || 1, 'point')}</p></li>)}</ul> : <p className="text-xs text-[#789089]">No tasks due that day.</p>}
+                        {selectedDayTasks.length ? <ul className="space-y-2">{selectedDayTasks.map((task) => <li key={task.id} className={`rounded-md px-3 py-2 ${task.is_overdue ? 'bg-red-50 text-red-800' : 'bg-[#E2E8F0] text-[#354B63]'}`}><p className="text-xs font-semibold">{task.title}</p><p className="mt-0.5 text-[10px]">{task.group_name || task.group || 'Group'} · {pluralize(task.weight || 1, 'point')}</p></li>)}</ul> : <p className="text-xs text-[#718094]">No tasks due that day.</p>}
                       </div>
                     )}
                   </div>
@@ -1770,18 +1770,18 @@ const StudentDashboard = () => {
                 <div className="space-y-5">
                   
                   {/* LIVE DYNAMIC TASK TICKER DATA LIST */}
-                  <div className="bg-white p-5 rounded-lg border border-[#DDE7E2]">
+                  <div className="bg-white p-5 rounded-lg border border-[#D7DEE6]">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-sm font-semibold text-[#17332F]">Upcoming tasks</h3>
-                        <p className="mt-1 text-xs text-[#789089]">What needs your attention next.</p>
+                        <h3 className="text-sm font-semibold text-[#29384A]">Upcoming tasks</h3>
+                        <p className="mt-1 text-xs text-[#718094]">What needs your attention next.</p>
                       </div>
-                      <button onClick={() => setActiveTab('tasks')} className="inline-flex items-center gap-1 text-xs text-[#1F6B5C] font-semibold hover:underline">All tasks <ArrowUpRight size={13} /></button>
+                      <button onClick={() => setActiveTab('tasks')} className="inline-flex items-center gap-1 text-xs text-[#4A6079] font-semibold hover:underline">All tasks <ArrowUpRight size={13} /></button>
                     </div>
 
                     <div className="space-y-2">
                       {upcomingTasks.length === 0 ? (
-                        <p className="text-xs text-[#789089] text-center py-6">{tasks.length ? 'No tasks match your search.' : 'No upcoming tasks. Group assignments will appear here.'}</p>
+                        <p className="text-xs text-[#718094] text-center py-6">{tasks.length ? 'No tasks match your search.' : 'No upcoming tasks. Group assignments will appear here.'}</p>
                       ) : (
                         upcomingTasks.filter((task) => !searchText || `${task.title} ${task.project_name || ''} ${task.group_name || ''}`.toLowerCase().includes(searchText)).slice(0, 6).map((t) => {
                           const isDone = ['completed','done','submitted'].includes(String(t?.status || '').toLowerCase());
@@ -1824,12 +1824,12 @@ const StudentDashboard = () => {
                         {units.map((unit) => (
                           <li key={unit.id}>
                             <div className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
-                              <span className="shrink-0 font-mono text-[10px] font-black text-[#B89775]">{unit.code}</span>
+                              <span className="shrink-0 font-mono text-[10px] font-black text-[#354B63]">{unit.code}</span>
                               <span className="flex-1 text-xs font-semibold text-[#1C1C1E] dark:text-stone-100">{unit.name}</span>
                               {groups.find((group) => String(group.unit_id) === String(unit.id)) ? (() => {
                                 const unitGroup = groups.find((group) => String(group.unit_id) === String(unit.id));
-                                return <div className="flex items-center justify-between gap-3"><span className="text-[9px] font-semibold text-[#68817A]">{unitGroup.name} · {pluralize(unitGroup.members_count || 0, 'member')}</span><button type="button" onClick={() => openGroupDetails(unitGroup)} className="rounded-md border border-[#DDE7E2] px-2.5 py-1.5 text-[9px] font-semibold text-[#1F6B5C]">Open</button></div>;
-                              })() : <span className="text-[9px] font-semibold text-[#68817A]">No group yet</span>}
+                                return <div className="flex items-center justify-between gap-3"><span className="text-[9px] font-semibold text-[#718094]">{unitGroup.name} · {pluralize(unitGroup.members_count || 0, 'member')}</span><button type="button" onClick={() => openGroupDetails(unitGroup)} className="rounded-md border border-[#D7DEE6] px-2.5 py-1.5 text-[9px] font-semibold text-[#4A6079]">Open</button></div>;
+                              })() : <span className="text-[9px] font-semibold text-[#718094]">No group yet</span>}
                             </div>
                           </li>
                         ))}
