@@ -1,0 +1,76 @@
+/* Student design tokens. Unlayered on purpose so it wins over Tailwind utilities
+   and keeps shared children (Chat, PollPanel, antd) on the same type scale. */
+.student-root {
+  --sd-brand: #35475c;
+  --sd-brand-hover: #435b76;
+  --sd-accent: #4a6079;
+  --sd-page: #e2e8f0;
+  --sd-surface: #ffffff;
+  --sd-border: #d7dee6;
+  --sd-ink: #1f2d3d;
+  --sd-text: #33445a;
+  --sd-muted: #4f5f73;
+  --sd-radius: 12px;
+  --sd-space: 8px;
+  --sd-font-body: 15px;
+  --sd-font-label: 13px;
+
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: var(--sd-font-body);
+  line-height: 1.5;
+  color: var(--sd-text);
+}
+
+.student-root button,
+.student-root input,
+.student-root select,
+.student-root textarea,
+.student-root .ant-table,
+.student-root .ant-picker,
+.student-root .ant-btn {
+  font-family: inherit;
+}
+
+/* Minimum type sizes: body 15px, labels 13px */
+.student-root .text-sm { font-size: var(--sd-font-body); line-height: 1.5; }
+.student-root .text-xs,
+.student-root .text-\[9px\],
+.student-root .text-\[10px\],
+.student-root .text-\[11px\],
+.student-root .text-\[12px\] { font-size: var(--sd-font-label); line-height: 1.4; }
+
+/* Darker greys everywhere in the student area */
+.student-root .text-\[\#718094\] { color: var(--sd-muted); }
+.student-root .text-\[\#354B63\] { color: var(--sd-text); }
+.student-root .placeholder\:text-\[\#718094\]::placeholder { color: var(--sd-muted); }
+
+/* 12px card radius */
+.student-root .sd-card { border-radius: var(--sd-radius); }
+
+.student-root .ant-picker-calendar { background: transparent; }
+.student-root .ant-picker-content th {
+  color: var(--sd-muted);
+  font-size: var(--sd-font-label);
+  font-weight: 600;
+  padding-bottom: 8px;
+}
+.student-root .ant-picker-cell { padding: 2px 0; }
+.student-root .ant-picker-cell-inner {
+  position: relative;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  border-radius: 8px !important;
+  font-size: var(--sd-font-label);
+  color: var(--sd-ink);
+}
+.student-root .ant-picker-cell:not(.ant-picker-cell-disabled):hover .ant-picker-cell-inner { background: var(--sd-page); }
+.student-root .ant-picker-cell:not(.ant-picker-cell-in-view) .ant-picker-cell-inner { color: #94a3b8; }
+.student-root .ant-picker-cell-today .ant-picker-cell-inner::before { border-color: var(--sd-accent) !important; border-radius: 8px !important; }
+.student-root .ant-picker-cell-selected .ant-picker-cell-inner { background: var(--sd-brand) !important; color: #fff !important; }
+.student-root .cal-dot {
+  position: absolute; left: 50%; bottom: 3px; width: 5px; height: 5px; margin-left: -2.5px;
+  border-radius: 9999px; background: var(--sd-accent);
+}
+.student-root .cal-dot.overdue { background: #dc2626; }
+.student-root .ant-picker-cell-selected .cal-dot { background: #fff; }

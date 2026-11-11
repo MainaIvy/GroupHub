@@ -65,6 +65,7 @@ function App() {
 
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
+        <Route path="/student/groups/:groupId" element={<StudentDashboard />} />
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer/setup" element={<LecturerSetup />} />

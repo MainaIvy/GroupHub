@@ -32,7 +32,7 @@ from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
     ChatRoom, Message, Notification, Course, Unit, Semester,     StudentEnrollment, UnitAssignment,
 )
-from .planning_rules import board_status, weight_change_block
+from .planning_rules import board_status, weight_change_block, weight_confirm_block
 from .balance import calculate_group_balance
 
 logger = logging.getLogger(__name__)
@@ -914,6 +914,8 @@ def get_group_task_workspace(request, group_id):
                     or GroupMembership.objects.filter(group=group, student=request.user, role='admin').exists()
                 ),
                 'can_change_weight': weight_change_block(request.user, group, task) is None,
+                'proposed_by_id': task.proposed_by_id,
+                'can_confirm_weight': weight_confirm_block(request.user, group, task) is None,
             })
         now = timezone.now()
         deadlines = [
@@ -974,6 +976,7 @@ def get_group_activity(request, group_id):
         ).order_by('-created_at')[:30]
         return Response([{
             'id': activity.id,
+            'task_id': activity.task_id,
             'actor_name': f"{activity.actor.first_name} {activity.actor.last_name}".strip() or activity.actor.username,
             'action': activity.action,
             'task_title': activity.task.title,
@@ -1633,7 +1636,11 @@ def get_notifications(request):
                 'title': notification.title,
                 'message': notification.message,
                 'is_read': notification.is_read,
-                'created_at': notification.created_at.isoformat()
+                'created_at': notification.created_at.isoformat(),
+                'related_group_id': notification.related_group_id,
+                'related_invite_id': notification.related_invite_id,
+                'related_join_request_id': notification.related_join_request_id,
+                'related_chat_room_id': notification.related_chat_room_id
             })
 
         return Response(data)
