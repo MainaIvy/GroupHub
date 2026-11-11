@@ -229,6 +229,7 @@ class Submission(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     feedback = models.TextField(blank=True)
+    grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     github_url = models.URLField(max_length=500, null=True, blank=True)
     proof_text = models.TextField()
     screenshot = models.ImageField(upload_to='submissions/screenshots/', null=True, blank=True)

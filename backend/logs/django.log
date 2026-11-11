@@ -628,3 +628,43 @@ WARNING 2026-11-05 14:00:01,570 log 1864880 136840176723520 Unauthorized: /api/a
 WARNING 2026-11-05 14:00:01,574 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/student/ 401 [0.04, 127.0.0.1:39948][0m
 WARNING 2026-11-05 14:00:01,638 log 1864880 136840176723520 Unauthorized: /api/accounts/dashboard/student/
 WARNING 2026-11-05 14:00:01,643 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/student/ 401 [0.04, 127.0.0.1:39954][0m
+INFO 2026-11-11 09:47:00,769 runserver 686522 138302797325888 [mHTTP PATCH /api/accounts/submissions/16/grade/ 200 [0.04, 127.0.0.1:33962][0m
+INFO 2026-11-11 09:47:00,799 views 686522 138302667617856 Dashboard request for user 20: tumwa@zetech.ac.ke, type: lecturer
+INFO 2026-11-11 09:47:00,916 views 686522 138302667617856 Dashboard data returned for user 20
+INFO 2026-11-11 09:47:00,920 runserver 686522 138302797325888 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.13, 127.0.0.1:33964][0m
+INFO 2026-11-11 09:48:17,355 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.15, 127.0.0.1:52248][0m
+INFO 2026-11-11 09:48:53,933 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.09, 127.0.0.1:54494][0m
+INFO 2026-11-11 09:51:19,680 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.09, 127.0.0.1:38882][0m
+INFO 2026-11-11 11:07:08,490 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.94, 127.0.0.1:45588][0m
+INFO 2026-11-11 11:08:08,742 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/messages/9/ 200 [0.03, 127.0.0.1:34008][0m
+INFO 2026-11-11 11:08:12,391 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/messages/13/ 200 [0.02, 127.0.0.1:57562][0m
+INFO 2026-11-11 11:08:13,625 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/messages/11/ 200 [0.02, 127.0.0.1:57566][0m
+INFO 2026-11-11 11:08:14,364 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/messages/10/ 200 [0.02, 127.0.0.1:57568][0m
+INFO 2026-11-11 11:08:16,797 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/messages/9/ 200 [0.03, 127.0.0.1:57576][0m
+INFO 2026-11-11 11:08:20,503 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/messages/9/ 200 [0.02, 127.0.0.1:57578][0m
+INFO 2026-11-11 11:10:24,589 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.08, 127.0.0.1:45284][0m
+INFO 2026-11-11 11:10:47,185 runserver 686522 138302797325888 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.10, 127.0.0.1:57476][0m
+INFO 2026-11-11 11:16:42,307 autoreload 686522 138302864769024 /home/netbot/Downloads/GroupHub/backend/accounts/views.py changed, reloading.
+INFO 2026-11-11 11:17:18,986 autoreload 797977 134439152635904 Watching for file changes with StatReloader
+INFO 2026-11-11 11:17:23,345 server 797977 134439085221440 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 11:17:23,345 server 797977 134439085221440 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-11 11:17:23,346 server 797977 134439085221440 Listening on TCP address 127.0.0.1:8000
+INFO 2026-11-11 11:17:44,328 views 797977 134438956561984 Dashboard request for user 20: tumwa@zetech.ac.ke, type: lecturer
+INFO 2026-11-11 11:17:45,123 views 797977 134438956561984 Dashboard data returned for user 20
+INFO 2026-11-11 11:17:45,150 runserver 797977 134439085221440 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [1.07, 127.0.0.1:47846][0m
+INFO 2026-11-11 11:19:48,369 autoreload 797977 134439152635904 /home/netbot/Downloads/GroupHub/backend/accounts/views.py changed, reloading.
+INFO 2026-11-11 11:19:53,392 autoreload 800035 131449409761280 Watching for file changes with StatReloader
+INFO 2026-11-11 11:19:55,190 server 800035 131449342338624 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 11:19:55,191 server 800035 131449342338624 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-11 11:19:55,194 server 800035 131449342338624 Listening on TCP address 127.0.0.1:8000
+INFO 2026-11-11 11:24:14,189 views 800035 131449212630592 Dashboard request for user 20: tumwa@zetech.ac.ke, type: lecturer
+INFO 2026-11-11 11:24:14,190 views 800035 131449204237888 Dashboard request for user 20: tumwa@zetech.ac.ke, type: lecturer
+INFO 2026-11-11 11:24:14,478 views 800035 131449212630592 Dashboard data returned for user 20
+INFO 2026-11-11 11:24:14,487 views 800035 131449204237888 Dashboard data returned for user 20
+INFO 2026-11-11 11:24:14,496 runserver 800035 131449342338624 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.40, 127.0.0.1:51752][0m
+INFO 2026-11-11 11:24:14,498 runserver 800035 131449342338624 [mHTTP GET /api/accounts/dashboard/lecturer/ 200 [0.41, 127.0.0.1:51746][0m
+INFO 2026-11-11 11:24:40,639 runserver 800035 131449342338624 [mHTTP GET /api/accounts/groups/12/workspace/ 200 [0.03, 127.0.0.1:39688][0m
+INFO 2026-11-11 11:24:59,720 runserver 800035 131449342338624 [mHTTP GET /api/accounts/chat/rooms/ 200 [0.10, 127.0.0.1:50732][0m
+INFO 2026-11-11 11:25:01,791 runserver 800035 131449342338624 [mHTTP GET /api/accounts/chat/messages/13/ 200 [0.03, 127.0.0.1:50742][0m
+INFO 2026-11-11 11:25:18,406 runserver 800035 131449342338624 [mHTTP GET /api/accounts/groups/9/workspace/ 200 [0.03, 127.0.0.1:43582][0m
+INFO 2026-11-11 11:27:41,377 runserver 800035 131449342338624 [mHTTP GET /api/accounts/groups/10/workspace/ 200 [0.03, 127.0.0.1:57958][0m

@@ -1,385 +1,107 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { io } from 'socket.io-client';
+import * as XLSX from 'xlsx';
 import {
-  BarChart3,
-  Bell,
-  BookOpen,
-  CheckSquare,
-  ChevronRight,
-  ClipboardList,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Moon,
-  Search,
-  Settings,
-  Sun,
-  Users,
-  X
+  BarChart3, Bell, BookOpen, CheckSquare, ClipboardList, FileSpreadsheet,
+  LayoutDashboard, LogOut, Menu, MessageSquare, Moon, Search, Settings, Sun, Users, X
 } from 'lucide-react';
 
-const navigation = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'MAIN' },
-  { id: 'progress', label: 'Analytics', icon: BarChart3, section: 'MAIN' },
-  { id: 'groups', label: 'My Units', icon: BookOpen, section: 'MAIN' },
-  { id: 'submissions', label: 'Assessments', icon: ClipboardList, section: 'WORK' },
-  { id: 'chat', label: 'Students', icon: Users, section: 'WORK' },
-  { id: 'settings', label: 'Settings', icon: Settings, section: 'ACCOUNT' }
+const API = '/api/accounts';
+const auth = () => ({ Authorization: 'Bearer ' + window.localStorage.getItem('access_token') });
+const tabs = [
+  ['dashboard', 'Overview', LayoutDashboard], ['analytics', 'Analytics', BarChart3],
+  ['units', 'My Units', BookOpen], ['groups', 'Groups', Users], ['students', 'Students', Users],
+  ['assessments', 'Assessments', ClipboardList], ['messages', 'Messages', MessageSquare],
+  ['settings', 'Settings', Settings]
 ];
+const Panel = ({ title, description, action, children }) => <section className="rounded-2xl border border-[#E3E9F2] bg-white p-5 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]"><div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold text-[#0F3D6E] dark:text-white">{title}</h2><p className="mt-1 text-sm text-[#6B7A90]">{description}</p></div>{action}</div>{children}</section>;
+const Field = ({ className = '', ...props }) => <input {...props} className={`rounded-xl border border-[#E3E9F2] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#6DB6E6] dark:border-[#1E2940] dark:bg-[#0B1120] ${className}`} />;
+const Empty = ({ children }) => <p className="rounded-xl bg-[#EEF3FA] p-8 text-center text-sm text-[#6B7A90] dark:bg-[#0B1120]">{children}</p>;
 
-const statCards = [
-  { label: 'Total Students', key: 'total_students', icon: Users, tone: 'blue' },
-  { label: 'Teaching Units', key: 'total_units', icon: BookOpen, tone: 'pink' },
-  { label: 'Pending to Grade', key: 'pending_submissions', icon: CheckSquare, tone: 'yellow' },
-  { label: 'Assessments Created', key: 'projects', icon: ClipboardList, tone: 'green' },
-  { label: 'Avg. Class Performance', value: '—', icon: BarChart3, tone: 'lavender' }
-];
-
-const toneStyles = {
-  pink: 'bg-[#FDEDEE] dark:bg-[#30202a]',
-  blue: 'bg-[#E8EFFB] dark:bg-[#202c45]',
-  yellow: 'bg-[#FFF5DB] dark:bg-[#352d1d]',
-  green: 'bg-[#E6F5EC] dark:bg-[#1d3329]',
-  lavender: 'bg-[#F3ECFA] dark:bg-[#302840]'
-};
-
-const apiHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
-
-const LecturerDashboard = () => {
-  const [dashboardData, setDashboardData] = useState(null);
+export default function LecturerDashboard() {
+  const [data, setData] = useState(null);
+  const [tab, setTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('groups');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [chatRooms, setChatRooms] = useState([]);
-  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
+  const [notice, setNotice] = useState('');
+  const [dark, setDark] = useState(() => localStorage.getItem('darkMode') === 'true');
+  const [mobile, setMobile] = useState(false);
+  const [query, setQuery] = useState('');
+  const [unitId, setUnitId] = useState('');
+  const [detail, setDetail] = useState(null);
+  const [gradeForm, setGradeForm] = useState({ grade: '', feedback: '', status: 'reviewed' });
+  const [gradingMode, setGradingMode] = useState('student');
+  const [gradingGroupId, setGradingGroupId] = useState('');
+  const [groupSubmissions, setGroupSubmissions] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [room, setRoom] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [unreadCounts, setUnreadCounts] = useState({});
-  const [isFetchingDashboard, setIsFetchingDashboard] = useState(false);
-  const [selectedUnitId, setSelectedUnitId] = useState(null);
-  const [showGroupForm, setShowGroupForm] = useState(false);
-  const [groupForm, setGroupForm] = useState({ name: '', unit_id: '', max_members: 5 });
+  const [draft, setDraft] = useState('');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-  const user = dashboardData?.user;
-  const groups = useMemo(() => dashboardData?.groups || [], [dashboardData]);
-  const units = useMemo(() => dashboardData?.units || [], [dashboardData]);
-  const submissions = useMemo(() => dashboardData?.recent_submissions || [], [dashboardData]);
-  const firstName = user?.first_name || 'Lecturer';
-  const initials = `${user?.first_name?.[0] || 'U'}${user?.last_name?.[0] || ''}`;
+  const units = data?.units || [];
+  const groups = data?.groups || [];
+  const submissions = data?.recent_submissions || [];
+  const user = data?.user;
+  const selectedUnit = units.find((unit) => String(unit.id) === String(unitId));
+  const students = selectedUnit?.students || [];
+  const filteredStudents = students.filter((student) => `${student.name} ${student.email}`.toLowerCase().includes(query.toLowerCase()));
+  const pending = submissions.filter((submission) => submission.status === 'submitted');
+  const totalAssessments = units.reduce((sum, unit) => sum + (unit.assessment_count || 0), 0);
+  const avgCompletion = units.length ? Math.round(units.reduce((sum, unit) => sum + (unit.completion_percentage || 0), 0) / units.length) : 0;
+  const rows = gradingMode === 'group' && gradingGroupId ? groupSubmissions : submissions;
 
-  const fetchDashboardData = async () => {
-    if (isFetchingDashboard) return;
-    setIsFetchingDashboard(true);
-    setLoading(true);
-    setError('');
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-      const response = await axios.get('/api/accounts/dashboard/lecturer/', { headers: apiHeaders() });
-      setDashboardData(response.data);
-    } catch (requestError) {
-      if (requestError?.response?.status === 401) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        return;
-      }
-      const detail = requestError?.response?.data?.error || requestError?.response?.data?.detail;
-      setError(detail || `Failed to load dashboard data${requestError?.response?.status ? ` (HTTP ${requestError.response.status})` : ''}`);
-    } finally {
-      setLoading(false);
-      setIsFetchingDashboard(false);
-    }
+  const load = async () => {
+    try { const response = await axios.get(`${API}/dashboard/lecturer/`, { headers: auth() }); setData(response.data); } catch (requestError) { setError(requestError.response?.data?.error || 'Unable to load dashboard.'); } finally { setLoading(false); }
   };
+  useEffect(() => { load(); }, []);
+  useEffect(() => { document.documentElement.classList.toggle('dark', dark); localStorage.setItem('darkMode', String(dark)); }, [dark]);
+  useEffect(() => { if (tab === 'messages') axios.get(`${API}/chat/rooms/`, { headers: auth() }).then((response) => setRooms(response.data)).catch(() => setError('Unable to load messages.')); }, [tab]);
+  useEffect(() => { if (gradingMode === 'group' && gradingGroupId) axios.get(`${API}/groups/${gradingGroupId}/submissions/`, { headers: auth() }).then((response) => setGroupSubmissions(response.data)).catch(() => setError('Unable to load group submissions.')); }, [gradingMode, gradingGroupId]);
 
-  const fetchChatRooms = async () => {
-    try {
-      const response = await axios.get('/api/accounts/chat/rooms/', { headers: apiHeaders() });
-      setChatRooms(response.data);
-    } catch (requestError) {
-      console.error('Error fetching chat rooms:', requestError);
-    }
-  };
-
-  const fetchUnreadCounts = async () => {
-    try {
-      const response = await axios.get('/api/accounts/chat/unread-counts/', { headers: apiHeaders() });
-      setUnreadCounts(response.data);
-    } catch (requestError) {
-      console.error('Error fetching unread counts:', requestError);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-    // The request function intentionally runs once when the dashboard mounts.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'chat') {
-      fetchChatRooms();
-      fetchUnreadCounts();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return undefined;
-    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:8000', {
-      auth: { token },
-      transports: ['polling', 'websocket'],
-      reconnectionAttempts: 5
-    });
-    socket.on('new_message', (message) => {
-      if (selectedChatRoom?.id === message.room_id) setMessages((current) => [...current, message]);
-      else setUnreadCounts((current) => ({ ...current, [message.room_id]: (current[message.room_id] || 0) + 1 }));
-    });
-    return () => socket.disconnect();
-  }, [selectedChatRoom]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-    localStorage.setItem('darkMode', String(darkMode));
-  }, [darkMode]);
-
-  const filteredGroups = useMemo(() => groups.filter((group) => {
-    const query = searchQuery.toLowerCase();
-    return group.name?.toLowerCase().includes(query) || group.course?.toLowerCase().includes(query);
-  }), [groups, searchQuery]);
-
-  const filteredSubmissions = useMemo(() => submissions.filter((submission) => {
-    const query = searchQuery.toLowerCase();
-    return submission.project_title?.toLowerCase().includes(query) || submission.submitted_by?.toLowerCase().includes(query);
-  }), [submissions, searchQuery]);
-
-  const selectChatRoom = async (room) => {
-    setSelectedChatRoom(room);
-    setChatLoading(true);
-    try {
-      const response = await axios.get(`/api/accounts/chat/messages/${room.id}/`, { headers: apiHeaders() });
-      setMessages(response.data);
-    } catch (requestError) {
-      console.error('Error fetching messages:', requestError);
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedChatRoom) return;
-    try {
-      const response = await axios.post(
-        `/api/accounts/chat/send/${selectedChatRoom.id}/`,
-        { content: newMessage },
-        { headers: apiHeaders() }
-      );
-      setMessages((current) => [...current, response.data]);
-      setNewMessage('');
-    } catch (requestError) {
-      console.error('Error sending message:', requestError);
-    }
-  };
-
-  const messageStudent = async (student) => {
-    try {
-      const response = await axios.post(
-        '/api/accounts/chat/direct/',
-        { user_id: student.id },
-        { headers: apiHeaders() }
-      );
-      await fetchChatRooms();
-      setSelectedChatRoom(response.data);
-      setActiveTab('chat');
-      setMessages([]);
-    } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Unable to start a conversation.');
-    }
-  };
-
-  const createGroup = async (event) => {
+  const openDetails = (title, items) => setDetail({ title, items });
+  const openPending = () => setDetail({ title: 'Pending grades', submissions: pending });
+  const openSubmission = (submission) => { setGradeForm({ grade: submission.grade ?? '', feedback: submission.feedback || '', status: submission.status === 'submitted' ? 'reviewed' : submission.status }); setDetail(submission); };
+  const grade = async (event) => {
     event.preventDefault();
-    try {
-      await axios.post('/api/accounts/groups/create/', groupForm, { headers: apiHeaders() });
-      setGroupForm({ name: '', unit_id: '', max_members: 5 });
-      setShowGroupForm(false);
-      await fetchDashboardData();
-    } catch (requestError) {
-      setError(requestError?.response?.data?.error || 'Unable to create group.');
-    }
+    try { await axios.patch(`${API}/submissions/${detail.id}/grade/`, gradeForm, { headers: auth() }); setNotice('Grade saved successfully.'); setDetail(null); load(); if (gradingGroupId) { const response = await axios.get(`${API}/groups/${gradingGroupId}/submissions/`, { headers: auth() }); setGroupSubmissions(response.data); } } catch (requestError) { setError(requestError.response?.data?.error || 'Unable to save grade.'); }
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+  const openGroup = async (group) => {
+    try { const response = await axios.get(`${API}/groups/${group.id}/workspace/`, { headers: auth() }); setDetail({ title: group.name, group: response.data }); } catch { setError('Unable to load group progress.'); }
   };
+  const selectRoom = async (selected) => { setRoom(selected); try { const response = await axios.get(`${API}/chat/messages/${selected.id}/`, { headers: auth() }); setMessages(response.data); } catch { setError('Unable to load messages.'); } };
+  const sendMessage = async () => { if (!draft.trim() || !room) return; try { const response = await axios.post(`${API}/chat/send/${room.id}/`, { content: draft }, { headers: auth() }); setMessages((current) => [...current, response.data]); setDraft(''); } catch { setError('Unable to send message.'); } };
+  const exportStudents = () => { const rowsToExport = units.flatMap((unit) => (unit.students || []).map((student) => ({ Name: student.name, Email: student.email, Unit: unit.code, Programme: student.course || '' }))); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rowsToExport), 'Students'); XLSX.writeFile(workbook, 'my-unit-students.xlsx'); };
+  const demo = async (method) => { try { const response = await axios({ method, url: `${API}/lecturer/demo-data/`, headers: auth() }); setNotice(method === 'post' ? `${response.data.students_created} students and ${response.data.groups_created} groups created.` : 'Demo data deleted.'); load(); } catch (requestError) { setError(requestError.response?.data?.error || 'Demo data action failed.'); } };
+  const logout = () => { localStorage.clear(); window.location.href = '/login'; };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#EEF3FA] dark:bg-[#0B1120] flex items-center justify-center">
-        <div className="text-center text-[#0F3D6E] dark:text-[#E8EEF9]">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#D5E3D6] border-t-[#6DB6E6]" />
-          <p className="text-sm font-medium">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#EEF3FA] text-[#0F3D6E]">Loading your lecturer workspace...</div>;
+  return <div className="min-h-screen bg-[#EEF3FA] text-[#12294A] dark:bg-[#0B1120] dark:text-[#E8EEF9]"><div className="flex min-h-screen">
+    <aside className={`fixed inset-y-0 left-0 z-30 w-64 transform border-r border-[#E3E9F2] bg-white p-5 transition-transform dark:border-[#1E2940] dark:bg-[#121A2D] md:static md:translate-x-0 ${mobile ? 'translate-x-0' : '-translate-x-full'}`}><div className="flex h-full flex-col"><div className="mb-8 flex justify-between"><div><b className="text-lg text-[#0F3D6E] dark:text-white">GroupHub</b><span className="block text-[10px] font-bold tracking-widest text-[#8A97AF]">LECTURER WORKSPACE</span></div><button onClick={() => setMobile(false)} className="md:hidden"><X size={20} /></button></div>{tabs.map(([id, label, icon]) => <button key={id} onClick={() => { setTab(id); setMobile(false); }} className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${tab === id ? 'bg-[#E8F3FB] text-[#0F3D6E] dark:bg-[#26365a] dark:text-white' : 'text-[#6B7A90] hover:bg-[#EEF3FA]'}`}>{React.createElement(icon, { size: 18 })}{label}</button>)}<div className="mt-auto border-t border-[#E3E9F2] pt-4 dark:border-[#1E2940]"><button onClick={() => setDark((value) => !value)} className="mb-4 flex items-center gap-3 text-sm text-[#6B7A90]">{dark ? <Sun size={18} /> : <Moon size={18} />}{dark ? 'Light mode' : 'Dark mode'}</button><div className="flex items-center gap-3"><span className="rounded-full bg-[#6DB6E6] px-3 py-2 font-bold text-[#0F3D6E]">{user?.first_name?.[0] || 'L'}</span><span className="flex-1 truncate text-sm font-bold">{user?.first_name} {user?.last_name}</span><button onClick={logout}><LogOut size={17} /></button></div></div></div></aside>
+    <div className="min-w-0 flex-1"><header className="sticky top-0 z-10 flex items-center gap-4 border-b border-[#E3E9F2] bg-white/95 px-5 py-4 dark:border-[#1E2940] dark:bg-[#121A2D]/95"><button onClick={() => setMobile(true)} className="md:hidden"><Menu size={22} /></button><div className="flex-1"><p className="text-xs text-[#6B7A90]">Lecturer Workspace</p><h1 className="text-xl font-bold text-[#0F3D6E] dark:text-white">{tabs.find(([id]) => id === tab)?.[1]}</h1></div><div className="relative hidden w-64 md:block"><SearchIcon /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search..." className="w-full rounded-xl border border-[#E3E9F2] bg-[#EEF3FA] py-2 pl-10 text-sm dark:border-[#1E2940] dark:bg-[#0B1120]" /></div><Bell size={19} className="text-[#6B7A90]" /></header><main className="mx-auto max-w-[1500px] space-y-6 p-5 lg:p-8">{error && <Notice tone="error" text={error} clear={() => setError('')} />}{notice && <Notice text={notice} clear={() => setNotice('')} />}
+      {tab === 'dashboard' && <Overview units={units} user={user} avgCompletion={avgCompletion} totalAssessments={totalAssessments} pending={pending} openPending={openPending} setTab={setTab} openDetails={openDetails} />}
+      {tab === 'analytics' && <Panel title="Assessment analytics" description="Completion across the units you teach."><Chart units={units} onSelect={(unit) => openDetails(unit.code, [{ label: 'Students', value: unit.student_count }, { label: 'Groups', value: unit.group_count }, { label: 'Completion', value: `${unit.completion_percentage || 0}%` }])} /></Panel>}
+      {tab === 'units' && <Panel title="My Units" description="Every unit assigned to you. Select a unit to see its students and assessment activity."><UnitGrid units={units} onSelect={(unit) => { setUnitId(unit.id); setTab('students'); }} /></Panel>}
+      {tab === 'groups' && <Groups groups={groups} onOpen={openGroup} />}
+      {tab === 'students' && <Students units={units} selectedUnit={selectedUnit} unitId={unitId} setUnitId={setUnitId} students={filteredStudents} exportStudents={exportStudents} />}
+      {tab === 'assessments' && <Assessments groups={groups} rows={rows} gradingMode={gradingMode} setGradingMode={setGradingMode} gradingGroupId={gradingGroupId} setGradingGroupId={setGradingGroupId} openSubmission={openSubmission} />}
+      {tab === 'messages' && <Messages rooms={rooms} room={room} messages={messages} draft={draft} setDraft={setDraft} selectRoom={selectRoom} sendMessage={sendMessage} user={user} />}
+      {tab === 'settings' && <Panel title="Settings" description="Manage your profile and dashboard preview data." action={<div className="flex gap-2"><button onClick={() => demo('post')} className="rounded-xl bg-[#0F3D6E] px-3 py-2 text-xs font-bold text-white">Create demo data</button><button onClick={() => demo('delete')} className="rounded-xl border border-[#E5484D] px-3 py-2 text-xs font-bold text-[#E5484D]">Delete demo data</button></div>}><p className="text-sm text-[#6B7A90]">Use demo data to preview students, groups, assessments, charts, and messages.</p></Panel>}
+      {tab === 'dashboard' && <TeachingCalendar month={calendarMonth} setMonth={setCalendarMonth} units={units} />}
+    </main></div></div>
+    {detail && <Detail detail={detail} close={() => setDetail(null)} openSubmission={openSubmission} gradeForm={gradeForm} setGradeForm={setGradeForm} grade={grade} />}
+  </div>;
+}
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#EEF3FA] dark:bg-[#0B1120] flex items-center justify-center p-6">
-        <div className="rounded-2xl border border-[#E3E9F2] bg-white p-8 text-center shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]">
-          <p className="mb-5 text-[#E5484D]">{error}</p>
-          <button onClick={fetchDashboardData} className="rounded-xl bg-[#0F3D6E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#174f89]">
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const activeSection = activeTab === 'dashboard' ? 'Dashboard' : navigation.find((item) => item.id === activeTab)?.label;
-  const statValues = {
-    total_students: dashboardData?.stats?.total_students || 0,
-    total_units: dashboardData?.stats?.total_units || units.length,
-    pending_submissions: dashboardData?.stats?.pending_submissions || 0,
-    projects: groups.reduce((total, group) => total + (group.projects?.length || 0), 0)
-  };
-
-  return (
-    <div className="min-h-screen bg-[#EEF3FA] text-[#12294A] dark:bg-[#0B1120] dark:text-[#E8EEF9]">
-      <div className="flex min-h-screen">
-        <aside className={`fixed inset-y-0 left-0 z-30 w-60 transform border-r border-[#E3E9F2] bg-white p-5 transition-transform dark:border-[#1E2940] dark:bg-[#121A2D] md:static md:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="flex h-full flex-col">
-            <div className="mb-10 flex items-center justify-between">
-              <button onClick={() => setActiveTab('dashboard')} className="flex items-center gap-3 text-left">
-                {/* <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0F3D6E] text-lg font-bold text-white">G</span> */}
-                <span>
-                  <span className="block text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">GroupHub</span>
-                  <span className="block text-[10px] font-semibold tracking-[0.16em] text-[#6B7A90]">LECTURER WORKSPACE</span>
-                </span>
-              </button>
-              <button onClick={() => setMobileNavOpen(false)} className="md:hidden" aria-label="Close navigation"><X size={20} /></button>
-            </div>
-
-            {['MAIN', 'WORK', 'ACCOUNT'].map((section) => (
-              <div key={section} className="mb-7">
-                <p className="mb-2 px-3 text-[10px] font-bold tracking-[0.18em] text-[#8A97AF]">{section}</p>
-                {navigation.filter((item) => item.section === section).map((item) => {
-                  const Icon = item.icon;
-                  const count = item.id === 'chat' ? unreadCounts?.total || 0 : item.id === 'submissions' ? dashboardData?.stats?.pending_submissions || 0 : 0;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
-                      className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${activeTab === item.id ? 'bg-[#E8F3FB] text-[#0F3D6E] dark:bg-[#26365a] dark:text-[#E8EEF9]' : 'text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]'}`}
-                    >
-                      <Icon size={18} strokeWidth={1.8} />
-                      <span>{item.label}</span>
-                      {count > 0 && <span className="ml-auto rounded-full bg-[#6DB6E6] px-2 py-0.5 text-[10px] text-[#0F3D6E]">{count}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-
-            <div className="mt-auto border-t border-[#E3E9F2] pt-5 dark:border-[#1E2940]">
-              <button onClick={() => setDarkMode((value) => !value)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]">
-                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-                <span className={`ml-auto h-5 w-9 rounded-full p-0.5 ${darkMode ? 'bg-[#6B84D6]' : 'bg-[#D5E3D6]'}`}><span className={`block h-4 w-4 rounded-full bg-white transition ${darkMode ? 'translate-x-4' : ''}`} /></span>
-              </button>
-              <div className="mt-5 flex items-center gap-3 border-t border-[#E3E9F2] pt-5 dark:border-[#1E2940]">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6DB6E6] text-sm font-bold text-[#0F3D6E]">{initials}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold">{user?.first_name} {user?.last_name}</span>
-                  <span className="block text-xs capitalize text-[#6B7A90]">{user?.user_type || 'Lecturer'}</span>
-                </span>
-                <button onClick={handleLogout} aria-label="Log out" className="text-[#6B7A90] hover:text-[#E5484D]"><LogOut size={17} /></button>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {mobileNavOpen && <button className="fixed inset-0 z-20 bg-[#12294A]/30 md:hidden" onClick={() => setMobileNavOpen(false)} aria-label="Close menu overlay" />}
-
-        <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-10 border-b border-[#E3E9F2] bg-white/95 px-5 py-4 backdrop-blur dark:border-[#1E2940] dark:bg-[#121A2D]/95 lg:px-8">
-            <div className="flex items-center gap-4">
-              <button onClick={() => setMobileNavOpen(true)} className="md:hidden" aria-label="Open navigation"><Menu size={22} /></button>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-[#6B7A90]">Lecturer Workspace</p>
-                <h1 className="truncate text-xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{activeSection}</h1>
-              </div>
-              {activeTab === 'dashboard' && (
-                <div className="relative hidden w-64 md:block">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A97AF]" size={17} />
-                  <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search groups..." className="w-full rounded-xl border border-[#E3E9F2] bg-[#EEF3FA] py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[#6DB6E6] dark:border-[#1E2940] dark:bg-[#0B1120]" />
-                </div>
-              )}
-              <button className="relative rounded-xl p-2 text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]" aria-label="Notifications"><Bell size={19} /><span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#E5484D]" /></button>
-              <button onClick={() => setDarkMode((value) => !value)} className="rounded-xl p-2 text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]" aria-label="Toggle dark mode">{darkMode ? <Sun size={19} /> : <Moon size={19} />}</button>
-              <span className="hidden h-9 w-9 items-center justify-center rounded-full bg-[#6DB6E6] text-sm font-bold text-[#0F3D6E] sm:flex">{initials}</span>
-            </div>
-          </header>
-
-          <main className="mx-auto max-w-[1500px] p-5 lg:p-8">
-            {activeTab === 'dashboard' && (
-              <>
-                <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-                  <div><p className="text-sm text-[#6B7A90]">Welcome back, {firstName}</p><h2 className="mt-1 text-2xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Lecturer Dashboard</h2></div>
-                  <button onClick={() => setActiveTab('groups')} className="flex items-center gap-2 rounded-xl bg-[#0F3D6E] px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#174f89]"><BookOpen size={17} /> Manage units</button>
-                </div>
-
-                <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                  {statCards.map((card) => {
-                    const Icon = card.icon;
-                    const value = card.value ?? statValues[card.key];
-                    return <div key={card.label} className={`rounded-2xl border border-white/70 p-5 shadow-sm dark:border-[#1E2940] ${toneStyles[card.tone]}`}><div className="mb-5 flex items-start justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/80 bg-white/70 text-[#0F3D6E] dark:border-[#384663] dark:bg-[#121A2D] dark:text-[#9ccdf0]"><Icon size={18} /></span><span className="text-2xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{value}</span></div><p className="text-sm font-semibold text-[#12294A] dark:text-[#E8EEF9]">{card.label}</p><p className="mt-1 text-xs text-[#6B7A90]">From your current groups</p></div>;
-                  })}
-                </div>
-
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.8fr)]">
-                  <section className="rounded-2xl border border-[#E3E9F2] bg-white p-5 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]">
-                    <div className="mb-6 flex items-center justify-between"><div><h3 className="text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Assessment Completion</h3><p className="mt-1 text-xs text-[#6B7A90]">Activity across your units</p></div><select className="rounded-lg border border-[#E3E9F2] bg-[#EEF3FA] px-2 py-1.5 text-xs text-[#6B7A90] outline-none dark:border-[#1E2940] dark:bg-[#0B1120]"><option>Current term</option></select></div>
-                    <div className="flex h-56 items-end gap-3 border-b border-[#E3E9F2] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_54px,#E3E9F2_55px)] px-2 pt-5 dark:border-[#1E2940] dark:bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_54px,#1E2940_55px)]">
-                      {(groups.length ? groups : [{ name: 'No units' }]).slice(0, 6).map((group, index) => { const submitted = group.projects?.length ? 55 + (index * 7) % 35 : 12; const pending = Math.max(12, 100 - submitted); return <div key={group.id || group.name} className="flex min-w-0 flex-1 items-end justify-center gap-1">{<div className="w-3 rounded-t-md bg-[#6DB6E6]" style={{ height: `${submitted}%` }} />}{<div className="w-3 rounded-t-md bg-[#D5E3D6]" style={{ height: `${pending}%` }} />}</div>; })}
-                    </div>
-                    <div className="mt-4 flex justify-center gap-5 text-xs text-[#6B7A90]"><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#6DB6E6]" />Submitted</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#D5E3D6]" />Pending</span></div>
-                  </section>
-
-                  <section className="rounded-2xl border border-[#E3E9F2] bg-white p-5 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]"><h3 className="mb-4 text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Quick Actions</h3><div className="space-y-3">{[['submissions', 'Review Pending Grades', ClipboardList], ['chat', 'Manage Students', Users], ['groups', 'Create Assessment', CheckSquare]].map(([tab, label, ActionIcon]) => <button key={label} onClick={() => setActiveTab(tab)} className="flex w-full items-center gap-3 rounded-xl bg-[#E8F3FB] px-3 py-3 text-left text-sm font-semibold text-[#0F3D6E] transition hover:bg-[#d7ebf8] dark:bg-[#1d3049] dark:text-[#E8EEF9]">{React.createElement(ActionIcon, { size: 17 })}<span>{label}</span><ChevronRight className="ml-auto" size={16} /></button>)}</div></section>
-                </div>
-
-                <section className="mt-6 rounded-2xl border border-[#E3E9F2] bg-white p-5 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]"><div className="mb-5 flex items-center justify-between"><div><h3 className="text-lg font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">Your Units</h3><p className="mt-1 text-xs text-[#6B7A90]">Click a unit to view its students and groups</p></div><button onClick={() => setActiveTab('groups')} className="text-sm font-bold text-[#0F3D6E] dark:text-[#9ccdf0]">View all</button></div>{units.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{units.map((unit) => <button type="button" key={unit.id} onClick={() => { setSelectedUnitId(unit.id); setActiveTab('groups'); }} className="rounded-xl border border-[#E3E9F2] bg-[#E8F3FB]/60 p-4 text-left transition hover:border-[#6DB6E6] hover:shadow-md dark:border-[#1E2940] dark:bg-[#182943]"><div className="mb-5 flex items-start justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b9dced] bg-white text-[#0F3D6E] dark:bg-[#121A2D] dark:text-[#9ccdf0]"><BookOpen size={17} /></span><span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold text-[#6B7A90] dark:bg-[#121A2D]">{unit.group_count} groups</span></div><h4 className="font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{unit.code} · {unit.name}</h4><p className="mt-1 text-xs text-[#6B7A90]">{unit.course_name} · Year {unit.year_of_study}, Semester {unit.semester}</p><div className="mt-5 flex gap-4 text-xs text-[#6B7A90]"><span className="flex items-center gap-1"><Users size={14} />{unit.student_count} students</span><span className="flex items-center gap-1"><ClipboardList size={14} />{unit.group_count} groups</span></div></button>)}</div> : <p className="rounded-xl bg-[#EEF3FA] p-6 text-center text-sm text-[#6B7A90] dark:bg-[#0B1120]">No teaching units have been assigned yet.</p>}</section>
-              </>
-            )}
-
-            {activeTab === 'groups' && <Panel title="My Units" description="Students registered for the units you teach, with their groups and contact links." content={<div className="space-y-5"><button type="button" onClick={() => setShowGroupForm((visible) => !visible)} className="rounded-xl bg-[#0F3D6E] px-4 py-2 text-sm font-bold text-white">＋ Create group</button>{showGroupForm && <form onSubmit={createGroup} className="grid gap-3 rounded-2xl bg-[#E8F3FB] p-4 md:grid-cols-4"><input required placeholder="Group name" value={groupForm.name} onChange={(event) => setGroupForm({ ...groupForm, name: event.target.value })} className="rounded-xl border p-3" /><select required value={groupForm.unit_id} onChange={(event) => setGroupForm({ ...groupForm, unit_id: event.target.value })} className="rounded-xl border p-3"><option value="">Assigned unit</option>{units.map((unit) => <option key={unit.id} value={unit.id}>{unit.code} · {unit.name}</option>)}</select><input required min="2" type="number" value={groupForm.max_members} onChange={(event) => setGroupForm({ ...groupForm, max_members: event.target.value })} className="rounded-xl border p-3" /><button className="rounded-xl bg-[#F57D67] px-4 py-2 font-bold text-white">Save group</button></form>}{units.length ? units.filter((unit) => !selectedUnitId || unit.id === selectedUnitId).map((unit) => <section key={unit.id} className="rounded-2xl border border-[#E3E9F2] p-5 dark:border-[#1E2940]"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{unit.code} · {unit.name}</h3><p className="mt-1 text-xs text-[#6B7A90]">{unit.course_code} · Year {unit.year_of_study}, Semester {unit.semester}</p></div><div className="flex gap-2 text-xs font-semibold"><span className="rounded-full bg-[#E8EFFB] px-3 py-1 text-[#0F3D6E]">{unit.student_count} students</span><span className="rounded-full bg-[#E6F5EC] px-3 py-1 text-[#22764F]">{unit.group_count} groups</span></div></div>{unit.students?.length ? <div className="grid gap-2 md:grid-cols-2">{unit.students.map((student) => <div key={student.id} className="flex items-center justify-between gap-3 rounded-xl bg-[#EEF3FA] px-3 py-2.5 dark:bg-[#0B1120]"><div className="min-w-0"><p className="truncate text-sm font-semibold">{student.name}</p><p className="truncate text-xs text-[#6B7A90]">{student.email}</p></div><button onClick={() => messageStudent(student)} className="shrink-0 rounded-lg bg-[#0F3D6E] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#174f89]">Message</button></div>)}</div> : <p className="text-sm text-[#6B7A90]">No registered students for this unit yet.</p>}</section>) : <EmptyState text="No teaching units have been assigned yet." />}</div>} />}
-            {activeTab === 'progress' && <Panel title="Analytics" description="Track assessment activity across your units." content={<div className="rounded-xl bg-[#E8F3FB] p-6 text-sm text-[#6B7A90] dark:bg-[#182943]">Analytics will appear here as assessment data is recorded.</div>} />}
-            {activeTab === 'submissions' && <Panel title="Assessments" description="Review recent student submissions." content={filteredSubmissions.length ? <div className="space-y-3">{filteredSubmissions.map((submission) => <div key={submission.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940]"><div><p className="font-bold">{submission.project_title}</p><p className="text-xs text-[#6B7A90]">Submitted by {submission.submitted_by}</p></div><span className="rounded-full bg-[#E6F5EC] px-3 py-1 text-xs font-bold capitalize text-[#22A06B]">{submission.status}</span></div>)}</div> : <EmptyState text="No submissions yet." />} />}
-            {activeTab === 'settings' && <Panel title="Settings" description="Manage your portal preferences." content={<button onClick={() => setDarkMode((value) => !value)} className="flex items-center gap-3 rounded-xl bg-[#EEF3FA] px-4 py-3 text-sm font-semibold dark:bg-[#0B1120]">{darkMode ? <Sun size={18} /> : <Moon size={18} />} Switch to {darkMode ? 'light' : 'dark'} mode</button>} />}
-            {activeTab === 'chat' && <Panel title="Students" description="Open a conversation with your groups." content={<div className="grid gap-4 lg:grid-cols-[280px_1fr]">{<div className="space-y-2">{chatRooms.length ? chatRooms.map((room) => <button key={room.id} onClick={() => selectChatRoom(room)} className={`w-full rounded-xl p-3 text-left text-sm ${selectedChatRoom?.id === room.id ? 'bg-[#E8F3FB] text-[#0F3D6E]' : 'bg-[#EEF3FA] dark:bg-[#0B1120]'}`}>{room.name || `Chat room ${room.id}`}</button>) : <EmptyState text="No chat rooms available." />}</div>}{<div className="min-h-64 rounded-xl bg-[#EEF3FA] p-4 dark:bg-[#0B1120]">{selectedChatRoom ? <><div className="mb-4 space-y-2">{chatLoading ? <p className="text-sm text-[#6B7A90]">Loading messages...</p> : messages.map((message, index) => <p key={message.id || index} className="rounded-lg bg-white p-2 text-sm dark:bg-[#121A2D]">{message.content}</p>)}</div><div className="flex gap-2"><input value={newMessage} onChange={(event) => setNewMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && sendMessage()} className="min-w-0 flex-1 rounded-xl border border-[#E3E9F2] bg-white px-3 py-2 text-sm dark:border-[#1E2940] dark:bg-[#121A2D]" placeholder="Write a message..." /><button onClick={sendMessage} className="rounded-xl bg-[#0F3D6E] px-4 text-sm font-bold text-white">Send</button></div></> : <p className="text-sm text-[#6B7A90]">Select a chat room to view messages.</p>}</div>}</div>} />}
-          </main>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const Panel = ({ title, description, content }) => <section className="rounded-2xl border border-[#E3E9F2] bg-white p-6 shadow-sm dark:border-[#1E2940] dark:bg-[#121A2D]"><h2 className="text-xl font-bold text-[#0F3D6E] dark:text-[#E8EEF9]">{title}</h2><p className="mb-6 mt-1 text-sm text-[#6B7A90]">{description}</p>{content}</section>;
-const UnitSummary = ({ group }) => <div className="rounded-xl border border-[#E3E9F2] bg-[#E8F3FB]/60 p-4 dark:border-[#1E2940] dark:bg-[#182943]"><BookOpen size={20} className="mb-4 text-[#0F3D6E] dark:text-[#9ccdf0]" /><h3 className="font-bold">{group.name}</h3><p className="mt-1 text-sm text-[#6B7A90]">{group.course} · Year {group.year_of_study}</p><p className="mt-4 text-xs text-[#6B7A90]">{group.members_count || 0} students · {group.projects?.length || 0} projects</p></div>;
-const EmptyState = ({ text }) => <p className="rounded-xl bg-[#EEF3FA] p-6 text-center text-sm text-[#6B7A90] dark:bg-[#0B1120]">{text}</p>;
-
-export default LecturerDashboard;
+function Overview({ units, user, avgCompletion, totalAssessments, pending, openPending, setTab, openDetails }) { return <><div><p className="text-sm text-[#6B7A90]">Welcome back, {user?.first_name || 'Lecturer'}</p><h2 className="text-2xl font-bold text-[#0F3D6E] dark:text-white">Teacher Dashboard</h2></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{[['Students', units.reduce((sum, unit) => sum + (unit.student_count || 0), 0), Users, () => setTab('students')], ['My units', units.length, BookOpen, () => setTab('units')], ['Pending grades', pending.length, CheckSquare, openPending], ['Completion', `${avgCompletion}%`, BarChart3, () => setTab('analytics')], ['Assessments', totalAssessments, ClipboardList, () => setTab('assessments')]].map(([label, value, icon, action]) => <button key={label} onClick={action} className="rounded-2xl bg-white p-5 text-left shadow-sm dark:bg-[#121A2D]"><div className="flex justify-between">{React.createElement(icon, { size: 20, className: 'text-[#0F3D6E]' })}<b className="text-2xl text-[#0F3D6E]">{value}</b></div><p className="mt-5 text-sm font-bold">{label}</p><p className="text-xs text-[#6B7A90]">Click to view details</p></button>)}</div><Panel title="Assessment Completion" description="Submitted and pending work across your units."><Chart units={units} onSelect={(unit) => openDetails(unit.code, [{ label: 'Students', value: unit.student_count }, { label: 'Completion', value: `${unit.completion_percentage || 0}%` }])} /></Panel><UnitGrid units={units} onSelect={() => setTab('units')} /></>; }
+function UnitGrid({ units, onSelect }) { return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{units.map((unit) => <button key={unit.id} onClick={() => onSelect(unit)} className="rounded-2xl border border-[#DDEAF2] bg-[#E8F3FB] p-4 text-left dark:border-[#1E2940] dark:bg-[#182943]"><div className="flex justify-between"><BookOpen size={19} className="text-[#0F3D6E]" /><span className="text-xs font-bold text-[#6B7A90]">{unit.completion_percentage || 0}% complete</span></div><h3 className="mt-5 font-bold text-[#0F3D6E] dark:text-white">{unit.code} · {unit.name}</h3><p className="mt-1 text-xs text-[#6B7A90]">{unit.course_name}</p><div className="mt-5 flex justify-between text-xs text-[#6B7A90]"><span>{unit.student_count} students</span><span>{unit.assessment_count || 0} assessments</span></div><div className="mt-3 h-2 rounded-full bg-white"><div className="h-2 rounded-full bg-[#6DB6E6]" style={{ width: `${unit.completion_percentage || 0}%` }} /></div></button>)}</div>; }
+function Groups({ groups, onOpen }) { return <Panel title="Groups" description="See what each group is doing and open its full workspace."><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{groups.map((group) => <button key={group.id} onClick={() => onOpen(group)} className="rounded-2xl border border-[#E3E9F2] p-4 text-left dark:border-[#1E2940]"><div className="flex justify-between"><Users className="text-[#0F3D6E]" /><span className="text-xs text-[#6B7A90]">{group.members_count} members</span></div><h3 className="mt-4 font-bold">{group.name}</h3><p className="text-xs text-[#6B7A90]">{group.unit_code || group.course}</p><p className="mt-4 text-sm text-[#6B7A90]">{group.projects?.length || 0} projects · click for progress</p></button>)}</div>{!groups.length && <Empty>No groups found.</Empty>}</Panel>; }
+function Students({ units, selectedUnit, unitId, setUnitId, students, exportStudents }) { return <Panel title="Students" description="A table of students registered for each unit." action={<button onClick={exportStudents} className="rounded-xl border border-[#E3E9F2] px-3 py-2 text-sm font-bold"><FileSpreadsheet size={15} className="mr-1 inline" />Export</button>}><select value={unitId} onChange={(event) => setUnitId(event.target.value)} className="mb-4 rounded-xl border border-[#E3E9F2] bg-white p-3 text-sm dark:bg-[#0B1120]"><option value="">Select unit</option>{units.map((unit) => <option key={unit.id} value={unit.id}>{unit.code} · {unit.name}</option>)}</select>{selectedUnit ? <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-[#E3E9F2] text-xs uppercase text-[#6B7A90]"><th className="p-3">Student</th><th className="p-3">Email</th><th className="p-3">Programme</th><th className="p-3">Year</th></tr></thead><tbody>{students.map((student) => <tr key={student.id} className="border-b border-[#E3E9F2] dark:border-[#1E2940]"><td className="p-3 font-semibold">{student.name}</td><td className="p-3 text-[#6B7A90]">{student.email}</td><td className="p-3">{student.course || '—'}</td><td className="p-3">{student.year_of_study || '—'}</td></tr>)}</tbody></table>{!students.length && <Empty>No students in this unit.</Empty>}</div> : <Empty>Select a unit to view students.</Empty>}</Panel>; }
+function Assessments({ groups, rows, gradingMode, setGradingMode, gradingGroupId, setGradingGroupId, openSubmission }) { return <Panel title="Assessments" description="Grade individual students or select a group and update each student's grade." action={<div className="flex gap-2"><button onClick={() => setGradingMode('student')} className={`rounded-xl px-3 py-2 text-xs font-bold ${gradingMode === 'student' ? 'bg-[#0F3D6E] text-white' : 'bg-[#EEF3FA]'}`}>Per student</button><button onClick={() => setGradingMode('group')} className={`rounded-xl px-3 py-2 text-xs font-bold ${gradingMode === 'group' ? 'bg-[#0F3D6E] text-white' : 'bg-[#EEF3FA]'}`}>Per group</button></div>}>{gradingMode === 'group' && <select value={gradingGroupId} onChange={(event) => setGradingGroupId(event.target.value)} className="mb-4 rounded-xl border border-[#E3E9F2] p-3 text-sm dark:bg-[#0B1120]"><option value="">Select group</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>}<div className="grid gap-4 md:grid-cols-2">{rows.map((submission) => <button key={submission.id} onClick={() => openSubmission(submission)} className="rounded-xl border border-[#E3E9F2] p-4 text-left dark:border-[#1E2940]"><div className="flex justify-between"><b>{submission.project_title}</b><span className="text-xs font-bold">{submission.status}</span></div><p className="mt-2 text-sm text-[#6B7A90]">{submission.submitted_by || submission.submitted_by_name}</p><p className="mt-3 font-bold text-[#0F3D6E]">{submission.grade == null ? 'Not graded' : `${submission.grade}%`}</p></button>)}</div>{!rows.length && <Empty>Select a group or wait for submissions.</Empty>}</Panel>; }
+function Messages({ rooms, room, messages, draft, setDraft, selectRoom, sendMessage, user }) { return <Panel title="Messages" description="WhatsApp-style group conversations with clear senders and recipients."><div className="grid gap-4 lg:grid-cols-[280px_1fr]"><div className="space-y-2">{rooms.map((item) => <button key={item.id} onClick={() => selectRoom(item)} className="w-full rounded-xl bg-[#EEF3FA] p-3 text-left text-sm font-bold dark:bg-[#0B1120]">{item.name}</button>)}</div><div className="min-h-72 rounded-xl bg-[#EEF3FA] p-4 dark:bg-[#0B1120]">{room ? <><div className="space-y-3">{messages.map((message) => <div key={message.id} className={`flex ${message.sender?.id === user?.id ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] rounded-2xl p-3 text-sm ${message.sender?.id === user?.id ? 'bg-[#D9FDD3]' : 'bg-white dark:bg-[#121A2D]'}`}><p className="mb-1 text-[10px] font-bold text-[#6B7A90]">{message.sender?.id === user?.id ? 'You → Group' : `${message.sender?.first_name || ''} ${message.sender?.last_name || ''} → You`}</p><p>{message.content}</p><time className="mt-1 block text-[10px] text-[#6B7A90]">{message.timestamp ? new Date(message.timestamp).toLocaleString() : ''}</time></div></div>)}</div><div className="mt-4 flex gap-2"><Field className="flex-1" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write a message..." /><button onClick={sendMessage} className="rounded-xl bg-[#0F3D6E] px-4 text-white">Send</button></div></> : <Empty>Select a group conversation.</Empty>}</div></div></Panel>; }
+function TeachingCalendar({ month, setMonth, units }) { const year = month.getFullYear(); const monthIndex = month.getMonth(); const days = new Date(year, monthIndex + 1, 0).getDate(); const first = new Date(year, monthIndex, 1).getDay(); return <Panel title="Teaching calendar" description="Your weekday teaching days for the current month." action={<div className="flex items-center gap-2"><button onClick={() => setMonth(new Date(year, monthIndex - 1, 1))}>‹</button><b className="text-sm">{month.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</b><button onClick={() => setMonth(new Date(year, monthIndex + 1, 1))}>›</button></div>}><div className="grid grid-cols-7 gap-1 text-center text-xs"><b>Sun</b><b>Mon</b><b>Tue</b><b>Wed</b><b>Thu</b><b>Fri</b><b>Sat</b>{Array.from({ length: first }).map((_, index) => <span key={`empty-${index}`} />)}{Array.from({ length: days }, (_, index) => { const date = index + 1; const weekday = new Date(year, monthIndex, date).getDay(); const teaching = weekday > 0 && weekday < 6; return <div key={date} className={`min-h-16 rounded-lg border p-2 text-left ${teaching ? 'border-[#B9DCEC] bg-[#E8F3FB] dark:bg-[#182943]' : 'border-transparent'}`}><b>{date}</b>{teaching && <span className="mt-2 block truncate text-[9px] font-bold text-[#0F3D6E]">{units.slice(0, 2).map((unit) => unit.code).join(' · ') || 'Teaching day'}</span>}</div>; })}</div></Panel>; }
+function Chart({ units, onSelect }) { return <div className="flex h-72 items-end gap-3 border-b border-[#E3E9F2] px-4">{units.map((unit) => <button key={unit.id} onClick={() => onSelect(unit)} className="flex h-full flex-1 items-end justify-center gap-1" title={`${unit.code} completion`}><span className="w-5 rounded-t bg-[#6DB6E6]" style={{ height: `${Math.max(5, unit.completion_percentage || 0)}%` }} /><span className="w-5 rounded-t bg-[#D5E3D6]" style={{ height: `${Math.max(5, 100 - (unit.completion_percentage || 0))}%` }} /></button>)}</div>; }
+function Detail({ detail, close, openSubmission, gradeForm, setGradeForm, grade }) { return <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-5"><div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 dark:bg-[#121A2D]"><div className="mb-5 flex justify-between"><h2 className="text-lg font-bold">{detail.title || detail.project_title}</h2><button onClick={close}><X size={20} /></button></div>{detail.submissions ? detail.submissions.map((submission) => <button key={submission.id} onClick={() => openSubmission(submission)} className="mb-2 w-full rounded-xl bg-[#EEF3FA] p-4 text-left dark:bg-[#0B1120]"><b>{submission.project_title}</b><p className="text-sm text-[#6B7A90]">{submission.submitted_by || submission.submitted_by_name}</p></button>) : detail.group ? <><Metric label="Progress" value={`${detail.group.project_progress ?? detail.groupData?.project_progress ?? 0}%`} /><h3 className="mt-5 font-bold">Activity and tasks</h3>{(detail.group.tasks || detail.groupData?.tasks || []).map((task) => <div key={task.id} className="mt-2 rounded-xl bg-[#EEF3FA] p-3 dark:bg-[#0B1120]"><p className="font-bold">{task.title}</p><p className="text-xs text-[#6B7A90]">{task.status} · {task.progress_percentage}%</p></div>)}</> : detail.id ? <form onSubmit={grade} className="space-y-4"><p className="text-sm text-[#6B7A90]">Student: {detail.submitted_by || detail.submitted_by_name}</p><label className="block text-sm font-bold">Grade (%)<Field className="mt-1 w-full" type="number" min="0" max="100" value={gradeForm.grade} onChange={(event) => setGradeForm({ ...gradeForm, grade: event.target.value })} /></label><textarea className="min-h-28 w-full rounded-xl border p-3 text-sm" placeholder="Feedback" value={gradeForm.feedback} onChange={(event) => setGradeForm({ ...gradeForm, feedback: event.target.value })} /><button className="w-full rounded-xl bg-[#0F3D6E] py-3 font-bold text-white">Save grade</button></form> : detail.items?.map((item) => <div key={item.label} className="mb-2 flex justify-between rounded-xl bg-[#EEF3FA] p-4 dark:bg-[#0B1120]"><span>{item.label}</span><b>{item.value}</b></div>)}</div></div>; }
+function Metric({ label, value }) { return <div className="rounded-xl bg-[#EEF3FA] p-4 dark:bg-[#0B1120]"><b className="text-2xl text-[#0F3D6E]">{value}</b><p className="text-xs text-[#6B7A90]">{label}</p></div>; }
+function Notice({ text, clear, tone }) { return <div className={`rounded-xl px-4 py-3 text-sm ${tone === 'error' ? 'bg-[#FFF1F1] text-[#B42318]' : 'bg-[#F0FFF4] text-[#22764F]'}`}>{text}<button onClick={clear} className="float-right font-bold">×</button></div>; }
+function SearchIcon() { return <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A97AF]" size={17} />; }
