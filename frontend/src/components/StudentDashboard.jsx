@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from '../api';
-import { Table } from 'antd';
+import { Button, Calendar, Table } from 'antd';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import {
   ArrowUpRight,
   Bell,
   BookOpen,
-  CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   CircleHelp,
   Copy,
@@ -77,41 +76,6 @@ function formatISODateOnly(d) {
   return `${year}-${month}-${day}`;
 }
 
-function monthGridMondayFirst(monthDate) {
-  const monthCursor = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-  const firstDayOfMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
-  const monthIndex = firstDayOfMonth.getMonth();
-
-  const weekOffset = firstDayOfMonth.getDay();
-
-  const daysInMonth = new Date(firstDayOfMonth.getFullYear(), monthIndex + 1, 0).getDate();
-
-  const totalCells = 42;
-  const cells = Array.from({ length: totalCells }, (_, idx) => {
-    const dayNumber = idx - weekOffset + 1;
-    const inThisMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
-
-    const date = inThisMonth ? new Date(firstDayOfMonth.getFullYear(), monthIndex, dayNumber) : null;
-    return {
-      idx,
-      dayNumber: inThisMonth ? dayNumber : null,
-      date,
-      inThisMonth,
-      dateOnlyKey: inThisMonth && date ? formatISODateOnly(date) : null
-    };
-  });
-
-  const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-  return {
-    firstDayOfMonth,
-    daysInMonth,
-    cells,
-    weekdays,
-    monthYearLabel: firstDayOfMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' })
-  };
-}
-
 const StudentDashboard = () => {
   const [user, setUser] = useState(() => {
     try {
@@ -124,9 +88,6 @@ const StudentDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [units, setUnits] = useState([]);
   const [academic, setAcademic] = useState(null);
-  const [workloadSummary, setWorkloadSummary] = useState([]);
-  const [workloadLoading, setWorkloadLoading] = useState(true);
-  const [workloadError, setWorkloadError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const [showModal, setShowModal] = useState(false);
@@ -306,15 +267,6 @@ const StudentDashboard = () => {
         const dashRes = await axios.get(API.studentDashboard, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        axios.get('/api/accounts/student/workload-summary/', {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((response) => {
-          setWorkloadSummary(safeArray(response.data));
-        }).catch(() => {
-          setWorkloadSummary([]);
-          setWorkloadError('Unable to load workload information.');
-        }).finally(() => setWorkloadLoading(false));
-
         const dash = dashRes?.data ?? {};
         const dashboardUser = dash?.user || {};
         const fetchedUser = {
@@ -520,13 +472,9 @@ const StudentDashboard = () => {
   }, [tasks, completedWorkCount]);
 
   const [calendarMonth, setCalendarMonth] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
+    return new Date();
   });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
-
-  const calendar = useMemo(() => monthGridMondayFirst(calendarMonth), [calendarMonth]);
-  const todayKey = formatISODateOnly(now);
 
   const deadlineByDay = useMemo(() => {
     const map = new Map();
@@ -559,14 +507,6 @@ const StudentDashboard = () => {
       })
       .sort((left, right) => new Date(left.due_date) - new Date(right.due_date));
   }, [tasks, now]);
-
-  const handlePrevMonth = () => {
-    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  };
 
   const openCreateModal = (courseCode = '', unit = null) => {
     if (typeof courseCode === 'string' && courseCode) {
@@ -1651,53 +1591,6 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
-              <section className="rounded-lg border border-[#D7DEE6] bg-white p-5" aria-labelledby="workload-heading">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 id="workload-heading" className="text-sm font-semibold text-[#35475C]">Your workload</h3>
-                    <p className="mt-1 text-xs text-[#718094]">Your task share across each group.</p>
-                  </div>
-                  <button
-                    type="button"
-                    title="Each task has a weight from 1 to 5. Your share is your points divided by the group’s total points."
-                    aria-label="How is workload calculated? Each task has a weight from 1 to 5. Your share is your points divided by the group’s total points."
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#718094] hover:bg-[#EEF1F4]"
-                  >
-                    <CircleHelp size={17} aria-hidden="true" />
-                  </button>
-                </div>
-                {workloadLoading ? (
-                  <p role="status" className="py-5 text-center text-sm text-[#596579]">Loading workload…</p>
-                ) : workloadError ? (
-                  <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-red-50 px-4 py-4 text-sm text-red-800"><span>{workloadError}</span><button type="button" onClick={() => window.location.reload()} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold">Retry</button></div>
-                ) : workloadSummary.length ? (
-                  <div className="space-y-5">
-                    {workloadSummary.map((item) => {
-                      const level = item.warning_level || 'ok';
-                      const fill = level === 'too_early' ? '#9CA3AF' : level === 'critical' ? '#C64F5D' : level === 'warning' ? '#D69A32' : '#4A6079';
-                      return (
-                        <div key={item.group_id}>
-                          <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
-                            <span className="text-xs font-semibold text-[#354B63]">{item.group_name}</span>
-                            <span className="text-[10px] text-[#718094]">
-                              {pluralize(item.points, 'point')} · {Number(item.share_percent).toFixed(1)}% of {Number(item.fair_share).toFixed(1)}% fair share · {pluralize(item.tasks_due_next_7_days, 'task')} due in 7 days
-                            </span>
-                          </div>
-                          <div className="relative h-2.5 rounded-full bg-[#E4E9EF]" title="Each task has a weight from 1 to 5. Your share is your points divided by the group’s total points." aria-label={`${item.group_name}: ${Number(item.share_percent).toFixed(1)} percent of work; fair share ${Number(item.fair_share).toFixed(1)} percent`}>
-                            <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, Number(item.share_percent || 0))}%`, backgroundColor: fill }} />
-                            <span className="absolute -top-1 h-4 w-0.5 bg-[#35475C]" style={{ left: `${Math.min(100, Number(item.fair_share || 0))}%` }} aria-hidden="true" />
-                          </div>
-                          {level === 'too_early' && <p className="mt-1 text-[10px] font-medium text-stone-500">Too early to judge (under 6 points)</p>}
-                          {item.suggestion && <p className="mt-1.5 text-[10px] text-[#718094]">{item.suggestion}</p>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="rounded-md bg-[#F3F5F7] px-4 py-5 text-center text-xs text-[#718094]">No group workload to show yet. Tasks assigned to you will appear here.</p>
-                )}
-              </section>
-
               {/* ROW 2: ADVANCED SIDE-BY-SIDE WIDGET PLACEMENTS LAYOUT */}
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(230px,0.82fr)_minmax(0,1.8fr)] gap-5">
                 
@@ -1705,54 +1598,50 @@ const StudentDashboard = () => {
                 <div className="space-y-4">
                   
                   {/* STUDIO TEXTURED CARD COMPACT CALENDAR */}
-                  <div className="bg-white p-5 rounded-lg border border-[#D7DEE6]">
-                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#D7DEE6]">
-                      <div className="flex items-center gap-2">
-                        <CalendarDays size={16} className="text-[#4A6079]" aria-hidden="true" />
-                        <h3 className="text-sm font-semibold text-[#29384A]">{calendar.monthYearLabel}</h3>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button aria-label="Previous month" onClick={handlePrevMonth} className="w-7 h-7 bg-white border border-[#D7DEE6] rounded-md flex items-center justify-center hover:bg-[#E2E8F0] text-[#435B76]"><ChevronLeft size={15} /></button>
-                        <button aria-label="Next month" onClick={handleNextMonth} className="w-7 h-7 bg-white border border-[#D7DEE6] rounded-md flex items-center justify-center hover:bg-[#E2E8F0] text-[#435B76]"><ChevronRight size={15} /></button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1 text-center mb-1">
-                      {calendar.weekdays.map(d => <div key={d} className="text-[10px] font-semibold text-[#718094] uppercase">{d}</div>)}
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1">
-                      {calendar.cells.map((cell, i) => {
-                        const dayTasks = cell.dateOnlyKey ? deadlineByDay.get(cell.dateOnlyKey) || [] : [];
-                        const hasOverdue = dayTasks.some((task) => task.is_overdue);
-                        const isToday = cell.dateOnlyKey === todayKey;
-                        const dayLabel = dayTasks.length
-                          ? `${cell.dayNumber}, ${dayTasks.length} task${dayTasks.length === 1 ? '' : 's'} due${hasOverdue ? ', includes overdue task' : ''}`
-                          : isToday ? `${cell.dayNumber}, today` : String(cell.dayNumber || '');
-                        return (
-                          <button
-                            type="button"
-                            key={i}
-                            disabled={!cell.inThisMonth || !dayTasks.length}
-                            onClick={() => dayTasks.length && setSelectedCalendarDay(cell.dateOnlyKey)}
-                            title={dayTasks.length ? `${dayTasks.length} task${dayTasks.length === 1 ? '' : 's'} due on this day` : undefined}
-                            aria-label={cell.inThisMonth ? dayLabel : undefined}
-                            className={`h-8 flex items-center justify-center relative text-xs font-semibold rounded-md transition-colors ${
-                              !cell.inThisMonth
-                                ? 'text-[#CBD5E1]'
-                                : hasOverdue
-                                  ? 'bg-[#F9E8E5] text-[#A54136]'
-                                  : dayTasks.length
-                                    ? 'bg-[#FFF2D6] text-[#80550A]'
-                                    : 'text-[#354B63] hover:bg-[#EEF1F4]'
-                            } ${isToday ? 'ring-2 ring-inset ring-[#4A6079]' : ''} ${selectedCalendarDay === cell.dateOnlyKey ? 'ring-2 ring-[#35475C]' : ''}`}
-                          >
-                            <span>{cell.dayNumber}</span>
-                            {dayTasks.length > 0 && <span className={`absolute bottom-1 w-1 h-1 rounded-full ${hasOverdue ? 'bg-[#A54136]' : 'bg-[#B77A10]'}`} />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <div className="student-dashboard-calendar rounded-lg border border-[#DDE7E2] bg-white p-5">
+                    <Calendar
+                      fullscreen={false}
+                      value={dayjs(calendarMonth)}
+                      onPanelChange={(date) => setCalendarMonth(date.toDate())}
+                      headerRender={({ value, onChange }) => (
+                        <div className="flex items-center justify-between px-2 pb-3">
+                          <span className="font-medium">{value.format('MMMM YYYY')}</span>
+                          <div className="flex gap-1">
+                            <Button
+                              onClick={() => {
+                                const today = dayjs();
+                                onChange(today);
+                                setCalendarMonth(today.toDate());
+                                setSelectedCalendarDay(null);
+                              }}
+                              size="small"
+                              type="link"
+                            >
+                              Today
+                            </Button>
+                            <Button
+                              aria-label="Previous month"
+                              icon={<LeftOutlined />}
+                              onClick={() => onChange(value.subtract(1, 'month'))}
+                              size="small"
+                              type="text"
+                            />
+                            <Button
+                              aria-label="Next month"
+                              icon={<RightOutlined />}
+                              onClick={() => onChange(value.add(1, 'month'))}
+                              size="small"
+                              type="text"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      onSelect={(date) => {
+                        const dateKey = date.format('YYYY-MM-DD');
+                        setCalendarMonth(date.toDate());
+                        setSelectedCalendarDay(deadlineByDay.has(dateKey) ? dateKey : null);
+                      }}
+                    />
                     {selectedCalendarDay && (
                       <div className="mt-4 border-t border-[#D7DEE6] pt-3">
                         <div className="mb-2 flex items-center justify-between gap-2">

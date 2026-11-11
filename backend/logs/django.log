@@ -709,6 +709,7 @@ INFO 2026-11-11 09:03:44,567 views 204213 131477905864256 Dashboard data returne
 INFO 2026-11-11 09:03:44,568 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.04, 127.0.0.1:55444][0m
 INFO 2026-11-11 09:03:44,575 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.06, 127.0.0.1:55442][0m
 INFO 2026-11-11 09:03:44,655 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.02, 127.0.0.1:55460][0m
+<<<<<<< Updated upstream
 INFO 2026-11-11 12:29:46,458 autoreload 25668 31680 Watching for file changes with StatReloader
 INFO 2026-11-11 12:29:46,852 server 25668 14412 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
 INFO 2026-11-11 12:29:46,853 server 25668 14412 Configuring endpoint tcp:port=8000:interface=127.0.0.1
@@ -739,3 +740,88 @@ INFO 2026-11-11 12:34:39,809 views 25668 30480 Dashboard data returned for user 
 INFO 2026-11-11 12:34:39,819 runserver 25668 14412 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.05, 127.0.0.1:56803][0m
 INFO 2026-11-11 12:34:39,820 runserver 25668 14412 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.05, 127.0.0.1:56804][0m
 INFO 2026-11-11 12:34:39,865 runserver 25668 14412 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.04, 127.0.0.1:56805][0m
+=======
+WARNING 2026-11-11 09:08:15,410 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:08:15,411 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:37474][0m
+INFO 2026-11-11 09:08:45,013 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.12, 127.0.0.1:36576][0m
+INFO 2026-11-11 09:08:45,111 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.09, 127.0.0.1:36580][0m
+INFO 2026-11-11 09:08:52,341 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.11, 127.0.0.1:47168][0m
+INFO 2026-11-11 09:09:08,754 runserver 204213 131477928515136 [mHTTP POST /api/login/ 200 [1.44, 127.0.0.1:55496][0m
+INFO 2026-11-11 09:09:09,899 views 204213 131477672031808 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:09:09,914 views 204213 131477672031808 Dashboard data returned for user 1
+INFO 2026-11-11 09:09:09,918 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.04, 127.0.0.1:39734][0m
+INFO 2026-11-11 09:09:09,940 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:09:09,958 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:09:09,961 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.03, 127.0.0.1:39748][0m
+INFO 2026-11-11 09:09:09,966 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.04, 127.0.0.1:39740][0m
+INFO 2026-11-11 09:09:10,051 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.02, 127.0.0.1:39760][0m
+WARNING 2026-11-11 09:13:15,371 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:13:15,372 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:49878][0m
+WARNING 2026-11-11 09:18:15,368 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:18:15,368 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.01, 127.0.0.1:36814][0m
+WARNING 2026-11-11 09:23:15,438 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:23:15,439 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:42260][0m
+WARNING 2026-11-11 09:28:15,438 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:28:15,439 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:52050][0m
+INFO 2026-11-11 09:30:57,259 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.10, 127.0.0.1:52800][0m
+INFO 2026-11-11 09:30:57,361 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.09, 127.0.0.1:52808][0m
+WARNING 2026-11-11 09:33:15,390 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:33:15,391 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:60388][0m
+INFO 2026-11-11 09:35:03,708 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.10, 127.0.0.1:33602][0m
+INFO 2026-11-11 09:35:03,810 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.09, 127.0.0.1:33606][0m
+INFO 2026-11-11 09:35:11,040 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.10, 127.0.0.1:38960][0m
+INFO 2026-11-11 09:35:11,183 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.14, 127.0.0.1:38976][0m
+WARNING 2026-11-11 09:37:01,343 log 204213 131477888030272 Bad Request: /api/login/
+WARNING 2026-11-11 09:37:01,344 runserver 204213 131477928515136 [31;1mHTTP POST /api/login/ 400 [0.70, 127.0.0.1:33912][0m
+WARNING 2026-11-11 09:37:11,472 log 204213 131477888030272 Bad Request: /api/login/
+WARNING 2026-11-11 09:37:11,473 runserver 204213 131477928515136 [31;1mHTTP POST /api/login/ 400 [0.71, 127.0.0.1:51958][0m
+INFO 2026-11-11 09:37:15,241 runserver 204213 131477928515136 [mHTTP POST /api/login/ 200 [1.38, 127.0.0.1:51960][0m
+INFO 2026-11-11 09:37:16,486 views 204213 131477896422976 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:37:16,501 views 204213 131477896422976 Dashboard data returned for user 1
+INFO 2026-11-11 09:37:16,509 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.04, 127.0.0.1:51966][0m
+INFO 2026-11-11 09:37:16,530 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:37:16,550 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:37:16,562 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.05, 127.0.0.1:51972][0m
+INFO 2026-11-11 09:37:16,573 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.03, 127.0.0.1:51976][0m
+INFO 2026-11-11 09:37:16,656 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.01, 127.0.0.1:51980][0m
+WARNING 2026-11-11 09:38:15,373 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:38:15,376 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:39226][0m
+INFO 2026-11-11 09:42:51,123 views 204213 131477672031808 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:42:51,216 views 204213 131477672031808 Dashboard data returned for user 1
+INFO 2026-11-11 09:42:51,260 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.17, 127.0.0.1:52244][0m
+INFO 2026-11-11 09:42:53,572 views 204213 131477896422976 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:42:53,586 views 204213 131477896422976 Dashboard data returned for user 1
+INFO 2026-11-11 09:42:53,590 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.03, 127.0.0.1:52256][0m
+INFO 2026-11-11 09:42:53,617 views 204213 131477896422976 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:42:53,640 views 204213 131477896422976 Dashboard data returned for user 1
+INFO 2026-11-11 09:42:53,645 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.04, 127.0.0.1:52272][0m
+INFO 2026-11-11 09:42:53,649 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.05, 127.0.0.1:52260][0m
+INFO 2026-11-11 09:42:53,687 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.02, 127.0.0.1:52280][0m
+INFO 2026-11-11 09:42:58,054 views 204213 131477656299072 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:42:58,070 views 204213 131477656299072 Dashboard data returned for user 1
+INFO 2026-11-11 09:42:58,075 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.04, 127.0.0.1:52296][0m
+INFO 2026-11-11 09:42:58,109 views 204213 131477656299072 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:42:58,117 views 204213 131477656299072 Dashboard data returned for user 1
+INFO 2026-11-11 09:42:58,121 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.04, 127.0.0.1:52306][0m
+INFO 2026-11-11 09:43:08,604 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:43:08,624 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:43:08,627 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.04, 127.0.0.1:60042][0m
+INFO 2026-11-11 09:43:08,660 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:43:08,680 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:43:08,690 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.05, 127.0.0.1:60056][0m
+WARNING 2026-11-11 09:43:15,469 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:43:15,469 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.03, 127.0.0.1:60062][0m
+INFO 2026-11-11 09:43:39,576 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:43:39,589 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:43:39,593 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.03, 127.0.0.1:38096][0m
+INFO 2026-11-11 09:43:39,622 views 204213 131477656299072 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:43:39,641 views 204213 131477656299072 Dashboard data returned for user 1
+INFO 2026-11-11 09:43:39,648 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.05, 127.0.0.1:38112][0m
+WARNING 2026-11-11 09:48:15,447 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:48:15,449 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.03, 127.0.0.1:40918][0m
+INFO 2026-11-11 09:49:07,595 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:49:07,609 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:49:07,613 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.03, 127.0.0.1:50550][0m
+WARNING 2026-11-11 09:53:15,396 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:53:15,397 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:58460][0m
+>>>>>>> Stashed changes
