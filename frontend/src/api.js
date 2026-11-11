@@ -3,6 +3,14 @@ import axios from 'axios';
 const api = axios.create();
 let refreshRequest = null;
 
+export async function getAcademicCourses() {
+  const { data } = await api.get('/api/accounts/academic/courses/');
+  if (!Array.isArray(data?.courses)) {
+    throw new Error('The courses response was invalid.');
+  }
+  return data.courses;
+}
+
 async function refreshAccessToken() {
   const refresh = localStorage.getItem('refresh_token');
   if (!refresh) throw new Error('No refresh token is available.');

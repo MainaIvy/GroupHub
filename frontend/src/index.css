@@ -31,3 +31,32 @@ select,
 textarea {
   font: inherit;
 }
+
+.signup-form input:not([type='checkbox']),
+.signup-form select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  background-color: #f8fafc;
+  padding: 0.5rem 1rem;
+  color: #0f172a;
+  font-size: 0.875rem;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.signup-form input:not([type='checkbox'])::placeholder {
+  color: #94a3b8;
+}
+
+.signup-form input:not([type='checkbox']):focus,
+.signup-form select:focus {
+  border-color: #8b5cf6;
+  background-color: #fff;
+  outline: none;
+  box-shadow: 0 0 0 4px rgb(139 92 246 / 12%);
+}
+
+.signup-form select {
+  appearance: auto;
+}

@@ -193,23 +193,33 @@ def signup_view(request):
         matching_units = Unit.objects.none()
         lecturer_units = Unit.objects.none()
         if user_type == 'student':
+            academic_level = str(data.get('academic_level') or '').strip()
             try:
                 course = Course.objects.get(pk=int(data.get('course_id')))
                 year = int(data.get('yearOfStudy'))
-                semester_number = int(data.get('semester'))
             except (Course.DoesNotExist, TypeError, ValueError):
-                return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
+                return JsonResponse({'error': 'Select a valid programme, academic level, and year.'}, status=400)
 
-            if year < 1 or semester_number < 1:
-                return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
+            if year < 1:
+                return JsonResponse({'error': 'Select a valid programme, academic level, and year.'}, status=400)
 
-            matching_units = Unit.objects.filter(
-                course=course,
-                year_of_study=year,
-                semester=semester_number,
-            )
+            matching_units = Unit.objects.filter(course=course, year_of_study=year)
+            if academic_level:
+                matching_units = matching_units.filter(academic_level=academic_level).order_by('semester', 'code')
+                semester_number = matching_units.values_list('semester', flat=True).first()
+                if semester_number is not None:
+                    matching_units = matching_units.filter(semester=semester_number)
+            else:
+                try:
+                    semester_number = int(data.get('semester'))
+                except (TypeError, ValueError):
+                    return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
+                if semester_number < 1:
+                    return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
+                matching_units = matching_units.filter(semester=semester_number)
+
             if not matching_units.exists():
-                return JsonResponse({'error': 'No units are available for the selected programme, year, and semester.'}, status=400)
+                return JsonResponse({'error': 'No units are available for the selected programme, academic level, and year.'}, status=400)
 
         else:
             if not str(data.get('staffId') or '').strip():
@@ -247,6 +257,7 @@ def signup_view(request):
 
             if user_type == 'student':
                 user.course = course.name
+                user.academic_level = academic_level
                 user.year_of_study = str(year)
                 user.enrolled_course = course
                 user.semester = semester_number

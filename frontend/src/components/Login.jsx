@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
+import { X } from 'lucide-react';
 import logo from '../assets/images/groubhub logo.svg';
 
 const GoogleGIcon = ({ className = '' }) => (
@@ -19,7 +20,12 @@ const GoogleSignInButton = ({ onSuccess, onError, isLoading }) => {
   });
 
   return (
-    <button type="button" onClick={() => handleGoogleLogin()} disabled={isLoading}>
+    <button
+      type="button"
+      onClick={() => handleGoogleLogin()}
+      disabled={isLoading}
+      className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-70"
+    >
       <GoogleGIcon className="h-5 w-5" />
       <span>{isLoading ? 'Signing in...' : 'Continue with Google'}</span>
     </button>
@@ -76,6 +82,14 @@ const Login = ({ googleEnabled = false }) => {
 
   useEffect(() => {
     if (usernameRef.current) usernameRef.current.focus();
+  }, []);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, []);
 
   const handleChange = (e) => {
@@ -168,28 +182,40 @@ const Login = ({ googleEnabled = false }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#26303B] text-[#EBEBDD] flex items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-[440px] rounded-[30px] border border-white/10 bg-[#0F172A] px-6 py-5 shadow-[0_30px_60px_rgba(15,23,42,0.45)] backdrop-blur-sm">
-        <div className="mb-6 flex justify-center">
-          <img src={logo} alt="GroupHub" className="h-12 w-auto opacity-95" />
-        </div>
-
-        <div className="mb-6 border-b border-[#EBEBDD]/20 pb-3">
-          <button
-            type="button"
-            className="mx-auto block w-full text-center text-2xl font-semibold text-[#EBEBDD]"
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-slate-950/45 p-3 text-slate-900 backdrop-blur-sm sm:p-6">
+      <main
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="login-title"
+        className="relative my-auto w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.3)] sm:p-8"
+      >
+        <header className="mb-5 flex items-center justify-between">
+          <img src={logo} alt="GroupHub" className="h-8 w-auto" />
+          <Link
+            to="/"
+            aria-label="Close sign in"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
           >
-            Login
-          </button>
+            <X className="h-5 w-5" />
+          </Link>
+        </header>
+
+        <div className="mb-6 text-center">
+          <h1 id="login-title" className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+            Welcome back
+          </h1>
+          <p className="mt-1 text-sm leading-5 text-slate-500">
+            Sign in to continue to your GroupHub workspace.
+          </p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="username" className="mb-2 block text-lg font-medium text-[#EBEBDD]">
+            <label htmlFor="username" className="mb-2 block text-sm font-semibold text-slate-700">
               Admission number / Staff ID
             </label>
-            <div className="flex items-center gap-3 rounded-2xl border border-[#EBEBDD]/25 bg-[#EBEBDD]/5 px-4 py-3 focus-within:border-[#9A694E] transition-colors">
-              <svg className="h-5 w-5 text-[#EBEBDD]/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-violet-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-violet-500/10">
+              <svg className="h-5 w-5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Z" />
                 <path d="m5 7 7 6 7-6" />
               </svg>
@@ -200,7 +226,7 @@ const Login = ({ googleEnabled = false }) => {
                 type="text"
                 autoComplete="username"
                 required
-                className="w-full bg-transparent text-base text-[#EBEBDD] placeholder-[#EBEBDD]/50 focus:outline-none"
+                className="w-full bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
                 placeholder="e.g. ZEC/001/2024 or CS2345"
                 value={formData.username}
                 onChange={handleChange}
@@ -209,11 +235,11 @@ const Login = ({ googleEnabled = false }) => {
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-2 block text-lg font-medium text-[#EBEBDD]">
+            <label htmlFor="password" className="mb-2 block text-sm font-semibold text-slate-700">
               Password
             </label>
-            <div className="flex items-center gap-3 rounded-2xl border border-[#EBEBDD]/25 bg-[#EBEBDD]/5 px-4 py-3 focus-within:border-[#9A694E] transition-colors">
-              <svg className="h-5 w-5 text-[#EBEBDD]/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-violet-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-violet-500/10">
+              <svg className="h-5 w-5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <rect x="5" y="10" width="14" height="10" rx="2" />
                 <path d="M8 10V7.5A4 4 0 0 1 16 7.5V10" />
               </svg>
@@ -223,14 +249,14 @@ const Login = ({ googleEnabled = false }) => {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 required
-                className="w-full bg-transparent text-base text-[#EBEBDD] placeholder-[#EBEBDD]/50 focus:outline-none"
+                className="w-full bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
               />
               <button
                 type="button"
-                className="text-[#EBEBDD]/70 hover:text-[#EBEBDD]"
+                className="text-slate-400 transition hover:text-violet-700"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label="Toggle password visibility"
               >
@@ -252,19 +278,19 @@ const Login = ({ googleEnabled = false }) => {
           </div>
 
           <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-sm text-[#EBEBDD]/80 hover:text-[#EBEBDD] transition-colors">
+            <Link to="/forgot-password" className="text-sm font-medium text-violet-700 transition-colors hover:text-violet-900">
               Forgot password?
             </Link>
           </div>
 
           {(validationError || error) && (
-            <p className="rounded-xl border border-red-500/40 bg-red-900/20 px-3 py-2 text-xs text-white">
+            <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
               {validationError || error}
             </p>
           )}
 
           {successMessage && (
-            <p className="rounded-xl border border-emerald-500/40 bg-emerald-900/20 px-3 py-2 text-xs text-emerald-100">
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
               {successMessage}
             </p>
           )}
@@ -272,42 +298,52 @@ const Login = ({ googleEnabled = false }) => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full rounded-full bg-[#1F4E79] px-4 py-4 text-lg font-semibold text-white transition-colors hover:bg-[#173d5d] disabled:opacity-70"
+            className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700 disabled:opacity-70"
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
 
           <div className="relative py-1">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#EBEBDD]/20" />
+              <div className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-[#2C3D3A] px-3 text-xs uppercase tracking-[0.2em] text-[#EBEBDD]/60">
+              <span className="bg-white px-3 text-xs uppercase tracking-[0.2em] text-slate-400">
                 or continue with
               </span>
             </div>
           </div>
 
-          {googleEnabled && (
+          {googleEnabled ? (
             <GoogleSignInButton
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
               isLoading={googleLoading}
             />
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Google sign-in is not configured"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500 opacity-70"
+            >
+              <GoogleGIcon className="h-5 w-5" />
+              <span>Continue with Google</span>
+            </button>
           )}
 
           {googleError && (
-            <p className="text-center text-xs text-white">{googleError}</p>
+            <p className="text-center text-xs text-red-600">{googleError}</p>
           )}
 
-          <p className="pt-1 text-center text-base text-[#EBEBDD]/80">
+          <p className="pt-1 text-center text-sm text-slate-500">
             Don&apos;t have an account?{' '}
-            <Link to="/signup" className="font-semibold text-[#1F4E79] hover:text-[#173d5d]">
+            <Link to="/signup" className="font-semibold text-violet-700 hover:text-violet-900">
               Sign up
             </Link>
           </p>
         </form>
-      </div>
+      </main>
     </div>
   );
 };

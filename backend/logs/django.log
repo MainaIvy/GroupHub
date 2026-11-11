@@ -628,3 +628,84 @@ WARNING 2026-11-05 14:00:01,570 log 1864880 136840176723520 Unauthorized: /api/a
 WARNING 2026-11-05 14:00:01,574 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/student/ 401 [0.04, 127.0.0.1:39948][0m
 WARNING 2026-11-05 14:00:01,638 log 1864880 136840176723520 Unauthorized: /api/accounts/dashboard/student/
 WARNING 2026-11-05 14:00:01,643 runserver 1864880 136840314824256 [31;1mHTTP GET /api/accounts/dashboard/student/ 401 [0.04, 127.0.0.1:39954][0m
+INFO 2026-11-11 08:27:32,638 autoreload 190578 134591936147456 Watching for file changes with StatReloader
+INFO 2026-11-11 08:27:32,854 server 190578 134591872079424 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 08:27:32,854 server 190578 134591872079424 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+CRITICAL 2026-11-11 08:27:32,855 server 190578 134591872079424 Listen failure: Couldn't listen on 127.0.0.1:8000: [Errno 98] Address already in use.
+INFO 2026-11-11 08:27:49,317 autoreload 190693 131768850096128 Watching for file changes with StatReloader
+INFO 2026-11-11 08:27:49,535 server 190693 131768785671744 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 08:27:49,536 server 190693 131768785671744 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+CRITICAL 2026-11-11 08:27:49,537 server 190693 131768785671744 Listen failure: Couldn't listen on 127.0.0.1:8000: [Errno 98] Address already in use.
+INFO 2026-11-11 08:39:43,012 autoreload 190693 131768850096128 /home/nelsonel/Desktop/ivy/GroupHub/backend/accounts/models.py changed, reloading.
+INFO 2026-11-11 08:39:44,302 autoreload 196826 132293022355456 Watching for file changes with StatReloader
+INFO 2026-11-11 08:39:44,653 server 196826 132292958328384 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 08:39:44,654 server 196826 132292958328384 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+CRITICAL 2026-11-11 08:39:44,655 server 196826 132292958328384 Listen failure: Couldn't listen on 127.0.0.1:8000: [Errno 98] Address already in use.
+INFO 2026-11-11 08:39:46,069 autoreload 196826 132293022355456 /home/nelsonel/Desktop/ivy/GroupHub/backend/accounts/views.py changed, reloading.
+INFO 2026-11-11 08:39:47,300 autoreload 196913 138718398455808 Watching for file changes with StatReloader
+INFO 2026-11-11 08:39:47,545 server 196913 138718334260800 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 08:39:47,545 server 196913 138718334260800 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+CRITICAL 2026-11-11 08:39:47,546 server 196913 138718334260800 Listen failure: Couldn't listen on 127.0.0.1:8000: [Errno 98] Address already in use.
+INFO 2026-11-11 08:40:11,081 autoreload 197124 127987251298304 Watching for file changes with StatReloader
+INFO 2026-11-11 08:40:11,282 server 197124 127987187439168 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 08:40:11,282 server 197124 127987187439168 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+CRITICAL 2026-11-11 08:40:11,284 server 197124 127987187439168 Listen failure: Couldn't listen on 127.0.0.1:8000: [Errno 98] Address already in use.
+INFO 2026-11-11 08:41:21,878 autoreload 197947 126974898110464 Watching for file changes with StatReloader
+INFO 2026-11-11 08:41:22,082 server 197947 126974833563200 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 08:41:22,083 server 197947 126974833563200 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+CRITICAL 2026-11-11 08:41:22,084 server 197947 126974833563200 Listen failure: Couldn't listen on 127.0.0.1:8000: [Errno 98] Address already in use.
+INFO 2026-11-11 08:46:05,747 views 200891 139728255041536 Dashboard request for user 1: legacy-dashboard@zetech.ac.ke, type: student
+INFO 2026-11-11 08:46:05,755 views 200891 139728255041536 Dashboard data returned for user 1
+INFO 2026-11-11 08:46:06,653 views 200891 139728255041536 Dashboard request for user 1: cohort-dashboard@zetech.ac.ke, type: student
+INFO 2026-11-11 08:46:06,662 views 200891 139728255041536 Dashboard data returned for user 1
+INFO 2026-11-11 08:46:07,602 views 200891 139728255041536 User 1 created successfully. Automated development bypass activation.
+WARNING 2026-11-11 08:46:11,140 views 200891 139728255041536 Signup attempt with invalid email: sample@example.com from 127.0.0.1
+WARNING 2026-11-11 08:46:11,143 log 200891 139728255041536 Bad Request: /api/accounts/signup/
+WARNING 2026-11-11 08:46:11,148 log 200891 139728255041536 Bad Request: /api/accounts/signup/
+WARNING 2026-11-11 08:46:11,155 log 200891 139728255041536 Bad Request: /api/signup/
+INFO 2026-11-11 08:52:00,429 autoreload 204213 131477992689664 Watching for file changes with StatReloader
+INFO 2026-11-11 08:52:00,641 server 204213 131477928515136 HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+INFO 2026-11-11 08:52:00,642 server 204213 131477928515136 Configuring endpoint tcp:port=8000:interface=127.0.0.1
+INFO 2026-11-11 08:52:00,642 server 204213 131477928515136 Listening on TCP address 127.0.0.1:8000
+INFO 2026-11-11 08:52:07,324 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.07, 127.0.0.1:56116][0m
+INFO 2026-11-11 08:52:07,396 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.05, 127.0.0.1:56120][0m
+INFO 2026-11-11 08:52:35,235 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.07, 127.0.0.1:51086][0m
+INFO 2026-11-11 08:52:35,265 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.09, 127.0.0.1:51100][0m
+WARNING 2026-11-11 08:53:15,449 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 08:53:15,451 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.05, 127.0.0.1:43462][0m
+INFO 2026-11-11 08:53:48,034 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:53644][0m
+INFO 2026-11-11 08:54:11,165 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.05, 127.0.0.1:41148][0m
+INFO 2026-11-11 08:54:33,866 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:44278][0m
+INFO 2026-11-11 08:55:11,098 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:39880][0m
+INFO 2026-11-11 08:55:11,136 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:39894][0m
+INFO 2026-11-11 08:55:40,899 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:45104][0m
+INFO 2026-11-11 08:56:28,640 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:45154][0m
+INFO 2026-11-11 08:56:56,102 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:39030][0m
+INFO 2026-11-11 08:57:21,544 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.04, 127.0.0.1:36214][0m
+INFO 2026-11-11 08:57:30,771 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:55584][0m
+INFO 2026-11-11 08:57:33,894 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:55594][0m
+INFO 2026-11-11 08:57:43,625 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.02, 127.0.0.1:36028][0m
+INFO 2026-11-11 08:57:53,739 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.04, 127.0.0.1:38562][0m
+WARNING 2026-11-11 08:58:15,449 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 08:58:15,452 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.04, 127.0.0.1:41848][0m
+INFO 2026-11-11 08:58:44,585 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.03, 127.0.0.1:46372][0m
+INFO 2026-11-11 08:58:50,564 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.04, 127.0.0.1:53458][0m
+INFO 2026-11-11 08:58:55,667 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.04, 127.0.0.1:53470][0m
+INFO 2026-11-11 09:00:43,436 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.12, 127.0.0.1:48236][0m
+INFO 2026-11-11 09:00:43,633 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.19, 127.0.0.1:48244][0m
+INFO 2026-11-11 09:00:44,009 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.09, 127.0.0.1:48248][0m
+INFO 2026-11-11 09:02:12,442 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.12, 127.0.0.1:58652][0m
+INFO 2026-11-11 09:02:12,625 runserver 204213 131477928515136 [mHTTP GET /api/accounts/academic/courses/ 200 [0.17, 127.0.0.1:58656][0m
+WARNING 2026-11-11 09:03:15,375 log 204213 131477888030272 Not Found: /api/method/frappe.desk.reportview.get
+WARNING 2026-11-11 09:03:15,376 runserver 204213 131477928515136 [33mHTTP POST /api/method/frappe.desk.reportview.get 404 [0.02, 127.0.0.1:53038][0m
+INFO 2026-11-11 09:03:16,556 views 204213 131477896422976 User 1 created successfully. Automated development bypass activation.
+INFO 2026-11-11 09:03:16,560 runserver 204213 131477928515136 [mHTTP POST /api/accounts/signup/ 201 [0.83, 127.0.0.1:53048][0m
+INFO 2026-11-11 09:03:43,332 runserver 204213 131477928515136 [mHTTP POST /api/login/ 200 [1.46, 127.0.0.1:55422][0m
+INFO 2026-11-11 09:03:44,484 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:03:44,508 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:03:44,513 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.06, 127.0.0.1:55434][0m
+INFO 2026-11-11 09:03:44,535 views 204213 131477905864256 Dashboard request for user 1: jeffkimani32@zetech.ac.ke, type: student
+INFO 2026-11-11 09:03:44,567 views 204213 131477905864256 Dashboard data returned for user 1
+INFO 2026-11-11 09:03:44,568 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.04, 127.0.0.1:55444][0m
+INFO 2026-11-11 09:03:44,575 runserver 204213 131477928515136 [mHTTP GET /api/accounts/dashboard/student/ 200 [0.06, 127.0.0.1:55442][0m
+INFO 2026-11-11 09:03:44,655 runserver 204213 131477928515136 [mHTTP GET /api/accounts/student/workload-summary/ 200 [0.02, 127.0.0.1:55460][0m

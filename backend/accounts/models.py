@@ -15,6 +15,7 @@ class User(AbstractUser):
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='student')
     university = models.CharField(max_length=100, blank=True)
     course = models.CharField(max_length=100, blank=True)
+    academic_level = models.CharField(max_length=50, blank=True)
     year_of_study = models.CharField(max_length=10, blank=True)
     staff_id = models.CharField(max_length=50, blank=True)
     department = models.CharField(max_length=100, blank=True, null=True)
