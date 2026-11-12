@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table } from 'antd';
-import { BookOpen, ChevronDown, ChevronRight, Users, Plus, ExternalLink } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, Users, Plus, ExternalLink } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
@@ -13,6 +14,16 @@ const MyUnits = ({ ctx }) => {
   const [expandedUnits, setExpandedUnits] = useState({});
   const [unitGroups, setUnitGroups] = useState({});
   const [loadingGroups, setLoadingGroups] = useState({});
+  const location = useLocation();
+  const initialUnit = location.state?.unit;
+
+  useEffect(() => {
+    if (initialUnit && !expandedUnits[initialUnit] && !unitGroups[initialUnit]) {
+      setExpandedUnits(prev => ({ ...prev, [initialUnit]: true }));
+      fetchUnitGroups(initialUnit);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUnit]);
 
   const fetchUnitGroups = async (unitId) => {
     setLoadingGroups(prev => ({ ...prev, [unitId]: true }));

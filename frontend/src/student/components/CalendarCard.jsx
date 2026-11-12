@@ -22,10 +22,8 @@ const CalendarCard = ({ tasks = [] }) => {
     return Array.from({ length: totalDays }, (_, i) => first.add(i, 'day'));
   }, [month]);
 
-  const weekCount = Math.ceil(days.length / 7);
   const today = dayjs().format('YYYY-MM-DD');
   const selectedDay = days.find((d) => d.format('YYYY-MM-DD') === selected);
-  const selectedWeekIndex = selectedDay ? Math.floor(days.indexOf(selectedDay) / 7) : -1;
 
   const tasksByDay = useMemo(() => {
     const map = new Map();
@@ -93,28 +91,15 @@ const CalendarCard = ({ tasks = [] }) => {
                 type="button"
                 onClick={() => setSelected(k)}
                 aria-label={day.format('D MMMM YYYY')}
-                className={`flex flex-col items-center gap-1 rounded-lg border p-1 text-left transition-colors ${isSelected ? 'ring-1 ring-[#35475C] bg-[#EEF1F4]' : 'bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#35475C]' : ''}`}
+                className={`flex flex-col items-center gap-1 rounded-lg border p-1 text-left transition-colors ${isSelected ? 'ring-1 ring-[#35475C] bg-[#EEF1F4]' : 'bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#7189A3]' : ''}`}
               >
-                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-[#35475C] text-white' : 'text-[#1F2D33]'}`}>
+                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-[#7189A3] text-white' : 'text-[#1F2D33]'}`}>
                   {day.date()}
                 </span>
                 {cellTasks && (
                   <span className="w-1 h-1 rounded-full bg-[#4A6079]" />
                 )}
               </button>
-            );
-          })}
-        </div>
-
-        {/* Week numbers */}
-        <div className="grid grid-cols-7 gap-1 mt-1 mb-2">
-          {Array.from({ length: weekCount }, (_, i) => {
-            const firstDayOfWeek = days[i * 7];
-            const wn = Math.floor((firstDayOfWeek.date() + 6) / 7);
-            return (
-              <div key={i} className={`flex h-4 items-end justify-end rounded-md px-1 text-[9px] font-medium ${selectedWeekIndex === i ? 'bg-[#EEF1F4]' : 'bg-transparent'} text-[#4A6079]`}>
-                W{String(wn).padStart(2, '0')}
-              </div>
             );
           })}
         </div>

@@ -34,7 +34,7 @@ const Sidebar = ({ ctx }) => {
                 if (tab.id === 'chat') setChatGroupId(null);
               }}
               className={`flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold transition-colors lg:justify-between lg:px-4 ${
-                active ? 'bg-[#D7DEE6] text-[#35475C]' : 'text-[#E2E8F0] hover:bg-white/10 hover:text-white'
+                active ? 'bg-[#DFE6EE] text-[#35475C]' : 'text-[#E2E8F0] hover:bg-white/10 hover:text-white'
               }`}
             >
               <span className="flex min-w-0 items-center gap-2">

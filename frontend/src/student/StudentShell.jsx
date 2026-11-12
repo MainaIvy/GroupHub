@@ -58,18 +58,18 @@ const StudentShell = () => {
 
   if (loading) {
     return (
-      <div className="student-root flex min-h-screen items-center justify-center bg-[#E2E8F0] p-6">
+      <div className="student-root flex min-h-screen items-center justify-center bg-[#E4E9EF] p-6">
         <div className="w-full max-w-sm"><LoadingState label="Loading your workspace…" /></div>
       </div>
     );
   }
 
   return (
-    <div data-dashboard-theme="school" className="student-root flex min-h-screen flex-col bg-[#E2E8F0] antialiased selection:bg-[#D7DEE6] lg:flex-row">
+    <div data-dashboard-theme="school" className="student-root flex min-h-screen flex-col bg-[#E4E9EF] antialiased selection:bg-[#D7DEE6] lg:flex-row">
       <Sidebar ctx={ctx} />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-64">
         <Header ctx={ctx} />
-        <main className="flex-1 bg-[#E2E8F0] p-4 sm:p-6 xl:p-8">
+        <main className="flex-1 bg-[#E4E9EF] p-4 sm:p-6 xl:p-8">
           {error ? (
             <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
               <span>{error}</span>
