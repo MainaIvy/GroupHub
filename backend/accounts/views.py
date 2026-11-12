@@ -32,8 +32,9 @@ from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
     ChatRoom, Message, Notification, Course, Unit, Semester,     StudentEnrollment, UnitAssignment,
 )
-from .planning_rules import board_status, weight_change_block, weight_confirm_block
+from .planning_rules import board_status, weight_change_block, weight_confirm_block, WEIGHT_MIN, WEIGHT_MAX
 from .balance import calculate_group_balance
+from .health import compute_group_health, get_health_details
 
 logger = logging.getLogger(__name__)
 
@@ -617,6 +618,7 @@ def student_dashboard(request):
             if projects:
                 completed_projects = sum(1 for p in projects if p['status'] == 'completed')
                 progress_percentage = int((completed_projects / len(projects)) * 100)
+            health = get_health_details(group)
             groups.append({
                 'id': group.id,
                 'name': group.name,
@@ -632,7 +634,8 @@ def student_dashboard(request):
                 'members_count': group.members_count,
                 'max_members': group.max_members,
                 'progress_percentage': progress_percentage,
-                'projects': projects
+                'projects': projects,
+                'health': health,
             })
 
         tasks = Task.objects.filter(assigned_to=user).select_related('project').order_by('-created_at')[:10]
@@ -927,6 +930,7 @@ def get_group_task_workspace(request, group_id):
             ).values_list('deadline', flat=True) if deadline],
         ]
         next_deadline = min(deadlines).isoformat() if deadlines else None
+        health = get_health_details(group)
         return Response({
             'group': {
                 'id': group.id,
@@ -953,6 +957,7 @@ def get_group_task_workspace(request, group_id):
             'project_status': 'completed' if root_tasks and project_progress == 100 else 'in_progress' if project_progress else 'planning',
             'members': member_data,
             'tasks': task_data,
+            'health': health,
         })
     except Group.DoesNotExist:
         return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -1201,10 +1206,10 @@ def assign_group_task(request, group_id):
         try:
             weight = int(request.data.get('weight', 1))
             assigned_to_id = int(request.data.get('assigned_to_id'))
-            if not title or weight not in range(1, 6):
+            if not title or weight < WEIGHT_MIN or weight > WEIGHT_MAX:
                 raise ValueError
         except (TypeError, ValueError):
-            return Response({'error': 'A task title, group member, and weight from 1 to 5 are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': f'A task title, group member, and weight from {WEIGHT_MIN} to {WEIGHT_MAX} are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         assigned_to = User.objects.filter(
             pk=assigned_to_id,
@@ -1266,6 +1271,16 @@ def assign_group_task(request, group_id):
             action='assigned',
             note=f"Assigned to {assigned_to.first_name} {assigned_to.last_name}".strip(),
         )
+        # Notify assigned user
+        if assigned_to.id != request.user.id:
+            Notification.objects.create(
+                user=assigned_to,
+                notification_type='task_assigned',
+                title='New task assigned',
+                message=f'{request.user.first_name} {request.user.last_name} assigned you to "{task.title}" in {group.name}.',
+                related_task=task,
+                related_group=group,
+            )
         return Response({
             'task': {
                 'id': task.id,
@@ -1327,6 +1342,26 @@ def reassign_group_task(request, group_id, task_id):
             action='reassigned',
             note=reason or f"Reassigned to {assigned_to.first_name} {assigned_to.last_name}".strip(),
         )
+        # Notify new assignee
+        if assigned_to.id != request.user.id:
+            Notification.objects.create(
+                user=assigned_to,
+                notification_type='task_assigned',
+                title='Task reassigned to you',
+                message=f'{request.user.first_name} {request.user.last_name} reassigned "{task.title}" to you in {group.name}.',
+                related_task=task,
+                related_group=group,
+            )
+        # Notify previous assignee
+        if previous_assignee and previous_assignee.id != request.user.id and previous_assignee.id != assigned_to.id:
+            Notification.objects.create(
+                user=previous_assignee,
+                notification_type='task_assigned',
+                title='Task reassigned',
+                message=f'{request.user.first_name} {request.user.last_name} reassigned "{task.title}" from you to {assigned_to.first_name} {assigned_to.last_name} in {group.name}.',
+                related_task=task,
+                related_group=group,
+            )
         return Response({'task': {'id': task.id, 'assigned_to_id': assigned_to.id, 'assigned_to_name': f"{assigned_to.first_name} {assigned_to.last_name}".strip()}})
     except Group.DoesNotExist:
         return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -1361,10 +1396,10 @@ def get_group_balance(request, group_id):
             try:
                 weight = int(request.data.get('weight', 1))
                 assignee_id = int(request.data.get('assigned_to_id'))
-                if weight not in range(1, 6):
+                if weight < WEIGHT_MIN or weight > WEIGHT_MAX:
                     raise ValueError
             except (TypeError, ValueError):
-                return Response({'error': 'Choose a group member and task weight from 1 to 5.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': f'Choose a group member and task weight from {WEIGHT_MIN} to {WEIGHT_MAX}.'}, status=status.HTTP_400_BAD_REQUEST)
             assignee = GroupMembership.objects.filter(group=group, student_id=assignee_id).first()
             if assignee is None:
                 return Response({'error': 'Assign the task to a member of this group.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1434,10 +1469,10 @@ def create_task(request, group_id):
 
         try:
             weight = int(weight)
-            if not (1 <= weight <= 5):
+            if not (WEIGHT_MIN <= weight <= WEIGHT_MAX):
                 raise ValueError
         except (TypeError, ValueError):
-            return Response({'error': 'Weight must be an integer between 1 and 5'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': f'Weight must be an integer between {WEIGHT_MIN} and {WEIGHT_MAX}'}, status=status.HTTP_400_BAD_REQUEST)
 
         project = Project.objects.get(id=project_id, group=group)
         assigned_to = None
@@ -1879,8 +1914,9 @@ def send_message(request, room_id):
         user = request.user
         content = str(request.data.get('content') or '').strip()
         uploaded_file = request.FILES.get('file')
-        if not content and not uploaded_file:
-            return Response({'error': 'Write a message or attach a document.'}, status=status.HTTP_400_BAD_REQUEST)
+        voice_note = request.FILES.get('voice_note')
+        if not content and not uploaded_file and not voice_note:
+            return Response({'error': 'Write a message, attach a document, or record a voice note.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if uploaded_file:
             allowed_extensions = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'heic'}
@@ -1889,6 +1925,13 @@ def send_message(request, room_id):
                 return Response({'error': 'Unsupported file type. Attach a PDF, Office document, text, CSV, or image.'}, status=status.HTTP_400_BAD_REQUEST)
             if uploaded_file.size > 10 * 1024 * 1024:
                 return Response({'error': 'Files must be 10 MB or smaller.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if voice_note:
+            voice_extension = voice_note.name.rsplit('.', 1)[-1].lower() if '.' in voice_note.name else ''
+            if voice_extension != 'webm':
+                return Response({'error': 'Voice notes must be in webm format.'}, status=status.HTTP_400_BAD_REQUEST)
+            if voice_note.size > 5 * 1024 * 1024:
+                return Response({'error': 'Voice notes must be 5 MB or smaller.'}, status=status.HTTP_400_BAD_REQUEST)
 
         chat_room = ChatRoom.objects.get(id=room_id)
 
@@ -1908,6 +1951,7 @@ def send_message(request, room_id):
             sender=user,
             content=content,
             attachment=uploaded_file,
+            voice_note=voice_note,
         )
 
         recipients = []
@@ -1933,6 +1977,25 @@ def send_message(request, room_id):
                 related_chat_room=chat_room,
                 related_message=message,
             )
+        # Handle @mentions in group chats
+        if chat_room.chat_type == 'group' and content:
+            import re
+            mentions = re.findall(r'@(\w+)', content)
+            for username in mentions:
+                mentioned_user = User.objects.filter(username__iexact=username).first()
+                if mentioned_user and mentioned_user != user:
+                    # Check if mentioned user is in the group
+                    is_member = GroupMembership.objects.filter(group=chat_room.group, student=mentioned_user).exists()
+                    is_lecturer = chat_room.group.lecturer_id == mentioned_user.id
+                    if is_member or is_lecturer:
+                        Notification.objects.create(
+                            user=mentioned_user,
+                            notification_type='mention',
+                            title='You were mentioned',
+                            message=f'{user.first_name} {user.last_name} mentioned you in {chat_room.group.name}: "{preview}"',
+                            related_chat_room=chat_room,
+                            related_message=message,
+                        )
 
         response_data = {
             'id': message.id,
@@ -1946,6 +2009,7 @@ def send_message(request, room_id):
             'timestamp': message.timestamp.isoformat(),
             'attachment_name': message.attachment.name.rsplit('/', 1)[-1] if message.attachment else None,
             'attachment_url': f'/api/accounts/chat/messages/{message.id}/attachment/' if message.attachment else None,
+            'voice_note_url': f'/api/accounts/chat/messages/{message.id}/voice-note/' if message.voice_note else None,
         }
         try:
             from asgiref.sync import async_to_sync
@@ -1994,6 +2058,35 @@ def download_message_attachment(request, message_id):
     except Exception as e:
         logger.error(f"Error downloading chat attachment: {str(e)}")
         return Response({'error': 'Unable to download attachment'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_message_voice_note(request, message_id):
+    try:
+        message = Message.objects.select_related('chat_room__group').get(pk=message_id)
+        chat_room = message.chat_room
+        user = request.user
+        if chat_room.chat_type == 'group':
+            allowed = chat_room.group.lecturer_id == user.id or GroupMembership.objects.filter(
+                group=chat_room.group, student=user
+            ).exists()
+        else:
+            allowed = chat_room.user1_id == user.id or chat_room.user2_id == user.id
+        if not allowed:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if not message.voice_note:
+            return Response({'error': 'Voice note not found'}, status=status.HTTP_404_NOT_FOUND)
+        return FileResponse(
+            message.voice_note.open('rb'),
+            as_attachment=False,
+            filename=message.voice_note.name.rsplit('/', 1)[-1],
+        )
+    except Message.DoesNotExist:
+        return Response({'error': 'Message not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error downloading voice note: {str(e)}")
+        return Response({'error': 'Unable to download voice note'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['DELETE'])

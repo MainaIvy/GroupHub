@@ -273,6 +273,7 @@ class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     content = models.TextField()
     attachment = models.FileField(upload_to='chat_documents/%Y/%m/', null=True, blank=True)
+    voice_note = models.FileField(upload_to='chat_voice_notes/%Y/%m/', null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -306,6 +307,8 @@ class Notification(models.Model):
         ('join_request', 'Join Request'),
         ('join_response', 'Join Response'),
         ('invite_response', 'Invite Response'),
+        ('poll_opened', 'Poll Opened'),
+        ('mention', 'Mention'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)

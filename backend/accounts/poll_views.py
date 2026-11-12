@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Group, Poll, PollOption, PollVote
+from .models import Group, Poll, PollOption, PollVote, Notification
 from .planning_rules import is_leader, is_member
 
 MAX_OPTIONS = 20
@@ -167,6 +167,25 @@ def group_polls(request, group_id):
         PollOption.objects.bulk_create([
             PollOption(poll=poll, text=text, pitch=pitch, added_by=user) for text, pitch in options
         ])
+    # Notify group members (except creator) about new poll
+    from .models import GroupMembership
+    members = GroupMembership.objects.filter(group=group).exclude(student=user).select_related('student')
+    for membership in members:
+        Notification.objects.create(
+            user=membership.student,
+            notification_type='poll_opened',
+            title='New poll opened',
+            message=f'{user.first_name} {user.last_name} opened a poll: "{question}" in {group.name}.',
+            related_group=group,
+        )
+    if group.lecturer_id != user.id:
+        Notification.objects.create(
+            user=group.lecturer,
+            notification_type='poll_opened',
+            title='New poll opened',
+            message=f'{user.first_name} {user.last_name} opened a poll: "{question}" in {group.name}.',
+            related_group=group,
+        )
     return Response(serialize_poll(poll, user), status=status.HTTP_201_CREATED)
 
 
@@ -254,3 +273,15 @@ def pick_poll_winner(request, poll_id):
     poll.winning_option_id = int(option_id)
     poll.save(update_fields=['winning_option'])
     return Response(serialize_poll(poll, request.user))
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_poll(request, poll_id):
+    poll, error = _load_poll(request, poll_id)
+    if error:
+        return error
+    if not (is_leader(request.user, poll.group) or poll.created_by_id == request.user.id):
+        return _error('Only the poll creator or the group leader can delete this poll.', status.HTTP_403_FORBIDDEN)
+    poll.delete()
+    return Response({'message': 'Poll deleted successfully'})

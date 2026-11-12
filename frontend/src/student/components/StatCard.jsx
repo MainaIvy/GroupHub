@@ -1,22 +1,19 @@
 import React from 'react';
 
-const TONES = {
-  default: { edge: 'border-l-[#4A6079]', icon: 'bg-[#E3EAF2] text-[#2F4A66]', value: 'text-[#1F2D3D]' },
-  success: { edge: 'border-l-emerald-600', icon: 'bg-emerald-50 text-emerald-700', value: 'text-[#1F2D3D]' },
-  warning: { edge: 'border-l-amber-500', icon: 'bg-amber-50 text-amber-700', value: 'text-[#1F2D3D]' },
-  danger: { edge: 'border-l-red-600', icon: 'bg-red-50 text-red-700', value: 'text-red-700' },
-};
-
-const StatCard = ({ label, value, hint, icon: Icon, tone = 'default' }) => {
-  const t = TONES[tone] || TONES.default;
+const StatCard = ({ label, value, hint, icon: Icon }) => {
+  const t = {
+    edge: 'border-l-[#35475C]',
+    icon: 'bg-[#E2E8F0] text-[#35475C]',
+    value: 'text-[#1F2D33]',
+  };
   return (
-    <div className={`flex items-start justify-between gap-3 rounded-xl border border-l-4 border-[#D7DEE6] ${t.edge} bg-white p-4`}>
+    <div className={`flex items-start justify-between gap-3 rounded-xl border border-[#D7DEE6] border-l-4 ${t.edge} bg-white p-4`}>
       <div className="min-w-0">
-        <p className="text-sm font-medium text-[#4F5F73]">{label}</p>
-        <p className={`mt-1 text-[32px] font-bold leading-tight ${t.value}`}>{value}</p>
-        {hint ? <p className="mt-1 text-[13px] text-[#4F5F73]">{hint}</p> : null}
+        <p className="text-xs font-medium text-[#4A6079] uppercase tracking-wide">{label}</p>
+        <p className="mt-1 text-[28px] font-bold leading-tight {t.value}">{value}</p>
+        {hint ? <p className="mt-1 text-[12px] text-[#6B7A8C]">{hint}</p> : null}
       </div>
-      {Icon ? <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${t.icon}`}><Icon size={20} /></span> : null}
+      {Icon ? <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${t.icon}`}><Icon size={18} /></span> : null}
     </div>
   );
 };

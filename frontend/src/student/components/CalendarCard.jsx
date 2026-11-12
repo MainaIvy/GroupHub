@@ -1,193 +1,194 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import { ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react';
-import { btnPrimary, btnSecondary } from '../design';
+import { ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const KINDS = {
-  deadline: { label: 'My deadline', chip: 'bg-[#E3EAF2] text-[#2F4A66]' },
-  mark: { label: 'Marked date', chip: 'bg-amber-50 text-amber-800' },
-};
-const MAX_CHIPS = 2;
-
-const storageKey = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    return `grouphub_calendar_events_${user?.id || user?.email || 'me'}`;
-  } catch {
-    return 'grouphub_calendar_events_me';
-  }
-};
-
-const loadEvents = (key) => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
+const NAVY = '#1B2433';
+const WEEKDAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 
 const CalendarCard = ({ tasks = [] }) => {
-  const key = useMemo(storageKey, []);
+  const navigate = useNavigate();
   const [month, setMonth] = useState(() => dayjs().startOf('month'));
   const [selected, setSelected] = useState(() => dayjs().format('YYYY-MM-DD'));
-  const [events, setEvents] = useState(() => loadEvents(key));
-  const [form, setForm] = useState(null);
-
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(events));
-  }, [events, key]);
-
-  const itemsByDay = useMemo(() => {
-    const map = new Map();
-    const push = (day, item) => map.set(day, [...(map.get(day) || []), item]);
-    tasks.forEach((task) => {
-      if (!task.due_date) return;
-      push(dayjs(task.due_date).format('YYYY-MM-DD'), {
-        id: `task-${task.id}`,
-        title: task.title,
-        meta: `${task.group_name || 'Group'} · group task`,
-        kind: 'task',
-        overdue: Boolean(task.isOverdue || task.is_overdue),
-      });
-    });
-    events.forEach((event) => push(event.date, { ...event, meta: event.note || KINDS[event.kind]?.label, personal: true }));
-    return map;
-  }, [tasks, events]);
 
   const days = useMemo(() => {
     const start = month.startOf('month');
+    const end = month.endOf('month');
     const offset = (start.day() + 6) % 7;
     const first = start.subtract(offset, 'day');
-    return Array.from({ length: 42 }, (_, i) => first.add(i, 'day'));
+    const lastDay = end.day() === 0 ? 6 : end.day() - 1;
+    const last = end.add(6 - lastDay, 'day');
+    const totalDays = last.diff(first, 'day') + 1;
+    return Array.from({ length: totalDays }, (_, i) => first.add(i, 'day'));
   }, [month]);
 
+  const weekCount = Math.ceil(days.length / 7);
   const today = dayjs().format('YYYY-MM-DD');
-  const selectedItems = itemsByDay.get(selected) || [];
+  const selectedDay = days.find((d) => d.format('YYYY-MM-DD') === selected);
+  const selectedWeekIndex = selectedDay ? Math.floor(days.indexOf(selectedDay) / 7) : -1;
 
-  const chipClass = (item) => {
-    if (item.kind === 'task') return item.overdue ? 'bg-red-50 text-red-700' : 'bg-[#E3EAF2] text-[#2F4A66]';
-    return KINDS[item.kind]?.chip || KINDS.deadline.chip;
-  };
+  const tasksByDay = useMemo(() => {
+    const map = new Map();
+    tasks.forEach((task) => {
+      if (!task.due_date) return;
+      const k = dayjs(task.due_date).format('YYYY-MM-DD');
+      map.set(k, [...(map.get(k) || []), task]);
+    });
+    return map;
+  }, [tasks]);
 
-  const openForm = (date) => setForm({ title: '', date: date || selected, kind: 'deadline', note: '' });
-
-  const saveForm = (event) => {
-    event.preventDefault();
-    const title = form.title.trim();
-    if (!title || !form.date) return;
-    setEvents((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, title, date: form.date, kind: form.kind, note: form.note.trim() }]);
-    setSelected(form.date);
-    setMonth(dayjs(form.date).startOf('month'));
-    setForm(null);
-  };
-
-  const removeEvent = (id) => setEvents((prev) => prev.filter((event) => event.id !== id));
+  const dayTasks = tasksByDay.get(selected) || [];
+  const sortedTasks = [...dayTasks].sort((a, b) => {
+    const ta = a.due_time || a.due_at || a.due_date;
+    const tb = b.due_time || b.due_at || b.due_date;
+    return new Date(ta) - new Date(tb);
+  });
 
   return (
-    <section aria-label="Calendar" className="rounded-xl border border-[#D7DEE6] bg-white p-4">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <button type="button" aria-label="Previous month" onClick={() => setMonth(month.subtract(1, 'month'))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D7DEE6] hover:bg-[#EEF1F4]"><ChevronLeft size={18} aria-hidden="true" /></button>
-          <h2 className="min-w-[9rem] text-center text-lg font-bold text-[#1F2D3D]">{month.format('MMMM YYYY')}</h2>
-          <button type="button" aria-label="Next month" onClick={() => setMonth(month.add(1, 'month'))} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D7DEE6] hover:bg-[#EEF1F4]"><ChevronRight size={18} aria-hidden="true" /></button>
+    <section className="flex min-w-0 flex-col gap-4" style={{ maxWidth: '360px' }}>
+      {/* Month header */}
+      <div className="flex items-center justify-between gap-2 px-2 py-1">
+        <button
+          type="button"
+          onClick={() => setMonth(month.subtract(1, 'month'))}
+          aria-label="Previous month"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D7DEE6] bg-white text-[#1F2D33] hover:bg-[#EEF1F4] transition-colors"
+        >
+          <ChevronLeft size={14} aria-hidden="true" />
+        </button>
+        <span className="flex-1 items-center justify-center rounded-full bg-[#EEF1F4] px-3 py-1 text-xs font-semibold text-[#1F2D33] whitespace-nowrap">
+          {month.format('MMMM YYYY')}
+        </span>
+        <button
+          type="button"
+          onClick={() => setMonth(month.add(1, 'month'))}
+          aria-label="Next month"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D7DEE6] bg-white text-[#1F2D33] hover:bg-[#EEF1F4] transition-colors"
+        >
+          <ChevronRight size={14} aria-hidden="true" />
+        </button>
+      </div>
+
+      {/* Calendar grid */}
+      <div className="px-2 pb-1">
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {WEEKDAYS.map((d) => (
+            <div key={d} className="flex h-6 items-center justify-center rounded-md bg-[#E2E8F0] px-1 text-[10px] font-semibold text-[#4A6079] uppercase">
+              {d}
+            </div>
+          ))}
         </div>
-        <button type="button" onClick={() => openForm()} className={btnPrimary}><Plus size={16} aria-hidden="true" /> Add deadline or mark a date</button>
-      </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day) => {
+            const k = day.format('YYYY-MM-DD');
+            const inMonth = day.month() === month.month();
+            const isSelected = k === selected;
+            const dayTasks = tasksByDay.get(k) || [];
+            const isToday = k === today;
+            const cellTasks = dayTasks.length > 0;
 
-      <div className="grid grid-cols-7 gap-1.5">
-        {WEEKDAYS.map((d) => <div key={d} className="pb-1 text-center text-[13px] font-semibold uppercase text-[#4F5F73]">{d}</div>)}
-        {days.map((day) => {
-          const k = day.format('YYYY-MM-DD');
-          const items = itemsByDay.get(k) || [];
-          const inMonth = day.month() === month.month();
-          const isSelected = k === selected;
-          return (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setSelected(k)}
-              onDoubleClick={() => openForm(k)}
-              aria-label={`${day.format('D MMMM YYYY')}, ${items.length} items`}
-              aria-pressed={isSelected}
-              className={`flex min-h-[92px] flex-col items-stretch rounded-lg border p-1.5 text-left transition-colors ${isSelected ? 'border-[#4A6079] bg-[#EEF3F8]' : 'border-[#E3EAF2] bg-white hover:bg-[#F6F8FB]'} ${inMonth ? '' : 'opacity-50'}`}
-            >
-              <span className={`mb-1 inline-flex h-6 w-6 items-center justify-center self-end rounded-full text-[13px] font-semibold ${k === today ? 'bg-[#35475C] text-white' : 'text-[#33445A]'}`}>{day.date()}</span>
-              <span className="flex flex-col gap-1">
-                {items.slice(0, MAX_CHIPS).map((item) => (
-                  <span key={item.id} className={`truncate rounded px-1.5 py-0.5 text-[13px] font-medium leading-tight ${chipClass(item)}`}>{item.title}</span>
-                ))}
-                {items.length > MAX_CHIPS ? <span className="px-1 text-[13px] font-medium text-[#4F5F73]">+{items.length - MAX_CHIPS} more</span> : null}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-[13px] text-[#4F5F73]">
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#4A6079]" />Group task / my deadline</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" />Marked date</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-600" />Overdue</span>
-      </div>
-
-      <div className="mt-4 border-t border-[#D7DEE6] pt-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-base font-semibold text-[#1F2D3D]">{dayjs(selected).format('dddd, D MMMM')}</h3>
-          <button type="button" onClick={() => openForm(selected)} className="text-sm font-semibold text-[#35475C] underline">Add for this day</button>
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSelected(k)}
+                aria-label={day.format('D MMMM YYYY')}
+                className={`flex flex-col items-center gap-1 rounded-lg border p-1 text-left transition-colors ${isSelected ? 'ring-1 ring-[#35475C] bg-[#EEF1F4]' : 'bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#35475C]' : ''}`}
+              >
+                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-[#35475C] text-white' : 'text-[#1F2D33]'}`}>
+                  {day.date()}
+                </span>
+                {cellTasks && (
+                  <span className="w-1 h-1 rounded-full bg-[#4A6079]" />
+                )}
+              </button>
+            );
+          })}
         </div>
-        {selectedItems.length === 0 ? (
-          <p className="text-sm text-[#4F5F73]">Nothing on this day. Add a deadline or mark the date.</p>
+
+        {/* Week numbers */}
+        <div className="grid grid-cols-7 gap-1 mt-1 mb-2">
+          {Array.from({ length: weekCount }, (_, i) => {
+            const firstDayOfWeek = days[i * 7];
+            const wn = Math.floor((firstDayOfWeek.date() + 6) / 7);
+            return (
+              <div key={i} className={`flex h-4 items-end justify-end rounded-md px-1 text-[9px] font-medium ${selectedWeekIndex === i ? 'bg-[#EEF1F4]' : 'bg-transparent'} text-[#4A6079]`}>
+                W{String(wn).padStart(2, '0')}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Selected date heading */}
+      <div className="px-2">
+        <h2 className="text-[20px] font-bold text-[#1F2D33]">
+          {selectedDay ? selectedDay.format('D MMMM') : selected}
+        </h2>
+      </div>
+
+      {/* Filter row */}
+      <div className="px-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#1F2D33]">
+          <span>Time</span>
+          <span className="px-1.5 text-[#4A6079]">Today's timeline</span>
+        </div>
+        <button type="button" className="flex h-6 items-center gap-1.5 rounded-full border border-[#D7DEE6] bg-[#1F2D33] px-2 py-0.5 text-[10px] font-semibold text-white">
+          All
+        </button>
+      </div>
+
+      {/* Timeline / task list */}
+      <div className="px-2 flex flex-col gap-2 min-h-[200px]">
+        {sortedTasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-1 py-4 text-sm text-[#4A6079]">
+            Nothing due on this day.
+          </div>
         ) : (
-          <ul className="space-y-2">
-            {selectedItems.map((item) => (
-              <li key={item.id} className={`flex items-start justify-between gap-3 rounded-lg px-4 py-2 ${item.overdue ? 'bg-red-50 text-red-800' : 'bg-[#EEF1F4] text-[#33445A]'}`}>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  <p className="text-[13px]">{item.meta}</p>
+          <div className="relative">
+            {sortedTasks.map((task) => {
+              const isPast = taskIsOverdue(task);
+              return (
+                <div
+                  key={task.id}
+                  className={`relative ml-4 mb-2 pl-3 border-l-2 border-[#CBD5E1] transition-colors ${isPast ? 'border-[#DDE4EC] opacity-50' : ''}`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center border-2 border-[#CBD5E1] bg-white text-xs font-bold text-[#4A6079]">
+                      <User size={14} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold truncate ${isPast ? 'opacity-50' : 'opacity-100'}`}>{task.title}</p>
+                      <p className="text-[10px] text-[#4A6079]">{task.group_name || 'Group'}</p>
+                      <p className={`text-[10px] mt-0.5 ${isPast ? 'text-[#4A6079] opacity-50' : 'text-[#1F2D33]'}`}>
+                        Due {dayjs(task.due_date).format('DD MMMM')}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                {item.personal ? (
-                  <button type="button" aria-label={`Delete ${item.title}`} onClick={() => removeEvent(item.id)} className="rounded p-1 text-[#4F5F73] hover:bg-white hover:text-red-700"><Trash2 size={16} aria-hidden="true" /></button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {form && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Add to calendar" onMouseDown={(e) => { if (e.target === e.currentTarget) setForm(null); }}>
-          <form onSubmit={saveForm} className="w-full max-w-md space-y-4 rounded-xl bg-white p-5 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#1F2D3D]">Add to my calendar</h3>
-              <button type="button" aria-label="Close" onClick={() => setForm(null)} className="rounded p-1 hover:bg-[#EEF1F4]"><X size={18} aria-hidden="true" /></button>
-            </div>
-            <label className="block text-sm font-medium text-[#33445A]">Title
-              <input autoFocus required maxLength={80} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Assignment 2 due" className="mt-1 h-10 w-full rounded-lg border border-[#CBD5E1] px-3 text-[15px]" />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block text-sm font-medium text-[#33445A]">Date
-                <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1 h-10 w-full rounded-lg border border-[#CBD5E1] px-3 text-[15px]" />
-              </label>
-              <label className="block text-sm font-medium text-[#33445A]">Type
-                <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })} className="mt-1 h-10 w-full rounded-lg border border-[#CBD5E1] px-3 text-[15px]">
-                  <option value="deadline">My deadline</option>
-                  <option value="mark">Marked date</option>
-                </select>
-              </label>
-            </div>
-            <label className="block text-sm font-medium text-[#33445A]">Note (optional)
-              <textarea rows={2} maxLength={200} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[15px]" />
-            </label>
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setForm(null)} className={btnSecondary}>Cancel</button>
-              <button type="submit" className={btnPrimary}>Save</button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* View all tasks */}
+      <div className="px-2">
+        <button
+          type="button"
+          onClick={() => navigate('/student/tasks')}
+          className="flex w-full h-10 items-center justify-center rounded-full bg-[#1F2D33] px-4 text-sm font-semibold text-white hover:bg-[#2C3A52] transition-colors"
+        >
+          View all tasks
+        </button>
+      </div>
     </section>
   );
 };
+
+function taskIsOverdue(task) {
+  if (!task.due_date) return false;
+  return new Date(task.due_date).getTime() < Date.now();
+}
 
 export default CalendarCard;

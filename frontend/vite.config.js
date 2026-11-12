@@ -12,9 +12,19 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        // Keep paths stable (no window navigation, just proxy the request)
-        // Vite will forward the request while the SPA route stays in place.
         secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // Forward Authorization header
+            const auth = req.headers.authorization;
+            if (auth) {
+              proxyReq.setHeader('Authorization', auth);
+            }
+          });
+        },
       },
       '/ws': {
         target: 'ws://127.0.0.1:8000',

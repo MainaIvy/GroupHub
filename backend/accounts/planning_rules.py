@@ -3,6 +3,11 @@ from .models import GroupMembership
 
 BOARD_STATUSES = ('proposed', 'open_to_claim', 'assigned', 'in_progress', 'done')
 
+# Single source of truth for task weight range
+WEIGHT_MIN = 1
+WEIGHT_MAX = 5
+WEIGHT_CHOICES = tuple(range(WEIGHT_MIN, WEIGHT_MAX + 1))
+
 
 def avatar_url(user):
     return '/api/accounts/profile/avatar/' if user.avatar else None

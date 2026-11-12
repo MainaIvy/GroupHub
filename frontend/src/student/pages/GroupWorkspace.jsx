@@ -162,6 +162,7 @@ const GroupWorkspace = ({ ctx }) => {
       {body()}
       {selectedTask && tab === 'tasks' ? (
         <TaskPanel
+          key={selectedTask.id}
           task={selectedTask}
           tasks={tasks}
           members={members}

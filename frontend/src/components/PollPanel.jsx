@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api';
-import { BarChart3, Plus } from 'lucide-react';
+import { BarChart3, Plus, Trash2 } from 'lucide-react';
 
 const fullName = (person) => `${person.first_name} ${person.last_name}`.trim() || 'Student';
 
-const PollCard = ({ poll, onChange, onCreateProject }) => {
+const PollCard = ({ poll, onChange, onDelete, onCreateProject }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [newText, setNewText] = useState('');
   const [newPitch, setNewPitch] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const run = async (request) => {
     setBusy(true);
@@ -27,6 +28,20 @@ const PollCard = ({ poll, onChange, onCreateProject }) => {
 
   const closed = poll.status === 'closed';
   const maxVotes = Math.max(1, ...poll.options.map((option) => option.votes));
+
+  const handleDelete = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await axios.post(`/api/accounts/polls/${poll.id}/delete/`);
+      onDelete(poll.id); // Signal to parent to remove this poll
+      setShowDeleteConfirm(false);
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Unable to delete poll.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <article className="space-y-3 rounded-lg border border-[#D7DEE6] bg-white p-4">
@@ -80,6 +95,20 @@ const PollCard = ({ poll, onChange, onCreateProject }) => {
       <div className="flex flex-wrap items-center gap-2">
         {poll.can_close && <button type="button" disabled={busy} onClick={() => run(() => axios.post(`/api/accounts/polls/${poll.id}/close/`))} className="rounded-md border border-[#D7DEE6] px-3 py-1.5 text-[10px] font-semibold text-[#435B76] hover:bg-[#F3F6F4] disabled:opacity-50">Close poll</button>}
         {closed && poll.winner && onCreateProject && <button type="button" onClick={() => onCreateProject({ title: poll.winner.text, description: poll.winner.pitch })} className="rounded-md bg-[#4A6079] px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-[#35475C]">Create project from this</button>}
+        {poll.can_close && (
+          <>
+            <button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={busy} className="rounded-md border border-[#D7DEE6] px-3 py-1.5 text-[10px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+              <Trash2 size={12} aria-hidden="true" className="inline-block align-middle mr-1" /> Delete
+            </button>
+            {showDeleteConfirm && (
+              <div className="flex items-center gap-2 ml-2">
+                <p className="text-[10px] text-[#435B76]">Are you sure?</p>
+                <button type="button" onClick={handleDelete} disabled={busy} className="rounded-md bg-red-600 px-2.5 py-1 text-[10px] font-semibold text-white disabled:opacity-50">Yes, delete</button>
+                <button type="button" onClick={() => setShowDeleteConfirm(false)} disabled={busy} className="rounded-md border border-[#D7DEE6] px-2.5 py-1 text-[10px] font-semibold text-[#435B76] hover:bg-[#F3F6F4] disabled:opacity-50">Cancel</button>
+              </div>
+            )}
+          </>
+        )}
       </div>
       {error && <p role="alert" className="text-xs font-medium text-red-700">{error}</p>}
     </article>
@@ -110,7 +139,12 @@ const PollPanel = ({ groupId, defaultOpen = true, onCreateProject }) => {
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [groupId]);
 
-  const replacePoll = (updated) => setPolls((current) => current.map((poll) => (poll.id === updated.id ? updated : poll)));
+  const replacePoll = (updated) => setPolls((current) => {
+    if (updated === null) return current;
+    return current.map((poll) => (poll.id === updated.id ? updated : poll));
+  });
+
+  const removePoll = (pollId) => setPolls((current) => current.filter((poll) => poll.id !== pollId));
 
   const createPoll = async (event) => {
     event.preventDefault();
@@ -164,7 +198,7 @@ const PollPanel = ({ groupId, defaultOpen = true, onCreateProject }) => {
               <button type="submit" disabled={busy} className="rounded-md bg-[#4A6079] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{busy ? 'Creating…' : 'Create poll'}</button>
             </form>
           )}
-          {loading ? <p className="text-xs text-[#718094]">Loading polls…</p> : polls.length ? polls.map((poll) => <PollCard key={poll.id} poll={poll} onChange={replacePoll} onCreateProject={onCreateProject} />) : <p className="rounded-md bg-white px-3 py-5 text-center text-xs text-[#718094]">No polls yet. Start one to decide on a project together.</p>}
+          {loading ? <p className="text-xs text-[#718094]">Loading polls…</p> : polls.length ? polls.map((poll) => <PollCard key={poll.id} poll={poll} onChange={replacePoll} onDelete={removePoll} onCreateProject={onCreateProject} />) : <p className="rounded-md bg-white px-3 py-5 text-center text-xs text-[#718094]">No polls yet. Start one to decide on a project together.</p>}
         </div>
       )}
     </section>
