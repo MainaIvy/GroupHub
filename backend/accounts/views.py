@@ -402,6 +402,261 @@ def student_settings(request):
     })
 
 
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def lecturer_settings(request):
+    user = request.user
+    if user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer settings are only available to lecturer accounts.'}, status=status.HTTP_403_FORBIDDEN)
+    if request.method == 'PATCH':
+        user.first_name = str(request.data.get('first_name', user.first_name) or '').strip()
+        user.last_name = str(request.data.get('last_name', user.last_name) or '').strip()
+        user.department = str(request.data.get('department', user.department) or '').strip()
+        user.courses_taught = str(request.data.get('courses_taught', user.courses_taught) or '').strip()
+        if not user.first_name:
+            return Response({'error': 'First name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user.save()
+        except ValidationError as error:
+            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+        'id': user.id,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'email': user.email,
+        'department': user.department or '',
+        'courses_taught': user.courses_taught or '',
+    })
+
+
+def _lecturer_unit_or_error(user, unit_id):
+    try:
+        unit = Unit.objects.get(pk=unit_id)
+    except (Unit.DoesNotExist, TypeError, ValueError):
+        return None, Response({'error': 'Select a valid unit.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not UnitAssignment.objects.filter(lecturer=user, unit=unit).exists() and unit.assigned_lecturer_id != user.id:
+        return None, Response({'error': 'You can only manage your assigned units.'}, status=status.HTTP_403_FORBIDDEN)
+    return unit, None
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def lecturer_create_unit(request):
+    user = request.user
+    if user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+    code = str(request.data.get('code') or '').strip().upper()
+    name = str(request.data.get('name') or '').strip()
+    try:
+        course = Course.objects.get(pk=int(request.data.get('course_id')))
+        year = int(request.data.get('year_of_study'))
+        semester = int(request.data.get('semester'))
+    except (Course.DoesNotExist, TypeError, ValueError):
+        return Response({'error': 'Choose a valid programme, year, and semester.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not code or not name or year not in range(1, 5) or semester not in (1, 2):
+        return Response({'error': 'Unit code, name, year, and semester are required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if Unit.objects.filter(code__iexact=code, course=course).exists():
+        return Response({'error': 'That unit already exists in this programme.'}, status=status.HTTP_400_BAD_REQUEST)
+    unit = Unit.objects.create(
+        code=code, name=name, course=course, year_of_study=year, semester=semester,
+        academic_level=str(request.data.get('academic_level') or '').strip(),
+        assigned_lecturer=user,
+    )
+    return Response({'id': unit.id, 'code': unit.code, 'name': unit.name, 'course_name': course.name}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def lecturer_update_unit(request, unit_id):
+    user = request.user
+    if user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+    unit, error_response = _lecturer_unit_or_error(user, unit_id)
+    if error_response:
+        return error_response
+    code = str(request.data.get('code', unit.code) or '').strip().upper()
+    name = str(request.data.get('name', unit.name) or '').strip()
+    try:
+        year = int(request.data.get('year_of_study', unit.year_of_study))
+        semester = int(request.data.get('semester', unit.semester))
+    except (TypeError, ValueError):
+        return Response({'error': 'Year and semester must be valid numbers.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not code or not name or year not in range(1, 5) or semester not in (1, 2):
+        return Response({'error': 'Unit code, name, year, and semester are required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if Unit.objects.filter(course=unit.course, code__iexact=code).exclude(pk=unit.id).exists():
+        return Response({'error': 'That unit already exists in this programme.'}, status=status.HTTP_400_BAD_REQUEST)
+    unit.code, unit.name, unit.year_of_study, unit.semester = code, name, year, semester
+    unit.save(update_fields=['code', 'name', 'year_of_study', 'semester'])
+    return Response({'id': unit.id, 'code': unit.code, 'name': unit.name})
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def lecturer_manage_student(request, unit_id, student_id):
+    user = request.user
+    if user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+    unit, error_response = _lecturer_unit_or_error(user, unit_id)
+    if error_response:
+        return error_response
+    try:
+        student = User.objects.get(pk=student_id, user_type='student')
+    except User.DoesNotExist:
+        return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'DELETE':
+        StudentEnrollment.objects.filter(student=student, unit=unit).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    semester = Semester.objects.filter(year=unit.year_of_study, semester=unit.semester).first()
+    if not semester:
+        semester = Semester.objects.order_by('-year', '-semester').first()
+    if not semester:
+        return Response({'error': 'Create an academic term before enrolling students.'}, status=status.HTTP_400_BAD_REQUEST)
+    StudentEnrollment.objects.get_or_create(student=student, unit=unit, semester=semester)
+    return Response({'message': f'{student.get_full_name() or student.username} enrolled successfully.'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def lecturer_import_students(request):
+    user = request.user
+    if user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+    rows = request.data.get('students')
+    unit_id = request.data.get('unit_id')
+    if not isinstance(rows, list) or not unit_id:
+        return Response({'error': 'Provide a unit and a list of students.'}, status=status.HTTP_400_BAD_REQUEST)
+    unit, error_response = _lecturer_unit_or_error(user, unit_id)
+    if error_response:
+        return error_response
+    enrolled = 0
+    errors = []
+    semester = Semester.objects.filter(year=unit.year_of_study, semester=unit.semester).first()
+    if not semester:
+        semester = Semester.objects.order_by('-year', '-semester').first()
+    if not semester:
+        return Response({'error': 'Create an academic term before enrolling students.'}, status=status.HTTP_400_BAD_REQUEST)
+    for index, row in enumerate(rows, start=2):
+        identifier = str(row.get('email') or row.get('username') or '').strip()
+        student = User.objects.filter(models.Q(email__iexact=identifier) | models.Q(username__iexact=identifier), user_type='student').first()
+        if not student:
+            errors.append(f'Row {index}: student {identifier or "(blank)"} was not found.')
+            continue
+        StudentEnrollment.objects.get_or_create(student=student, unit=unit, semester=semester)
+        enrolled += 1
+    return Response({'enrolled': enrolled, 'errors': errors})
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def lecturer_demo_data(request):
+    user = request.user
+    if user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+
+    demo_username_prefix = f'DEMO_{user.id}_'
+    if request.method == 'DELETE':
+        demo_groups = Group.objects.filter(lecturer=user, name__startswith='[Demo]')
+        demo_student_ids = User.objects.filter(username__startswith=demo_username_prefix, user_type='student').values_list('id', flat=True)
+        deleted_groups = demo_groups.count()
+        demo_groups.delete()
+        deleted_students, _ = User.objects.filter(id__in=demo_student_ids).delete()
+        return Response({'groups_deleted': deleted_groups, 'students_deleted': deleted_students})
+
+    assigned_units = Unit.objects.filter(
+        models.Q(assigned_lecturer=user) | models.Q(lecturer_assignments__lecturer=user)
+    ).distinct()
+    if not assigned_units.exists():
+        return Response({'error': 'Assign at least one unit to yourself before creating demo data.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    created_students = 0
+    created_groups = 0
+    created_messages = 0
+    created_submissions = 0
+    with transaction.atomic():
+        for unit in assigned_units:
+            semester = Semester.objects.filter(year=unit.year_of_study, semester=unit.semester).first()
+            if not semester:
+                semester = Semester.objects.order_by('-year', '-semester').first()
+            if not semester:
+                return Response({'error': 'Create an academic term before creating demo data.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            demo_students = []
+            for index in range(1, 11):
+                username = f'{demo_username_prefix}{unit.id}_{index}'
+                student, created = User.objects.get_or_create(
+                    username=username,
+                    defaults={
+                        'email': f'{username.lower()}@zetech.ac.ke',
+                        'first_name': f'Demo {unit.code}',
+                        'last_name': f'Student {index}',
+                        'user_type': 'student',
+                        'course': unit.course.name,
+                        'enrolled_course': unit.course,
+                        'year_of_study': str(unit.year_of_study),
+                        'semester': unit.semester,
+                        'status': 'active',
+                        'password': make_password('DemoStudent123!'),
+                    },
+                )
+                if created:
+                    created_students += 1
+                StudentEnrollment.objects.get_or_create(student=student, unit=unit, semester=semester)
+                demo_students.append(student)
+
+            for group_index in range(1, 3):
+                group, created = Group.objects.get_or_create(
+                    lecturer=user,
+                    unit=unit,
+                    name=f'[Demo] {unit.code} Group {group_index}',
+                    defaults={
+                        'course': unit.course.name,
+                        'year_of_study': str(unit.year_of_study),
+                        'description': 'Temporary demo group. Safe to remove from the lecturer dashboard.',
+                        'join_code': get_random_string(6).upper(),
+                        'unit_code': unit.code,
+                        'max_members': 5,
+                    },
+                )
+                if created:
+                    created_groups += 1
+                selected_students = demo_students[(group_index - 1) * 5:group_index * 5]
+                for student in selected_students:
+                    GroupMembership.objects.get_or_create(group=group, student=student)
+
+                project, _ = Project.objects.get_or_create(
+                    group=group,
+                    title=f'[Demo] {unit.code} Assessment {group_index}',
+                    defaults={'description': 'Temporary assessment created for dashboard preview.'},
+                )
+                for student in selected_students[:3]:
+                    _, created = Submission.objects.get_or_create(
+                        project=project,
+                        submitted_by=student,
+                        defaults={
+                            'content': 'Demo submission for lecturer dashboard preview.',
+                            'proof_text': 'Demo evidence',
+                            'status': 'submitted',
+                        },
+                    )
+                    created_submissions += int(created)
+                room, _ = ChatRoom.objects.get_or_create(group=group, defaults={'chat_type': 'group'})
+                for sender, content in (
+                    (selected_students[0], f'Hello lecturer, this is a demo message from {unit.code}.'),
+                    (user, f'Thanks everyone. This is a demo announcement for {group.name}.'),
+                    (selected_students[1], 'We have submitted our assessment for review.'),
+                ):
+                    Message.objects.create(chat_room=room, sender=sender, content=content)
+                    created_messages += 1
+
+    return Response({
+        'message': 'Demo data created for your assigned units.',
+        'students_created': created_students,
+        'groups_created': created_groups,
+        'submissions_created': created_submissions,
+        'messages_created': created_messages,
+    })
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_student_password(request):
@@ -512,7 +767,7 @@ def lecturer_dashboard(request):
         ).count()
 
         groups = lecturer_groups.values(
-            'id', 'name', 'course', 'year_of_study', 'created_at'
+            'id', 'name', 'course', 'year_of_study', 'created_at', 'unit_id', 'unit_code'
         )
         for group in groups:
             group['members_count'] = GroupMembership.objects.filter(group_id=group['id']).count()
@@ -528,6 +783,8 @@ def lecturer_dashboard(request):
                 'id': sub.id,
                 'project_title': sub.project.title,
                 'submitted_by': f"{sub.submitted_by.first_name} {sub.submitted_by.last_name}",
+                'grade': float(sub.grade) if sub.grade is not None else None,
+                'feedback': sub.feedback,
                 'status': sub.status,
                 'submitted_at': sub.submitted_at.isoformat()
             })
@@ -545,6 +802,9 @@ def lecturer_dashboard(request):
                 **enrollment_filter,
             ).distinct().order_by('first_name', 'last_name', 'id')
             unit_groups = lecturer_groups.filter(unit=unit).order_by('name')
+            unit_submissions = Submission.objects.filter(project__group__unit=unit, project__group__lecturer=user)
+            unit_submission_count = unit_submissions.count()
+            unit_submitted_count = unit_submissions.exclude(status='submitted').count()
             units.append({
                 'id': unit.id,
                 'code': unit.code,
@@ -556,6 +816,10 @@ def lecturer_dashboard(request):
                 'academic_level': unit.academic_level,
                 'student_count': students.count(),
                 'group_count': unit_groups.count(),
+                'assessment_count': Project.objects.filter(group__in=unit_groups).count(),
+                'submission_count': unit_submission_count,
+                'graded_submission_count': unit_submitted_count,
+                'completion_percentage': round((unit_submitted_count / unit_submission_count) * 100) if unit_submission_count else 0,
                 'students': [{
                     'id': student.id,
                     'name': f'{student.first_name} {student.last_name}'.strip() or student.username,
@@ -1060,7 +1324,34 @@ def _serialize_submission(submission):
         'status': submission.status,
         'submitted_at': submission.submitted_at.isoformat(),
         'feedback': submission.feedback,
+        'grade': float(submission.grade) if submission.grade is not None else None,
     }
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def grade_submission(request, submission_id):
+    if request.user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        submission = Submission.objects.select_related('project__group', 'project', 'submitted_by').get(pk=submission_id)
+    except Submission.DoesNotExist:
+        return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if submission.project.group.lecturer_id != request.user.id:
+        return Response({'error': 'You can only grade submissions from your groups.'}, status=status.HTTP_403_FORBIDDEN)
+    raw_grade = request.data.get('grade')
+    try:
+        grade = None if raw_grade in (None, '') else float(raw_grade)
+        if grade is not None and not 0 <= grade <= 100:
+            raise ValueError
+    except (TypeError, ValueError):
+        return Response({'error': 'Grade must be a number between 0 and 100.'}, status=status.HTTP_400_BAD_REQUEST)
+    submission.grade = grade
+    submission.feedback = str(request.data.get('feedback', submission.feedback) or '').strip()
+    submission.status = str(request.data.get('status') or ('reviewed' if grade is not None else submission.status))
+    submission.reviewed_at = timezone.now() if submission.status in ('reviewed', 'approved', 'rejected') else None
+    submission.save(update_fields=['grade', 'feedback', 'status', 'reviewed_at'])
+    return Response(_serialize_submission(submission))
 
 
 @api_view(['GET', 'POST'])
