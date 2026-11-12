@@ -49,6 +49,12 @@ urlpatterns = [
 
     # Student account settings
     path('profile/settings/', views.student_settings, name='student_settings'),
+    path('lecturer/settings/', views.lecturer_settings, name='lecturer_settings'),
+    path('lecturer/units/create/', views.lecturer_create_unit, name='lecturer_create_unit'),
+    path('lecturer/units/<int:unit_id>/', views.lecturer_update_unit, name='lecturer_update_unit'),
+    path('lecturer/units/<int:unit_id>/students/<int:student_id>/', views.lecturer_manage_student, name='lecturer_manage_student'),
+    path('lecturer/students/import/', views.lecturer_import_students, name='lecturer_import_students'),
+    path('lecturer/demo-data/', views.lecturer_demo_data, name='lecturer_demo_data'),
     path('profile/change-password/', views.change_student_password, name='change_student_password'),
     path('profile/avatar/', work_views.profile_avatar, name='profile_avatar'),
 
@@ -56,6 +62,7 @@ urlpatterns = [
     path('dashboard/student/', views.student_dashboard, name='student_dashboard'),
     path('dashboard/lecturer/', views.lecturer_dashboard, name='lecturer_dashboard'),
     path('student/workload-summary/', views.student_workload_summary, name='student_workload_summary'),
+    path('submissions/<int:submission_id>/grade/', views.grade_submission, name='grade_submission'),
 
 
     # Chat
