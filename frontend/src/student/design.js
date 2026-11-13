@@ -28,5 +28,5 @@ export const STATUS = {
   on_track: { label: 'On track', icon: CheckCircle2, classes: 'bg-[#E3EAF2] text-[#2F4A66] border-[#C3D0DF]' },
   quiet: { label: 'Quiet', icon: Moon, classes: 'bg-amber-50 text-amber-800 border-amber-300' },
   at_risk: { label: 'At risk', icon: AlertTriangle, classes: 'bg-red-50 text-red-700 border-red-300' },
-  too_early: { label: 'Too early', icon: Hourglass, classes: 'bg-[#EEF1F4] text-[#4F5F73] border-[#D7DEE6]' },
+  too_early: { label: 'Just starting', icon: Hourglass, classes: 'bg-[#EEF1F4] text-[#4F5F73] border-[#D7DEE6]' },
 };

@@ -41,6 +41,8 @@ const Groups = ({ ctx }) => {
                   key={group.id}
                   group={group}
                   insight={insights.byGroup[group.id]}
+                  currentUserId={ctx.user?.id}
+                  unreadMessages={Number(notif?.unreadByGroup?.[group.id] ?? 0)}
                   menuOpen={groupMenuId === group.id}
                   onToggleMenu={() => setGroupMenuId((current) => (current === group.id ? null : group.id))}
                   onCloseMenu={() => setGroupMenuId(null)}

@@ -8,6 +8,7 @@ const POLL_MS = 30000;
 export default function useStudentNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [messageUnread, setMessageUnread] = useState(0);
+  const [unreadByGroup, setUnreadByGroup] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -18,7 +19,9 @@ export default function useStudentNotifications() {
         axios.get(`${ROOT}/chat/unread-counts/`).catch(() => ({ data: {} })),
       ]);
       setNotifications(Array.isArray(notificationResponse.data) ? notificationResponse.data : []);
-      const counts = unreadResponse.data && typeof unreadResponse.data === 'object' ? Object.values(unreadResponse.data) : [];
+      const rawCounts = unreadResponse.data && typeof unreadResponse.data === 'object' ? unreadResponse.data : {};
+      const counts = Object.values(rawCounts);
+      setUnreadByGroup(rawCounts);
       setMessageUnread(counts.reduce((sum, value) => sum + (Number(value) || 0), 0));
       setError('');
     } catch (requestError) {
@@ -48,5 +51,5 @@ export default function useStudentNotifications() {
   const invites = notifications.filter((item) => item.notification_type === 'group_invitation' && !item.is_read && item.related_invite_id);
   const joinRequests = notifications.filter((item) => item.notification_type === 'join_request' && !item.is_read && item.related_join_request_id);
 
-  return { notifications, bellItems, unreadBell, invites, joinRequests, messageUnread, loading, error, reload: load, markRead };
+  return { notifications, bellItems, unreadBell, invites, joinRequests, messageUnread, unreadByGroup, loading, error, reload: load, markRead };
 }

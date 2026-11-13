@@ -3,7 +3,6 @@ import dayjs from 'dayjs';
 import { CalendarDays, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const NAVY = '#1B2433';
 const WEEKDAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 
 const CalendarCard = ({ tasks = [] }) => {
@@ -82,9 +81,9 @@ const CalendarCard = ({ tasks = [] }) => {
             const k = day.format('YYYY-MM-DD');
             const inMonth = day.month() === month.month();
             const isSelected = k === selected;
-            const dayTasks = tasksByDay.get(k) || [];
+            const dayTasksList = tasksByDay.get(k) || [];
             const isToday = k === today;
-            const cellTasks = dayTasks.length > 0;
+            const cellTasks = dayTasksList.length > 0;
 
             return (
               <button
@@ -92,13 +91,13 @@ const CalendarCard = ({ tasks = [] }) => {
                 type="button"
                 onClick={() => setSelected(k)}
                 aria-label={day.format('D MMMM YYYY')}
-                className={`flex min-h-11 flex-col items-center gap-1 rounded-lg border p-1 text-left transition-colors hover:border-[#7189A3] hover:bg-[#F4F7FA] ${isSelected ? 'border-[#35475C] bg-[#E8F3FB] shadow-sm' : 'border-transparent bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#7189A3]' : ''}`}
+                className={`flex min-h-11 flex-col items-center gap-1 rounded-lg border p-1 text-left transition-colors hover:border-[#7189A3] hover:bg-[#F4F7FA] ${isSelected ? 'border-[#35475C] bg-[#E8F3FB] shadow-sm' : cellTasks ? 'border-amber-300 bg-amber-50/40' : 'border-transparent bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#7189A3]' : ''}`}
               >
                 <span className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-[#35475C] text-white' : isSelected ? 'bg-white text-[#35475C]' : 'text-[#1F2D33]'}`}>
                   {day.date()}
                 </span>
                 {cellTasks && (
-                  <span className="w-1 h-1 rounded-full bg-[#4A6079]" />
+                  <span className="w-1 h-1 rounded-full bg-amber-500" />
                 )}
               </button>
             );

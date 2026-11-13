@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BookOpen, ChevronDown, ChevronUp, Users, Plus, LogIn, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, ChevronRight, Users, Plus, LogIn, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
