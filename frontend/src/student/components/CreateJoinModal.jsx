@@ -8,8 +8,6 @@ const CreateJoinModal = ({ ctx }) => {
   return (
     <div className="fixed inset-0 bg-[#35475C]/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 border border-[#D5DDE6] shadow-xl w-full max-w-md relative animate-in fade-in zoom-in-95 duration-150">
-        <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-[#EEF1F4] border border-[#D7DEE6] text-[#4F5F73] hover:bg-[#D5DDE6] hover:text-[#35475C] flex items-center justify-center text-xs">✕</button>
-
         <div className="flex items-center justify-between gap-2 mb-5 border-b border-[#D7DEE6] pb-3">
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => setModalTab('create')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${modalTab === 'create' ? 'bg-[#4A6079] text-white shadow-sm hover:bg-[#35475C]' : 'bg-[#EEF1F4] text-[#1F2D3D] border border-[#D7DEE6]'}`}>Create Group</button>
