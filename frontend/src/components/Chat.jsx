@@ -940,6 +940,7 @@ const Chat = ({
                             <div className="mb-1.5 flex items-center justify-end gap-2">
                               <time className="text-[10px] text-white/70">{new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
                               <span className="text-xs font-semibold text-white/90">You</span>
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white"><UserRound size={14} aria-hidden="true" /></span>
                             </div>
                           )}
                           {message.content && <p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed">{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>}

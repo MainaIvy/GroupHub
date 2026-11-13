@@ -25,6 +25,29 @@ body {
   min-height: 100vh;
 }
 
+.lecturer-root {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.lecturer-root button,
+.lecturer-root input,
+.lecturer-root select,
+.lecturer-root textarea {
+  font-family: inherit;
+}
+
+.lecturer-root .text-\[\#0F3D6E\] { color: #35475c; }
+.lecturer-root .text-\[\#12294A\] { color: #33445a; }
+.lecturer-root .text-\[\#6B7A90\] { color: #4f5f73; }
+.lecturer-root .bg-\[\#F4F7FC\] { background-color: #e4e9ef; }
+.lecturer-root .bg-\[\#EEF3FA\] { background-color: #eef1f4; }
+.lecturer-root .border-\[\#E3E9F2\] { border-color: #d7dee6; }
+.lecturer-root .bg-\[\#6DB6E6\] { background-color: #35475c; }
+.lecturer-root .hover\:bg-\[\#154e8a\]:hover { background-color: #435b76; }
+.lecturer-root .hover\:bg-\[\#F4F7FC\]:hover { background-color: #eef1f4; }
+
 button,
 input,
 select,
