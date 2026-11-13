@@ -32,7 +32,7 @@ const Groups = ({ ctx }) => {
       <PageHeader title="Groups" subtitle="Projects and classmates you work with." actions={<GroupActions onJoin={openJoinModal} onCreate={openCreateModal} />} />
       {dashboardError ? <ErrorState message={dashboardError} onRetry={reloadDashboard} /> : (
         <>
-          {insights.error ? <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-800">{insights.error} <button type="button" onClick={insights.reload} className="font-semibold underline">Retry</button></p> : null}
+          {insights.error ? <p role="status" className="rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] px-4 py-2 text-sm text-[#35475C]">{insights.error} <button type="button" onClick={insights.reload} className="font-semibold underline">Retry</button></p> : null}
           {insights.loading && groups.length && !Object.keys(insights.byGroup).length ? <LoadingState label="Loading your groups…" /> : null}
           {visibleGroups.length ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

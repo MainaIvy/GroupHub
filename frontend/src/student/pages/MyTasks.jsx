@@ -116,7 +116,7 @@ const MyTasks = ({ ctx }) => {
             <div className="flex flex-wrap items-center gap-2">
               <h4 className="text-base font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-semibold ${
-                status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
+                status === 'completed' ? 'bg-[#E3EAF2] text-[#35475C]' :
                 status === 'in_progress' ? 'bg-[#E3EAF2] text-[#2F4A66]' :
                 'bg-[#EEF1F4] text-[#33445A]'
               }`}>
@@ -241,7 +241,7 @@ const MyTasks = ({ ctx }) => {
         /* List View - Grouped by due date */
         <div className="space-y-6">
           {renderGroup('Overdue', groupedTasks.overdue, <AlertTriangle size={16} aria-hidden="true" />, 'bg-red-50 text-red-700')}
-          {renderGroup('Due today', groupedTasks.today, <Clock size={16} aria-hidden="true" />, 'bg-amber-50 text-amber-700')}
+          {renderGroup('Due today', groupedTasks.today, <Clock size={16} aria-hidden="true" />, 'bg-[#E3EAF2] text-[#35475C]')}
           {renderGroup('This week', groupedTasks.thisWeek, <CalendarDays size={16} aria-hidden="true" />, 'bg-[#E3EAF2] text-[#2F4A66]')}
           {renderGroup('Later', groupedTasks.later, <Calendar size={16} aria-hidden="true" />, 'bg-[#EEF1F4] text-[#33445A]')}
           {renderGroup('No due date', groupedTasks.noDueDate, <ChevronDown size={16} aria-hidden="true" />, 'bg-[#F1F5F9] text-[#64748B]')}

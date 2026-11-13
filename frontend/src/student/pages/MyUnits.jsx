@@ -90,7 +90,7 @@ const MyUnits = ({ ctx }) => {
                             </span>
                           </div>
                           {group.request_pending ? (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-medium text-amber-700">Request pending</span>
+                            <span className="rounded-full bg-[#E3EAF2] px-2 py-0.5 text-[12px] font-medium text-[#35475C]">Request pending</span>
                           ) : (
                             <button
                               type="button"

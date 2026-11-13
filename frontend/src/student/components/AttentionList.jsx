@@ -9,7 +9,7 @@ const Row = ({ icon, tone, title, detail, children, onClick }) => {
   return (
   <li className="flex flex-wrap items-center justify-between gap-2 py-2">
     <button type="button" onClick={onClick} disabled={!onClick} className="flex min-w-0 flex-1 items-start gap-2 text-left">
-      <Icon size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${tone === 'danger' ? 'text-red-600' : tone === 'warn' ? 'text-amber-600' : 'text-[#35475C]'}`} />
+      <Icon size={18} aria-hidden="true" className={`mt-0.5 shrink-0 ${tone === 'danger' ? 'text-red-600' : tone === 'warn' ? 'text-[#4A6079]' : 'text-[#35475C]'}`} />
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-[#1F2D33]">{title}</span>
         <span className="block text-sm text-[#4A6079]">{detail}</span>
@@ -23,7 +23,7 @@ const Row = ({ icon, tone, title, detail, children, onClick }) => {
 const ActionButtons = ({ busy, onDecline, onAccept, declineLabel, acceptLabel }) => (
   <div className="flex gap-2">
     <button type="button" disabled={busy} onClick={onDecline} className="h-10 rounded-lg border border-[#D7DEE6] px-4 text-sm font-semibold text-[#1F2D33] hover:bg-[#EEF1F4] disabled:opacity-60">{declineLabel}</button>
-    <button type="button" disabled={busy} onClick={onAccept} className="h-10 rounded-lg bg-[#35475C] px-4 text-sm font-semibold text-white hover:bg-[#4A6079] disabled:opacity-60">{acceptLabel}</button>
+    <button type="button" disabled={busy} onClick={onAccept} className="h-10 rounded-lg bg-[#4A6079] px-4 text-sm font-semibold text-white hover:bg-[#35475C] disabled:opacity-60">{acceptLabel}</button>
   </div>
 );
 

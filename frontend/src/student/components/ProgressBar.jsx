@@ -46,7 +46,7 @@ export const ShareBar = ({ sharePercent = 0, memberCount = 1, points = 0, totalP
       <p className="mt-1 text-xs text-[#4F5F73]">
         {points} of {totalPoints} points ({Math.round(sharePercent)}%) 
         {isEarly ? (
-          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[#E3EAF2] px-2 py-0.5 text-[11px] font-medium text-[#35475C]">
             Early &mdash; balancing starts at {totalPoints >= 6 ? '6' : '6'} points
           </span>
         ) : (

@@ -7,7 +7,7 @@ import { describeActivity, formatDue } from '../taskUtils';
 const card = 'rounded-xl border border-[#D7DEE6] bg-white p-4';
 const heading = 'mb-3 text-base font-bold text-[#1F2D3D]';
 
-const BAR = { ok: 'bg-[#4A6079]', warning: 'bg-amber-500', critical: 'bg-red-600', too_early: 'bg-[#4A6079]' };
+const BAR = { ok: 'bg-[#4A6079]', warning: 'bg-[#4A6079]', critical: 'bg-[#D7DEE6]', too_early: 'bg-[#4A6079]' };
 
 const OverviewTab = ({ workspace, balance, activity, polls, pollsLoading, onOpenTask, onGoTab }) => {
   const tasks = workspace.tasks || [];
@@ -66,7 +66,7 @@ const OverviewTab = ({ workspace, balance, activity, polls, pollsLoading, onOpen
                 </div>
               ))}
               <p className="text-[13px] text-[#4F5F73]">The dark marker is each member’s fair share ({Math.round(balance.fair_share)}%).</p>
-              {balance.suggestion ? <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{balance.suggestion}</p> : <p className="text-sm text-[#33445A]">Work is shared fairly.</p>}
+              {balance.suggestion ? <p className="rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] px-3 py-2 text-sm text-[#35475C]">{balance.suggestion}</p> : <p className="text-sm text-[#33445A]">Work is shared fairly.</p>}
             </div>
           )}
       </section>

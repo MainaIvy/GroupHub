@@ -112,7 +112,7 @@ const TaskModal = ({ ctx }) => {
           </div>
 
           {(taskBalanceWarning || taskPreviewWarning) ? (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100" role="status">
+            <div className="rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] p-3 text-xs text-[#35475C]" role="status">
               <p className="font-bold">{taskProjectedBalance?.level === 'critical' ? 'Critical workload warning' : 'Workload balance warning'}</p>
               <p className="mt-1">{taskProjectedBalance?.suggestion || taskBalanceWarning || taskPreviewWarning}</p>
               {taskProjectedBalance && <p className="mt-1 text-[10px]">Projected group total: {pluralize(taskProjectedBalance.total_points, 'point')}</p>}
@@ -121,7 +121,7 @@ const TaskModal = ({ ctx }) => {
                   type="checkbox"
                   checked={taskBalanceConfirmed}
                   onChange={(event) => setTaskBalanceConfirmed(event.target.checked)}
-                  className="mt-0.5 accent-amber-700"
+                  className="mt-0.5 accent-[#35475C]"
                 />
                 <span>I understand the imbalance and want to continue.</span>
               </label>
@@ -131,7 +131,7 @@ const TaskModal = ({ ctx }) => {
                   rows={2}
                   value={taskOverrideReason}
                   onChange={(event) => setTaskOverrideReason(event.target.value)}
-                  className="mt-1 w-full rounded-md border border-amber-300 bg-white px-2.5 py-2 text-xs text-stone-900 dark:border-amber-700 dark:bg-stone-900 dark:text-stone-100"
+                  className="mt-1 w-full rounded-md border border-[#D7DEE6] bg-white px-2.5 py-2 text-xs text-[#1F2D3D] dark:border-[#35475C] dark:bg-[#35475C] dark:text-white"
                 />
               </label>
             </div>

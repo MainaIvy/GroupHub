@@ -4,11 +4,11 @@ import Avatar from '../components/Avatar';
 import { BOARD_LABEL, childrenOf, formatDue, weightText } from './taskUtils';
 
 const CHIP = {
-  proposed: 'bg-amber-50 text-amber-800 border-amber-200',
+  proposed: 'bg-[#E3EAF2] text-[#35475C] border-[#D7DEE6]',
   open_to_claim: 'bg-[#E3EAF2] text-[#2F4A66] border-[#C9D5E2]',
   assigned: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
   in_progress: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
-  done: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  done: 'bg-[#E3EAF2] text-[#35475C] border-[#D7DEE6]',
 };
 
 export const StatusChip = ({ status }) => (

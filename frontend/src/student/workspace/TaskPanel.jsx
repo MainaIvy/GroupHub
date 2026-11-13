@@ -85,7 +85,7 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
 
         {actions.error ? <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{actions.error}</p> : null}
         {warning ? (
-          <div role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <div role="alert" className="mt-3 rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] p-3 text-sm text-[#35475C]">
             <p>{warning.text}</p>
             <div className="mt-2 flex gap-2">
               <button type="button" disabled={actions.busy} onClick={warning.retry} className={btnPrimary}>Continue anyway</button>
