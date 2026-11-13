@@ -340,7 +340,7 @@ const Overview = ({ ctx }) => {
                 )}
               </section>
             </div>
-            <div className="w-full flex-none space-y-6 lg:w-[360px] lg:shrink-0">
+            <div className="w-full flex-none space-y-6 lg:sticky lg:top-20 lg:w-[360px] lg:shrink-0 lg:self-start">
               <CalendarCard tasks={calendarTasks} />
             </div>
           </div>
