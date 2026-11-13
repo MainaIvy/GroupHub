@@ -1,107 +1,129 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
 
 export default function LecturerSetup() {
   const navigate = useNavigate();
-  const [catalog, setCatalog] = useState({ departments: [], courses: [], units: [], terms: [] });
-  const [selection, setSelection] = useState({ department: '', course: '', level: '', unit: '', term: '' });
-  const [added, setAdded] = useState([]);
-  const [error, setError] = useState('');
+  const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetch('/api/accounts/lecturer/setup/', { headers: headers() })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Unable to load the academic catalogue.')))
-      .then(setCatalog)
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Unable to load assignments.')))
+      .then((data) => {
+        setAssignments(data.assignments || []);
+      })
       .catch((requestError) => setError(requestError.message))
       .finally(() => setLoading(false));
   }, []);
 
-  const courses = useMemo(() => catalog.courses.filter((course) => !selection.department || course.department === selection.department), [catalog.courses, selection.department]);
-  const levels = useMemo(() => [...new Set(catalog.units
-    .filter((unit) => !selection.course || String(unit.course_id) === selection.course)
-    .map((unit) => unit.academic_level).filter(Boolean))], [catalog.units, selection.course]);
-  const terms = useMemo(() => catalog.terms.filter((term) => catalog.units.some((unit) => (
-    String(unit.course_id) === selection.course
-    && (!selection.level || unit.academic_level === selection.level)
-    && unit.year_of_study === term.year
-    && unit.semester === term.semester
-  ))), [catalog, selection.course, selection.level]);
-  const units = useMemo(() => catalog.units.filter((unit) => (
-    (!selection.course || String(unit.course_id) === selection.course)
-    && (!selection.level || unit.academic_level === selection.level)
-    && (!selection.term || String(catalog.terms.find((term) => String(term.id) === selection.term)?.year) === String(unit.year_of_study)
-      && String(catalog.terms.find((term) => String(term.id) === selection.term)?.semester) === String(unit.semester))
-  )), [catalog, selection]);
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#EEF3FA] text-[#0F3D6E]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
-  const addUnit = () => {
-    const unit = units.find((item) => String(item.id) === selection.unit);
-    const term = catalog.terms.find((item) => String(item.id) === selection.term);
-    if (!unit || !term || added.some((item) => item.unit_id === unit.id && item.term_id === term.id)) return;
-    setAdded((current) => [...current, {
-      unit_id: unit.id, term_id: term.id, unit, term,
-      course: catalog.courses.find((item) => item.id === unit.course_id),
-    }]);
-    setSelection((current) => ({ ...current, unit: '' }));
-  };
+  const approvedAssignments = assignments.filter(a => a.status === 'approved');
+  const pendingAssignments = assignments.filter(a => a.status === 'pending');
 
-  const save = async () => {
-    setError('');
-    const response = await fetch('/api/accounts/lecturer/setup/', {
-      method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assignments: added.map(({ unit_id, term_id }) => ({ unit_id, term_id })) }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(data.error || 'Unable to save teaching units.');
-      return;
-    }
-    navigate('/lecturer/dashboard');
-  };
-
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#EEF3FA] text-[#0F3D6E]">Loading setup...</div>;
   return (
     <main className="min-h-screen bg-[#EEF3FA] px-4 py-10 text-[#26303B]">
-      <section className="mx-auto max-w-5xl rounded-3xl bg-white p-6 shadow-xl">
-        <h1 className="text-2xl font-bold text-[#0F3D6E]">Set up your teaching units</h1>
-        <p className="mt-1 text-sm text-slate-500">Add every unit you teach this term, then save them together.</p>
-        <div className="mt-6 grid gap-3 md:grid-cols-5">
-          <select className="rounded-xl border p-3" value={selection.department} onChange={(event) => setSelection({ department: event.target.value, course: '', level: '', unit: '', term: '' })}>
-            <option value="">Department</option>
-            {catalog.departments.map((department) => <option key={department} value={department}>{department}</option>)}
-          </select>
-          <select className="rounded-xl border p-3" value={selection.course} onChange={(event) => setSelection({ ...selection, course: event.target.value, level: '', unit: '', term: '' })}>
-            <option value="">Course / programme</option>
-            {courses.map((course) => <option key={course.id} value={course.id}>{course.code} · {course.name}</option>)}
-          </select>
-          <select className="rounded-xl border p-3" value={selection.level} onChange={(event) => setSelection({ ...selection, level: event.target.value, unit: '' })}>
-            <option value="">Academic level</option>
-            {levels.map((level) => <option key={level} value={level}>{level}</option>)}
-          </select>
-          <select className="rounded-xl border p-3" value={selection.term} onChange={(event) => setSelection({ ...selection, term: event.target.value, unit: '' })}>
-            <option value="">Year & semester</option>
-            {terms.map((term) => <option key={term.id} value={term.id}>{term.name}</option>)}
-          </select>
-          <select className="rounded-xl border p-3" value={selection.unit} onChange={(event) => setSelection({ ...selection, unit: event.target.value })}>
-            <option value="">Unit</option>
-            {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.code} · {unit.name}</option>)}
-          </select>
-          <button type="button" onClick={addUnit} className="rounded-xl bg-[#0F3D6E] px-4 py-3 font-semibold text-white">Add unit</button>
+      <section className="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#0F3D6E]">Teaching Units Status</h1>
+            <p className="mt-1 text-sm text-slate-500">Your units are assigned by administrators.</p>
+          </div>
         </div>
-        {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b text-slate-500"><tr><th className="p-3">Department</th><th className="p-3">Level</th><th className="p-3">Course</th><th className="p-3">Year & semester</th><th className="p-3">Unit</th><th /></tr></thead>
-            <tbody>{added.map((item) => <tr key={`${item.unit_id}-${item.term_id}`} className="border-b">
-              <td className="p-3">{item.course?.department}</td><td className="p-3">{item.unit.academic_level || '—'}</td><td className="p-3">{item.course?.name}</td><td className="p-3">{item.term.name}</td><td className="p-3">{item.unit.code} · {item.unit.name}</td>
-              <td className="p-3"><button type="button" onClick={() => setAdded((current) => current.filter((entry) => entry !== item))} className="text-red-600">Remove</button></td>
-            </tr>)}</tbody>
-          </table>
-          {!added.length && <p className="py-8 text-center text-sm text-slate-500">No units added yet.</p>}
+
+        {error && (
+          <p className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>
+        )}
+
+        {approvedAssignments.length === 0 && pendingAssignments.length === 0 ? (
+          <div className="rounded-2xl bg-slate-50 p-8 text-center border border-slate-200">
+            <AlertCircle className="mx-auto h-12 w-12 text-slate-400" />
+            <h2 className="mt-4 text-lg font-semibold text-[#0F3D6E]">No units assigned yet</h2>
+            <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+              Your administrator will assign teaching units through the roster import. 
+              Once assigned, they will appear here automatically.
+            </p>
+            <div className="mt-6 rounded-lg bg-violet-50 p-4 text-left border border-violet-200">
+              <p className="text-sm font-medium text-violet-800">What happens next:</p>
+              <ul className="mt-2 space-y-1 text-sm text-violet-700">
+                <li>• Admin imports lecturer roster with unit assignments</li>
+                <li>• You receive an email to activate your account</li>
+                <li>• Units appear here once approved for the current term</li>
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <>
+            {approvedAssignments.length > 0 && (
+              <div className="mb-6">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0F3D6E]">
+                  <ShieldCheck className="h-5 w-5 text-green-600" />
+                  Active Assignments ({approvedAssignments.length})
+                </h3>
+                <div className="mt-3 space-y-2">
+                  {approvedAssignments.map((assignment) => (
+                    <div key={assignment.id} className="rounded-xl bg-green-50 p-4 border border-green-100">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="font-medium text-[#0F3D6E]">{assignment.unit_code} · {assignment.unit}</p>
+                          <p className="text-sm text-slate-500 mt-1">{assignment.term}</p>
+                        </div>
+                        <span className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 whitespace-nowrap">
+                          <span className="h-1.5 w-1.5 rounded-full bg-green-600" />
+                          Active
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pendingAssignments.length > 0 && (
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0F3D6E]">
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                  Pending Approval ({pendingAssignments.length})
+                </h3>
+                <div className="mt-3 space-y-2">
+                  {pendingAssignments.map((assignment) => (
+                    <div key={assignment.id} className="rounded-xl bg-amber-50 p-4 border border-amber-100">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="font-medium text-[#0F3D6E]">{assignment.unit_code} · {assignment.unit}</p>
+                          <p className="text-sm text-slate-500 mt-1">{assignment.term} · awaiting admin approval</p>
+                        </div>
+                        <span className="flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 whitespace-nowrap">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />
+                          Pending
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="mt-8 pt-6 border-t border-slate-200">
+          <p className="text-sm text-slate-500">
+            Questions about your assignments? Contact your department administrator.
+          </p>
         </div>
-        <button type="button" disabled={!added.length} onClick={save} className="mt-6 rounded-xl bg-[#F57D67] px-5 py-3 font-semibold text-white disabled:opacity-50">Save all teaching units</button>
       </section>
     </main>
   );

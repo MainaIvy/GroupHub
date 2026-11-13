@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { X } from 'lucide-react';
+import { X, ShieldCheck, Mail } from 'lucide-react';
 import logo from '../assets/images/groubhub logo.svg';
 
 const GoogleGIcon = ({ className = '' }) => (
@@ -335,6 +335,47 @@ const Login = ({ googleEnabled = false }) => {
           {googleError && (
             <p className="text-center text-xs text-red-600">{googleError}</p>
           )}
+
+          <div className="relative py-1">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-3 text-xs uppercase tracking-[0.2em] text-slate-400">
+                or sign in as staff
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {googleEnabled ? (
+              <GoogleSignInButton
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                isLoading={googleLoading}
+              />
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="Google sign-in is not configured"
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500 opacity-70"
+              >
+                <GoogleGIcon className="h-5 w-5" />
+                <span>Continue with Google</span>
+              </button>
+            )}
+
+            <Link
+              to="/staff/activate-email"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-violet-700">
+                <Mail className="h-5 w-5" />
+              </div>
+              <span>Activate with email</span>
+            </Link>
+          </div>
 
           <p className="pt-1 text-center text-sm text-slate-500">
             Don&apos;t have an account?{' '}

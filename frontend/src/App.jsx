@@ -14,6 +14,10 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
 import GroupChatRoom from './components/GroupChatRoom';
 import JoinLink from './components/JoinLink';
+import StaffActivateEmail from './components/StaffActivateEmail';
+import StaffActivate from './components/StaffActivate';
+import StaffForgotPassword from './components/StaffForgotPassword';
+import StaffResetPassword from './components/StaffResetPassword';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function App() {
@@ -62,6 +66,11 @@ function App() {
             ) : loginPage
           }
         />
+
+        <Route path="/staff/activate-email" element={<StaffActivateEmail />} />
+        <Route path="/staff/activate/:token" element={<StaffActivate />} />
+        <Route path="/staff/forgot-password" element={<StaffForgotPassword />} />
+        <Route path="/staff/reset-password/:token" element={<StaffResetPassword />} />
 
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />

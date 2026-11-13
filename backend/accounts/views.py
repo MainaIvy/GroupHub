@@ -30,11 +30,15 @@ from django.db.models import Exists, OuterRef
 from django.core.files.storage import default_storage
 from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
-    ChatRoom, Message, Notification, Course, Unit, Semester,     StudentEnrollment, UnitAssignment,
+    ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster,
 )
 from .planning_rules import avatar_url, board_status, weight_change_block, weight_confirm_block, WEIGHT_MIN, WEIGHT_MAX
 from .balance import calculate_group_balance
 from .health import compute_group_health, get_health_details
+from .academic import (
+    approved_units_for_lecturer, current_term, is_supervising_lecturer,
+    sync_student_enrollments, supervising_lecturer_ids, supervising_lecturers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +103,11 @@ class GoogleLoginView(APIView):
                 first_name = parts[0].strip() if parts and parts[0] else 'User'
                 last_name = parts[1].strip() if len(parts) > 1 else 'Account'
 
-            # Decide user type from email if needed (matches existing frontend logic)
-            user_type = 'lecturer' if 'lecturer' in email else 'student'
+            # Check if email is in lecturer roster
+            roster_entry = LecturerRoster.objects.filter(email=email).first()
+            is_lecturer = roster_entry is not None and roster_entry.status == 'active'
+
+            user_type = 'lecturer' if is_lecturer else 'student'
 
             user, created = User.objects.get_or_create(
                 email=email,
@@ -123,10 +130,20 @@ class GoogleLoginView(APIView):
                 user.first_name = first_name
             if last_name:
                 user.last_name = last_name
-            # Keep stored user_type if already set
-            if not getattr(user, 'user_type', None):
-                user.user_type = user_type
+            # Update user_type based on roster
+            if is_lecturer and user.user_type != 'lecturer':
+                user.user_type = 'lecturer'
+            elif not is_lecturer and user.user_type != 'student':
+                user.user_type = 'student'
             user.save()
+
+            # Update roster entry if lecturer
+            if is_lecturer and roster_entry:
+                roster_entry.status = 'active'
+                if not roster_entry.activated_at:
+                    from django.utils import timezone
+                    roster_entry.activated_at = timezone.now()
+                roster_entry.save(update_fields=['status', 'activated_at'])
 
             refresh = RefreshToken.for_user(user)
             return Response({
@@ -139,11 +156,185 @@ class GoogleLoginView(APIView):
                     'last_name': user.last_name,
                     'user_type': user.user_type,
                     'university': user.university,
+                    'lecturer_setup_required': (
+                        user.user_type == 'lecturer'
+                        and not UnitAssignment.objects.filter(lecturer=user).exists()
+                    ),
                 }
             }, status=status.HTTP_200_OK)
         except Exception as e:
             logger.exception(f"Google login failed: {e}")
             return Response({'error': 'Google login failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([])
+def staff_signin_email(request):
+    """Send one-time sign-in link to lecturer email (checks roster)."""
+    email = str(request.data.get('email', '')).strip().lower()
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    roster_entry = LecturerRoster.objects.filter(email=email, status='invited').first()
+    if not roster_entry:
+        return Response({'error': 'No invited lecturer found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+    import secrets
+    from django.utils import timezone
+    from datetime import timedelta
+
+    token = secrets.token_urlsafe(32)
+    roster_entry.activation_token = token
+    roster_entry.activation_token_expires = timezone.now() + timedelta(hours=24)
+    roster_entry.save(update_fields=['activation_token', 'activation_token_expires'])
+
+    signin_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')}/staff/activate/{token}/"
+    print(f"\n=== STAFF SIGN-IN LINK ===")
+    print(f"Lecturer: {roster_entry.full_name} ({roster_entry.email})")
+    print(f"Activation link: {signin_url}")
+    print(f"Expires: {roster_entry.activation_token_expires}")
+    print(f"===========================\n")
+
+    return Response({'message': 'Sign-in link sent. Check backend console for the link in development.'})
+
+
+@api_view(['POST'])
+@permission_classes([])
+def staff_activate(request):
+    """Activate lecturer account using one-time token."""
+    token = str(request.data.get('token', '')).strip()
+    password = request.data.get('password')
+    if not token:
+        return Response({'error': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not password:
+        return Response({'error': 'Password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    roster_entry = LecturerRoster.objects.filter(activation_token=token).first()
+    if not roster_entry:
+        return Response({'error': 'Invalid or expired activation link.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    from django.utils import timezone
+    if roster_entry.activation_token_expires and roster_entry.activation_token_expires < timezone.now():
+        return Response({'error': 'Activation link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user, created = User.objects.get_or_create(
+        email=roster_entry.email,
+        defaults={
+            'username': roster_entry.email,
+            'user_type': 'lecturer',
+            'first_name': roster_entry.full_name.split(' ')[0] if roster_entry.full_name else '',
+            'last_name': ' '.join(roster_entry.full_name.split(' ')[1:]) if len(roster_entry.full_name.split(' ')) > 1 else '',
+            'department': roster_entry.department,
+            'staff_id': roster_entry.staff_id or '',
+            'email_verified': True,
+            'is_active': True,
+            'password': password,  # Include password in defaults for new users
+        }
+    )
+
+    if not created:
+        # User exists, update password and other fields
+        user.set_password(password)
+
+    if user.user_type != 'lecturer':
+        user.user_type = 'lecturer'
+    user.department = roster_entry.department
+    user.staff_id = roster_entry.staff_id or ''
+    name_parts = roster_entry.full_name.split(' ', 1)
+    user.first_name = name_parts[0]
+    user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+    user.email_verified = True
+    user.is_active = True
+    user.save()
+
+    roster_entry.activation_token = None
+    roster_entry.activation_token_expires = None
+    roster_entry.status = 'active'
+    roster_entry.activated_at = timezone.now()
+    roster_entry.save(update_fields=['activation_token', 'activation_token_expires', 'status', 'activated_at'])
+    roster_entry.save(update_fields=['activation_token', 'activation_token_expires', 'status', 'activated_at'])
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        'access': str(refresh.access_token),
+        'refresh': str(refresh),
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'user_type': user.user_type,
+            'university': user.university,
+            'lecturer_setup_required': (
+                user.user_type == 'lecturer'
+                and not UnitAssignment.objects.filter(lecturer=user).exists()
+            ),
+        }
+    })
+
+
+@api_view(['POST'])
+@permission_classes([])
+def staff_forgot_password(request):
+    """Send password reset link to lecturer email (checks roster)."""
+    email = str(request.data.get('email', '')).strip().lower()
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    roster_entry = LecturerRoster.objects.filter(email=email, status='active').first()
+    if not roster_entry:
+        return Response({'error': 'No active lecturer found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+    import secrets
+    from django.utils import timezone
+    from datetime import timedelta
+
+    token = secrets.token_urlsafe(32)
+    roster_entry.reset_token = token
+    roster_entry.reset_token_expires = timezone.now() + timedelta(hours=2)
+    roster_entry.save(update_fields=['reset_token', 'reset_token_expires'])
+
+    reset_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')}/staff/reset-password/{token}/"
+    print(f"\n=== PASSWORD RESET LINK ===")
+    print(f"Lecturer: {roster_entry.full_name} ({roster_entry.email})")
+    print(f"Reset link: {reset_url}")
+    print(f"Expires: {roster_entry.reset_token_expires}")
+    print(f"============================\n")
+
+    return Response({'message': 'Password reset link sent. Check backend console for the link in development.'})
+
+
+@api_view(['POST'])
+@permission_classes([])
+def staff_reset_password(request):
+    """Reset lecturer password using one-time token."""
+    token = str(request.data.get('token', '')).strip()
+    password = request.data.get('password')
+    if not token:
+        return Response({'error': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not password:
+        return Response({'error': 'Password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    roster_entry = LecturerRoster.objects.filter(reset_token=token).first()
+    if not roster_entry:
+        return Response({'error': 'Invalid or expired reset link.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    from django.utils import timezone
+    if roster_entry.reset_token_expires and roster_entry.reset_token_expires < timezone.now():
+        return Response({'error': 'Reset link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email=roster_entry.email).first()
+    if not user:
+        return Response({'error': 'User account not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user.set_password(password)
+    user.save()
+
+    roster_entry.reset_token = None
+    roster_entry.reset_token_expires = None
+    roster_entry.save(update_fields=['reset_token', 'reset_token_expires'])
+
+    return Response({'message': 'Password reset successfully. You can now sign in.'})
 
 
 @csrf_exempt
@@ -167,8 +358,8 @@ def signup_view(request):
         if not full_name:
             return JsonResponse({'error': 'Full name is required.'}, status=400)
 
-        if user_type not in ('student', 'lecturer'):
-            return JsonResponse({'error': 'Invalid user type'}, status=400)
+        if user_type != 'student':
+            return JsonResponse({'error': 'Only student registration is allowed. Lecturers are added by administrators.'}, status=400)
 
         if data.get('confirmPassword') != password:
             return JsonResponse({'error': 'Passwords do not match'}, status=400)
@@ -192,7 +383,6 @@ def signup_view(request):
         year = None
         semester_number = None
         matching_units = Unit.objects.none()
-        lecturer_units = Unit.objects.none()
         if user_type == 'student':
             academic_level = str(data.get('academic_level') or '').strip()
             try:
@@ -222,24 +412,6 @@ def signup_view(request):
             if not matching_units.exists():
                 return JsonResponse({'error': 'No units are available for the selected programme, academic level, and year.'}, status=400)
 
-        else:
-            if not str(data.get('staffId') or '').strip():
-                return JsonResponse({'error': 'Staff ID is required for lecturer signup.'}, status=400)
-            if university != 'zetech':
-                return JsonResponse({'error': 'Select Zetech University as the institution.'}, status=400)
-            raw_unit_ids = data.get('unit_ids') or []
-            if not isinstance(raw_unit_ids, list):
-                return JsonResponse({'error': 'Select valid units to teach.'}, status=400)
-            try:
-                unit_ids = {int(unit_id) for unit_id in raw_unit_ids}
-            except (TypeError, ValueError):
-                return JsonResponse({'error': 'Select valid units to teach.'}, status=400)
-            lecturer_units = Unit.objects.select_for_update().filter(id__in=unit_ids)
-            if lecturer_units.count() != len(unit_ids):
-                return JsonResponse({'error': 'One or more selected units could not be found.'}, status=400)
-            if lecturer_units.filter(assigned_lecturer__isnull=False).exists():
-                return JsonResponse({'error': 'One or more selected units are already assigned to a lecturer.'}, status=400)
-
         name_parts = full_name.split(' ', 1)
         first_name = name_parts[0]
         last_name = name_parts[1] if len(name_parts) > 1 else ''
@@ -262,27 +434,15 @@ def signup_view(request):
                 user.year_of_study = str(year)
                 user.enrolled_course = course
                 user.semester = semester_number
-            else:
-                user.salutation = str(data.get('salutation') or '').strip()
-                user.staff_id = str(data.get('staffId') or '').strip()
-                user.department = str(data.get('department') or '').strip()
-                user.courses_taught = str(data.get('coursesTaught') or '').strip()
-                Unit.objects.filter(id__in=unit_ids).update(assigned_lecturer=user)
 
             user.email_verified = True
             user.is_active = True
             user.save()
 
             if user_type == 'student':
-                semester, _ = Semester.objects.get_or_create(
-                    year=year,
-                    semester=semester_number,
-                    defaults={'name': f'Year {year} Semester {semester_number}'},
-                )
-                StudentEnrollment.objects.bulk_create([
-                    StudentEnrollment(student=user, unit=unit, semester=semester)
-                    for unit in matching_units
-                ])
+                term, enrolled_count = sync_student_enrollments(user)
+                if term is None:
+                    return JsonResponse({'error': 'Create an academic term before enrolling students.'}, status=400)
 
         logger.info(f"User {user.id} created successfully. Automated development bypass activation.")
         return JsonResponse({'message': 'User created successfully.', 'user_id': user.id}, status=201)
@@ -384,6 +544,9 @@ def student_settings(request):
         except ValidationError as error:
             return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Keep enrolments in step with the saved programme/year/semester.
+        sync_student_enrollments(user)
+
     course = user.enrolled_course
     if course is None and user.course:
         course = Course.objects.filter(
@@ -434,12 +597,39 @@ def lecturer_settings(request):
     })
 
 
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def notification_settings(request):
+    user = request.user
+    settings, _ = NotificationSettings.objects.get_or_create(user=user)
+
+    if request.method == 'PATCH':
+        settings.task_assigned = request.data.get('taskAssigned', settings.task_assigned)
+        settings.task_due = request.data.get('taskDue', settings.task_due)
+        settings.poll_opened = request.data.get('pollOpened', settings.poll_opened)
+        settings.mention = request.data.get('mention', settings.mention)
+        settings.message_received = request.data.get('messageReceived', settings.message_received)
+        settings.join_request = request.data.get('joinRequest', settings.join_request)
+        settings.invite_response = request.data.get('inviteResponse', settings.invite_response)
+        settings.save()
+
+    return Response({
+        'taskAssigned': settings.task_assigned,
+        'taskDue': settings.task_due,
+        'pollOpened': settings.poll_opened,
+        'mention': settings.mention,
+        'messageReceived': settings.message_received,
+        'joinRequest': settings.join_request,
+        'inviteResponse': settings.invite_response,
+    })
+
+
 def _lecturer_unit_or_error(user, unit_id):
     try:
         unit = Unit.objects.get(pk=unit_id)
     except (Unit.DoesNotExist, TypeError, ValueError):
         return None, Response({'error': 'Select a valid unit.'}, status=status.HTTP_400_BAD_REQUEST)
-    if not UnitAssignment.objects.filter(lecturer=user, unit=unit).exists() and unit.assigned_lecturer_id != user.id:
+    if not approved_units_for_lecturer(user, current_term()).filter(pk=unit.pk).exists():
         return None, Response({'error': 'You can only manage your assigned units.'}, status=status.HTTP_403_FORBIDDEN)
     return unit, None
 
@@ -567,9 +757,7 @@ def lecturer_demo_data(request):
         deleted_students, _ = User.objects.filter(id__in=demo_student_ids).delete()
         return Response({'groups_deleted': deleted_groups, 'students_deleted': deleted_students})
 
-    assigned_units = Unit.objects.filter(
-        models.Q(assigned_lecturer=user) | models.Q(lecturer_assignments__lecturer=user)
-    ).distinct()
+    assigned_units = approved_units_for_lecturer(user, current_term())
     if not assigned_units.exists():
         return Response({'error': 'Assign at least one unit to yourself before creating demo data.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -747,27 +935,22 @@ def lecturer_dashboard(request):
     try:
         user = request.user
         logger.info(f"Dashboard request for user {user.id}: {user.email}, type: {user.user_type}")
-        if user.user_type != 'lecturer':
-            logger.warning(f"Access denied for non-lecturer user {user.id}")
+        # Allow access if user is a lecturer OR has approved unit assignments
+        lecturer_units = approved_units_for_lecturer(user, current_term())
+        logger.info(f"User {user.id} has {lecturer_units.count()} approved units for current term")
+        if user.user_type != 'lecturer' and not lecturer_units.exists():
+            logger.warning(f"Access denied for non-lecturer user {user.id} with {lecturer_units.count()} units")
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-
-        lecturer_groups = Group.objects.filter(lecturer=user)
+        unit_ids = list(lecturer_units.values_list('id', flat=True))
+        lecturer_groups = Group.objects.filter(unit_id__in=unit_ids)
         total_groups = lecturer_groups.count()
-        assigned_unit_ids = UnitAssignment.objects.filter(
-            lecturer=user
-        ).values('unit_id')
-        lecturer_units = Unit.objects.filter(
-            models.Q(id__in=assigned_unit_ids)
-            | models.Q(assigned_lecturer=user)
-            | models.Q(groups__lecturer=user)
-        ).select_related('course').distinct()
         enrolled_students = User.objects.filter(
             user_type='student',
-            enrollments__unit__in=lecturer_units,
+            enrollments__unit_id__in=unit_ids,
         ).distinct()
         total_students = enrolled_students.count()
         pending_submissions = Submission.objects.filter(
-            project__group__lecturer=user,
+            project__group__in=lecturer_groups,
             status='submitted'
         ).count()
 
@@ -779,7 +962,7 @@ def lecturer_dashboard(request):
             group['projects'] = list(Project.objects.filter(group_id=group['id']).values('id', 'title', 'status'))
 
         recent_submissions = Submission.objects.filter(
-            project__group__lecturer=user
+            project__group__in=lecturer_groups
         ).select_related('project', 'submitted_by').order_by('-submitted_at')[:10]
 
         submissions_data = []
@@ -795,19 +978,17 @@ def lecturer_dashboard(request):
             })
 
         units = []
+        active_term = current_term()
         for unit in lecturer_units:
-            assigned_term_ids = UnitAssignment.objects.filter(
-                lecturer=user, unit=unit
-            ).values_list('term_id', flat=True)
             enrollment_filter = {'enrollments__unit': unit}
-            if assigned_term_ids:
-                enrollment_filter['enrollments__semester_id__in'] = assigned_term_ids
+            if active_term is not None:
+                enrollment_filter['enrollments__semester_id'] = active_term.id
             students = User.objects.filter(
                 user_type='student',
                 **enrollment_filter,
             ).distinct().order_by('first_name', 'last_name', 'id')
             unit_groups = lecturer_groups.filter(unit=unit).order_by('name')
-            unit_submissions = Submission.objects.filter(project__group__unit=unit, project__group__lecturer=user)
+            unit_submissions = Submission.objects.filter(project__group__in=unit_groups)
             unit_submission_count = unit_submissions.count()
             unit_submitted_count = unit_submissions.exclude(status='submitted').count()
             units.append({
@@ -847,6 +1028,9 @@ def lecturer_dashboard(request):
                 'course': user.course,
                 'year_of_study': user.year_of_study,
             },
+            'pending_approval': not units and UnitAssignment.objects.filter(
+                lecturer=user, status='pending',
+            ).exists(),
             'stats': {
                 'total_groups': total_groups,
                 'total_units': len(units),
@@ -1050,7 +1234,7 @@ def get_group_tasks(request, group_id):
         group = Group.objects.get(id=group_id)
 
         if user.user_type == 'lecturer':
-            if group.lecturer != user:
+            if not is_supervising_lecturer(user, group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         else:
             if not GroupMembership.objects.filter(group=group, student=user).exists():
@@ -1080,7 +1264,7 @@ def get_group_tasks(request, group_id):
                 'parent_task_id': task.parent_task_id,
                 'is_parent': task.subtasks.exists(),
                 'is_overdue': bool(task.due_date and task.due_date < timezone.now() and task.status != 'completed'),
-                'can_update_progress': can_update_progress or (user.user_type == 'lecturer' and group.lecturer_id == user.id),
+                'can_update_progress': can_update_progress or (user.user_type == 'lecturer' and is_supervising_lecturer(user, group)),
                 'comments': [{
                     'id': comment.id,
                     'author_id': comment.author_id,
@@ -1105,7 +1289,8 @@ def get_group_task_workspace(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
         is_member = GroupMembership.objects.filter(group=group, student=request.user).exists()
-        if group.lecturer_id != request.user.id and not is_member:
+        is_supervisor = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
+        if not is_supervisor and not is_member:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         members = GroupMembership.objects.filter(group=group).select_related('student').order_by('joined_at')
@@ -1183,7 +1368,7 @@ def get_group_task_workspace(request, group_id):
                 'has_subtasks': bool(children_by_parent.get(task.id)),
                 'can_update_progress': (
                     task.assigned_to_id == request.user.id
-                    or (request.user.user_type == 'lecturer' and group.lecturer_id == request.user.id)
+                    or (request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group))
                     or GroupMembership.objects.filter(group=group, student=request.user, role='admin').exists()
                 ),
                 'can_change_weight': weight_change_block(request.user, group, task) is None,
@@ -1241,7 +1426,8 @@ def get_group_task_workspace(request, group_id):
 def get_group_activity(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        if group.lecturer_id != request.user.id and not GroupMembership.objects.filter(
+        is_supervisor = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
+        if not is_supervisor and not GroupMembership.objects.filter(
             group=group, student=request.user
         ).exists():
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
@@ -1278,7 +1464,7 @@ def get_group_activity(request, group_id):
 def get_group_comments(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        is_lecturer = request.user.user_type == 'lecturer' and group.lecturer_id == request.user.id
+        is_lecturer = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
         is_member = GroupMembership.objects.filter(group=group, student=request.user).exists()
         if not is_lecturer and not is_member:
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
@@ -1348,7 +1534,7 @@ def grade_submission(request, submission_id):
         submission = Submission.objects.select_related('project__group', 'project', 'submitted_by').get(pk=submission_id)
     except Submission.DoesNotExist:
         return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
-    if submission.project.group.lecturer_id != request.user.id:
+    if not is_supervising_lecturer(request.user, submission.project.group):
         return Response({'error': 'You can only grade submissions from your groups.'}, status=status.HTTP_403_FORBIDDEN)
     raw_grade = request.data.get('grade')
     try:
@@ -1370,7 +1556,8 @@ def grade_submission(request, submission_id):
 def group_submissions(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        if group.lecturer_id != request.user.id and not GroupMembership.objects.filter(
+        is_supervisor = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
+        if not is_supervisor and not GroupMembership.objects.filter(
             group=group, student=request.user
         ).exists():
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
@@ -1488,7 +1675,9 @@ def _sync_parent_task_rollups(task):
 
 
 def _group_task_participant(user, group):
-    return group.lecturer_id == user.id or GroupMembership.objects.filter(group=group, student=user).exists()
+    if user.user_type == 'lecturer':
+        return is_supervising_lecturer(user, group)
+    return GroupMembership.objects.filter(group=group, student=user).exists()
 
 
 @api_view(['POST'])
@@ -1683,7 +1872,7 @@ def get_group_balance(request, group_id):
         group = Group.objects.get(id=group_id)
 
         if user.user_type == 'lecturer':
-            if group.lecturer != user:
+            if not is_supervising_lecturer(user, group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         else:
             if not GroupMembership.objects.filter(group=group, student=user).exists():
@@ -1746,7 +1935,7 @@ def create_task(request, group_id):
         user = request.user
         group = Group.objects.get(id=group_id)
 
-        if user.user_type != 'lecturer' or group.lecturer != user:
+        if user.user_type != 'lecturer' or not is_supervising_lecturer(user, group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         title = request.data.get('title', '').strip()
@@ -1842,7 +2031,7 @@ def update_task_status(request, task_id):
         task = Task.objects.get(id=task_id)
 
         if user.user_type == 'lecturer':
-            if task.project.group.lecturer != user:
+            if not is_supervising_lecturer(user, task.project.group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         elif task.assigned_to != user and not GroupMembership.objects.filter(
             group=task.project.group, student=user, role='admin'
@@ -1895,7 +2084,7 @@ def update_task_progress(request, task_id):
         task = Task.objects.get(id=task_id)
 
         if user.user_type == 'lecturer':
-            if task.project.group.lecturer != user:
+            if not is_supervising_lecturer(user, task.project.group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         elif task.assigned_to != user and not GroupMembership.objects.filter(
             group=task.project.group, student=user, role='admin'
@@ -2006,7 +2195,7 @@ def get_group_members(request, group_id):
         group = Group.objects.get(id=group_id)
 
         if user.user_type == 'lecturer':
-            if group.lecturer != user:
+            if not is_supervising_lecturer(user, group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         else:
             if not GroupMembership.objects.filter(group=group, student=user).exists():
@@ -2044,12 +2233,11 @@ def get_students_for_lecturer(request):
         if user.user_type != 'lecturer':
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
-        lecturer_units = Unit.objects.filter(
-            models.Q(assigned_lecturer=user) | models.Q(groups__lecturer=user)
-        ).distinct()
+        lecturer_units = approved_units_for_lecturer(user, current_term())
         students = User.objects.filter(
             user_type='student',
             enrollments__unit__in=lecturer_units,
+            enrollments__semester=current_term(),
         ).distinct().values(
             'id', 'first_name', 'last_name', 'email', 'course', 'year_of_study'
         ).order_by('first_name', 'last_name', 'id')
@@ -2163,7 +2351,7 @@ def get_messages(request, room_id):
 
         if chat_room.chat_type == 'group':
             if user.user_type == 'lecturer':
-                if chat_room.group.lecturer != user:
+                if not is_supervising_lecturer(user, chat_room.group):
                     return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
             else:
                 if not GroupMembership.objects.filter(group=chat_room.group, student=user).exists():
@@ -2234,7 +2422,7 @@ def send_message(request, room_id):
 
         if chat_room.chat_type == 'group':
             if user.user_type == 'lecturer':
-                if chat_room.group.lecturer != user:
+                if not is_supervising_lecturer(user, chat_room.group):
                     return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
             else:
                 if not GroupMembership.objects.filter(group=chat_room.group, student=user).exists():
@@ -2261,8 +2449,8 @@ def send_message(request, room_id):
                 membership.student
                 for membership in chat_room.group.memberships.select_related('student').exclude(student=user)
             )
-            if chat_room.group.lecturer_id != user.id:
-                recipients.append(chat_room.group.lecturer)
+            supervisors = supervising_lecturers(chat_room.group).exclude(id=user.id)
+            recipients.extend(supervisors)
         preview = content[:100] + ('...' if len(content) > 100 else '')
         for recipient in recipients:
             Notification.objects.create(
@@ -2283,7 +2471,7 @@ def send_message(request, room_id):
                 if mentioned_user and mentioned_user != user:
                     # Check if mentioned user is in the group
                     is_member = GroupMembership.objects.filter(group=chat_room.group, student=mentioned_user).exists()
-                    is_lecturer = chat_room.group.lecturer_id == mentioned_user.id
+                    is_lecturer = is_supervising_lecturer(mentioned_user, chat_room.group)
                     if is_member or is_lecturer:
                         Notification.objects.create(
                             user=mentioned_user,
@@ -2336,7 +2524,7 @@ def download_message_attachment(request, message_id):
         chat_room = message.chat_room
         user = request.user
         if chat_room.chat_type == 'group':
-            allowed = chat_room.group.lecturer_id == user.id or GroupMembership.objects.filter(
+            allowed = is_supervising_lecturer(user, chat_room.group) or GroupMembership.objects.filter(
                 group=chat_room.group, student=user
             ).exists()
         else:
@@ -2365,7 +2553,7 @@ def download_message_voice_note(request, message_id):
         chat_room = message.chat_room
         user = request.user
         if chat_room.chat_type == 'group':
-            allowed = chat_room.group.lecturer_id == user.id or GroupMembership.objects.filter(
+            allowed = is_supervising_lecturer(user, chat_room.group) or GroupMembership.objects.filter(
                 group=chat_room.group, student=user
             ).exists()
         else:
@@ -2425,21 +2613,29 @@ def get_or_create_direct_chat(request):
             return Response({'error': 'You cannot start a chat with yourself'}, status=status.HTTP_400_BAD_REQUEST)
 
         if user.user_type == 'lecturer':
-            taught_units = Unit.objects.filter(
-                models.Q(assigned_lecturer=user) | models.Q(groups__lecturer=user)
-            ).distinct()
+            active_term = current_term()
+            taught_units = approved_units_for_lecturer(user, active_term)
+            supervised_group_ids = Group.objects.filter(
+                unit_id__in=taught_units.values('id')
+            ).values_list('id', flat=True)
+            enrollment_qs = StudentEnrollment.objects.filter(student=contact, unit__in=taught_units)
+            if active_term is not None:
+                enrollment_qs = enrollment_qs.filter(semester=active_term)
             can_contact = (
-                Group.objects.filter(lecturer=user, memberships__student=contact).exists()
-                or StudentEnrollment.objects.filter(student=contact, unit__in=taught_units).exists()
+                GroupMembership.objects.filter(group_id__in=supervised_group_ids, student=contact).exists()
+                or enrollment_qs.exists()
             )
         else:
             shared_group_ids = GroupMembership.objects.filter(student=user).values_list('group_id', flat=True)
+            shared_group_unit_ids = Group.objects.filter(id__in=shared_group_ids).values_list('unit_id', flat=True)
             can_contact = (
                 GroupMembership.objects.filter(group_id__in=shared_group_ids, student=contact).exists()
-                or Group.objects.filter(id__in=shared_group_ids, lecturer=contact).exists()
-                or StudentEnrollment.objects.filter(
-                    student=user,
-                    unit__assigned_lecturer=contact,
+                or UnitAssignment.objects.filter(
+                    lecturer=contact, status='approved', unit_id__in=shared_group_unit_ids,
+                ).exists()
+                or UnitAssignment.objects.filter(
+                    lecturer=contact, status='approved',
+                    unit__student_enrollments__student=user,
                 ).exists()
             )
         if not can_contact:
@@ -2509,7 +2705,7 @@ def mark_room_notifications_read(request, room_id):
         user = request.user
         room = ChatRoom.objects.get(pk=room_id)
         if room.chat_type == 'group':
-            allowed = room.group.lecturer_id == user.id or GroupMembership.objects.filter(
+            allowed = is_supervising_lecturer(user, room.group) or GroupMembership.objects.filter(
                 group=room.group, student=user
             ).exists()
         else:
@@ -2566,9 +2762,9 @@ def create_group_view(request):
             return Response({'error': 'Select a valid unit'}, status=status.HTTP_400_BAD_REQUEST)
         if user.user_type == 'student' and user.enrolled_course_id and unit.course_id != user.enrolled_course_id:
             return Response({'error': 'Select a unit from your enrolled programme'}, status=status.HTTP_400_BAD_REQUEST)
-        if user.user_type == 'lecturer' and not UnitAssignment.objects.filter(
-            lecturer=user, unit=unit
-        ).exists() and unit.assigned_lecturer_id != user.id:
+        if user.user_type == 'lecturer' and not approved_units_for_lecturer(
+            user, current_term()
+        ).filter(pk=unit.pk).exists():
             return Response({'error': 'Select one of your assigned units'}, status=status.HTTP_403_FORBIDDEN)
         course = unit.course.name
         year_of_study = unit.year_of_study
@@ -2620,11 +2816,12 @@ def create_group_view(request):
                 year_of_study=year_of_study,
                 description=str(description or '').strip(),
                 join_code=join_code,
-                unit=unit,
-                unit_code=unit.code if unit else '',
-                lecturer=user,
-                max_members=max_members,
-            )
+                    unit=unit,
+                    unit_code=unit.code if unit else '',
+                    term=current_term(),
+                    lecturer=user,
+                    max_members=max_members,
+                )
             if user.user_type == 'student':
                 GroupMembership.objects.create(group=group, student=user, role='member')
             GroupMembership.objects.bulk_create([
@@ -2663,8 +2860,8 @@ def create_group_view(request):
 def delete_group_view(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        if group.lecturer_id != request.user.id:
-            return Response({'error': 'Only the group creator can delete this group.'}, status=status.HTTP_403_FORBIDDEN)
+        if group.lecturer_id != request.user.id and not is_supervising_lecturer(request.user, group):
+            return Response({'error': 'Only the group creator or a supervising lecturer can delete this group.'}, status=status.HTTP_403_FORBIDDEN)
 
         attachment_names = list(Message.objects.filter(
             chat_room__group=group,
@@ -2688,7 +2885,7 @@ def get_group_chat_room(request, group_id):
         group = Group.objects.get(id=group_id)
 
         if user.user_type == 'lecturer':
-            if group.lecturer != user:
+            if not is_supervising_lecturer(user, group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         else:
             if not GroupMembership.objects.filter(group=group, student=user).exists():

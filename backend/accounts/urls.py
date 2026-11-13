@@ -11,9 +11,14 @@ urlpatterns = [
     path('admin/users/create/', admin_api.admin_create_user, name='admin_create_user'),
     path('admin/users/<int:user_id>/<str:action>/', admin_api.admin_user_action, name='admin_user_action'),
     path('admin/assignments/', admin_api.admin_assignments, name='admin_assignments'),
+    path('admin/assignments/pending/', admin_api.admin_pending_assignments, name='admin_pending_assignments'),
     path('admin/assignments/unassigned/', admin_api.admin_unassigned_units, name='admin_unassigned_units'),
+    path('admin/assignments/<int:assignment_id>/<str:decision>/', admin_api.admin_assignment_decision, name='admin_assignment_decision'),
     path('admin/lecturers/<int:lecturer_id>/load/', admin_api.admin_lecturer_load, name='admin_lecturer_load'),
     path('admin/assignments/<int:assignment_id>/', admin_api.admin_assignment_delete, name='admin_assignment_delete'),
+    path('admin/terms/', admin_api.admin_terms, name='admin_terms'),
+    path('admin/terms/<int:term_id>/<str:action>/', admin_api.admin_term_action, name='admin_term_action'),
+    path('admin/rollover/', admin_api.admin_rollover, name='admin_rollover'),
     path('admin/groups/', admin_api.admin_groups, name='admin_groups'),
     path('admin/groups/<int:group_id>/members/', admin_api.admin_group_members, name='admin_group_members'),
     path('admin/groups/no-group/', admin_api.admin_students_without_group, name='admin_students_without_group'),
@@ -27,6 +32,15 @@ urlpatterns = [
     path('admin/announcements/', admin_api.admin_announcements, name='admin_announcements'),
     path('admin/audit/', admin_api.admin_audit, name='admin_audit'),
     path('admin/export/<str:export_type>/', admin_api.admin_export, name='admin_export'),
+    path('admin/roster/template/', admin_api.admin_roster_template, name='admin_roster_template'),
+    path('admin/roster/import/preview/', admin_api.admin_roster_import_preview, name='admin_roster_import_preview'),
+    path('admin/roster/import/commit/', admin_api.admin_roster_import_commit, name='admin_roster_import_commit'),
+    path('admin/import/history/', admin_api.admin_import_history, name='admin_import_history'),
+    path('admin/import/<int:batch_id>/undo/', admin_api.admin_import_undo, name='admin_import_undo'),
+    path('admin/rosters/', admin_api.admin_rosters, name='admin_rosters'),
+    path('admin/rosters/create/', admin_api.admin_roster_create, name='admin_roster_create'),
+    path('admin/rosters/<int:roster_id>/', admin_api.admin_roster_update, name='admin_roster_update'),
+    path('admin/rosters/resend/', admin_api.admin_roster_resend, name='admin_roster_resend'),
     path('student/current-units/', units_views.get_current_semester_units, name='current_semester_units'),
     path('units/<int:unit_id>/classmates/', group_access_views.unit_classmates, name='unit_classmates'),
     path('units/<int:unit_id>/groups/', group_access_views.unit_open_groups, name='unit_open_groups'),
@@ -36,6 +50,12 @@ urlpatterns = [
 
     # Google OAuth login
     path('google/login/', views.GoogleLoginView.as_view(), name='api_google_login'),
+
+    # Staff sign-in (lecturers only)
+    path('staff/signin-email/', views.staff_signin_email, name='staff_signin_email'),
+    path('staff/activate/', views.staff_activate, name='staff_activate'),
+    path('staff/forgot-password/', views.staff_forgot_password, name='staff_forgot_password'),
+    path('staff/reset-password/', views.staff_reset_password, name='staff_reset_password'),
 
     # API login (DRF). DO NOT route the API login to the plain Django function view,
     # otherwise the browser can render the token JSON outside of React.
@@ -50,6 +70,7 @@ urlpatterns = [
     # Student account settings
     path('profile/settings/', views.student_settings, name='student_settings'),
     path('lecturer/settings/', views.lecturer_settings, name='lecturer_settings'),
+    path('lecturer/units/', units_views.lecturer_my_units, name='lecturer_my_units'),
     path('lecturer/units/create/', views.lecturer_create_unit, name='lecturer_create_unit'),
     path('lecturer/units/<int:unit_id>/', views.lecturer_update_unit, name='lecturer_update_unit'),
     path('lecturer/units/<int:unit_id>/students/<int:student_id>/', views.lecturer_manage_student, name='lecturer_manage_student'),
@@ -57,6 +78,7 @@ urlpatterns = [
     path('lecturer/demo-data/', views.lecturer_demo_data, name='lecturer_demo_data'),
     path('profile/change-password/', views.change_student_password, name='change_student_password'),
     path('profile/avatar/', work_views.profile_avatar, name='profile_avatar'),
+    path('profile/notification-settings/', views.notification_settings, name='notification_settings'),
 
     # Dashboards
     path('dashboard/student/', views.student_dashboard, name='student_dashboard'),

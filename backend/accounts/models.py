@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import validate_email, MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 import re
+import uuid
 
 class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True)
@@ -67,6 +68,58 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
 
 
+class LecturerRoster(models.Model):
+    STATUS_CHOICES = [
+        ('invited', 'Invited'),
+        ('active', 'Active'),
+        ('deactivated', 'Deactivated'),
+    ]
+    email = models.EmailField(max_length=254, unique=True)
+    full_name = models.CharField(max_length=200)
+    department = models.CharField(max_length=100, blank=True)
+    staff_id = models.CharField(max_length=50, blank=True, null=True)
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='invited')
+    created_at = models.DateTimeField(auto_now_add=True)
+    activated_at = models.DateTimeField(null=True, blank=True)
+    activation_token = models.CharField(max_length=64, blank=True, null=True)
+    activation_token_expires = models.DateTimeField(null=True, blank=True)
+    reset_token = models.CharField(max_length=64, blank=True, null=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.full_name} ({self.email})"
+
+
+class ImportBatch(models.Model):
+    TYPE_CHOICES = [
+        ('lecturer_roster', 'Lecturer Roster'),
+    ]
+    MODE_CHOICES = [
+        ('add', 'Add'),
+        ('replace', 'Replace this term\'s assignments'),
+    ]
+    STATUS_CHOICES = [
+        ('committed', 'Committed'),
+        ('undone', 'Undone'),
+    ]
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    file_name = models.CharField(max_length=255)
+    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='add')
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='import_batches')
+    created_at = models.DateTimeField(auto_now_add=True)
+    summary = models.JSONField(default=dict)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='committed')
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_type_display()} - {self.file_name} ({self.created_at})"
+
+
 class Group(models.Model):
     name = models.CharField(max_length=100)
     course = models.CharField(max_length=100)
@@ -75,6 +128,9 @@ class Group(models.Model):
     join_code = models.CharField(max_length=6, unique=True, db_index=True)
     unit_code = models.CharField(max_length=50, null=True, blank=True)
     academic_term = models.CharField(max_length=20, null=True, blank=True)
+    term = models.ForeignKey(
+        'Semester', on_delete=models.SET_NULL, related_name='groups', null=True, blank=True
+    )
     is_archived = models.BooleanField(default=False)
     is_locked = models.BooleanField(default=False)
     max_members = models.PositiveSmallIntegerField(default=5, null=True, blank=True)
@@ -332,6 +388,22 @@ class Notification(models.Model):
         ordering = ['-created_at']
 
 
+class NotificationSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='notification_settings')
+    task_assigned = models.BooleanField(default=True)
+    task_due = models.BooleanField(default=True)
+    poll_opened = models.BooleanField(default=True)
+    mention = models.BooleanField(default=True)
+    message_received = models.BooleanField(default=True)
+    join_request = models.BooleanField(default=True)
+    invite_response = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Notification settings for {self.user.username}"
+
+
 class Course(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=200)
@@ -366,12 +438,21 @@ class Unit(models.Model):
 
 
 class Semester(models.Model):
+    """An academic term. Reused as the project's AcademicTerm (name + dates + current flag)."""
     name = models.CharField(max_length=50, unique=True)
     year = models.PositiveIntegerField()
     semester = models.PositiveIntegerField()
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    is_current = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.is_current:
+            Semester.objects.exclude(pk=self.pk).update(is_current=False)
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ('year', 'semester', 'name')
@@ -379,10 +460,31 @@ class Semester(models.Model):
 
 
 class UnitAssignment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='unit_assignments')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='lecturer_assignments')
     term = models.ForeignKey(Semester, on_delete=models.PROTECT, related_name='unit_assignments')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    requested_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='requested_unit_assignments',
+    )
+    approved_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='approved_unit_assignments',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    import_batch = models.ForeignKey(
+        'ImportBatch', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='unit_assignments',
+    )
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
 
     class Meta:
         constraints = [
