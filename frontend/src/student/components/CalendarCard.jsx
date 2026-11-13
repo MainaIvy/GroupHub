@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import { ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const NAVY = '#1B2433';
@@ -43,25 +43,26 @@ const CalendarCard = ({ tasks = [] }) => {
   });
 
   return (
-    <section className="flex min-w-0 flex-col gap-4" style={{ maxWidth: '360px' }}>
+    <section className="flex min-w-0 flex-col gap-4 rounded-xl border border-[#D7DEE6] bg-white p-4 shadow-sm" style={{ maxWidth: '380px' }}>
       {/* Month header */}
-      <div className="flex items-center justify-between gap-2 px-2 py-1">
+      <div className="flex items-center justify-between gap-2 border-b border-[#EEF1F4] pb-3">
         <button
           type="button"
           onClick={() => setMonth(month.subtract(1, 'month'))}
           aria-label="Previous month"
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D7DEE6] bg-white text-[#1F2D33] hover:bg-[#EEF1F4] transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D7DEE6] bg-white text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
         >
           <ChevronLeft size={14} aria-hidden="true" />
         </button>
-        <span className="flex-1 items-center justify-center rounded-full bg-[#EEF1F4] px-3 py-1 text-xs font-semibold text-[#1F2D33] whitespace-nowrap">
+        <span className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#E8F3FB] px-3 py-2 text-sm font-bold text-[#35475C] whitespace-nowrap">
+          <CalendarDays size={15} aria-hidden="true" />
           {month.format('MMMM YYYY')}
         </span>
         <button
           type="button"
           onClick={() => setMonth(month.add(1, 'month'))}
           aria-label="Next month"
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D7DEE6] bg-white text-[#1F2D33] hover:bg-[#EEF1F4] transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D7DEE6] bg-white text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
         >
           <ChevronRight size={14} aria-hidden="true" />
         </button>
@@ -76,7 +77,7 @@ const CalendarCard = ({ tasks = [] }) => {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {days.map((day) => {
             const k = day.format('YYYY-MM-DD');
             const inMonth = day.month() === month.month();
@@ -91,9 +92,9 @@ const CalendarCard = ({ tasks = [] }) => {
                 type="button"
                 onClick={() => setSelected(k)}
                 aria-label={day.format('D MMMM YYYY')}
-                className={`flex flex-col items-center gap-1 rounded-lg border p-1 text-left transition-colors ${isSelected ? 'ring-1 ring-[#35475C] bg-[#EEF1F4]' : 'bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#7189A3]' : ''}`}
+                className={`flex min-h-11 flex-col items-center gap-1 rounded-lg border p-1 text-left transition-colors hover:border-[#7189A3] hover:bg-[#F4F7FA] ${isSelected ? 'border-[#35475C] bg-[#E8F3FB] shadow-sm' : 'border-transparent bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#7189A3]' : ''}`}
               >
-                <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-[#7189A3] text-white' : 'text-[#1F2D33]'}`}>
+                <span className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold ${isToday ? 'bg-[#35475C] text-white' : isSelected ? 'bg-white text-[#35475C]' : 'text-[#1F2D33]'}`}>
                   {day.date()}
                 </span>
                 {cellTasks && (
@@ -130,7 +131,7 @@ const CalendarCard = ({ tasks = [] }) => {
             Nothing due on this day.
           </div>
         ) : (
-          <div className="relative">
+          <div className="relative rounded-lg bg-[#F8FAFC] p-3">
             {sortedTasks.map((task) => {
               const isPast = taskIsOverdue(task);
               return (
@@ -139,7 +140,7 @@ const CalendarCard = ({ tasks = [] }) => {
                   className={`relative ml-4 mb-2 pl-3 border-l-2 border-[#CBD5E1] transition-colors ${isPast ? 'border-[#DDE4EC] opacity-50' : ''}`}
                 >
                   <div className="flex items-start gap-2">
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center border-2 border-[#CBD5E1] bg-white text-xs font-bold text-[#4A6079]">
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center border border-[#D7DEE6] bg-white text-xs font-bold text-[#4A6079]">
                       <User size={14} aria-hidden="true" />
                     </div>
                     <div className="min-w-0">

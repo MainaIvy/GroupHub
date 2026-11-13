@@ -32,7 +32,7 @@ from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
     ChatRoom, Message, Notification, Course, Unit, Semester,     StudentEnrollment, UnitAssignment,
 )
-from .planning_rules import board_status, weight_change_block, weight_confirm_block, WEIGHT_MIN, WEIGHT_MAX
+from .planning_rules import avatar_url, board_status, weight_change_block, weight_confirm_block, WEIGHT_MIN, WEIGHT_MAX
 from .balance import calculate_group_balance
 from .health import compute_group_health, get_health_details
 
@@ -412,7 +412,9 @@ def lecturer_settings(request):
     if request.method == 'PATCH':
         user.first_name = str(request.data.get('first_name', user.first_name) or '').strip()
         user.last_name = str(request.data.get('last_name', user.last_name) or '').strip()
+        user.salutation = str(request.data.get('title', user.salutation) or '').strip()
         user.department = str(request.data.get('department', user.department) or '').strip()
+        user.staff_id = str(request.data.get('staff_id', user.staff_id) or '').strip()
         user.courses_taught = str(request.data.get('courses_taught', user.courses_taught) or '').strip()
         if not user.first_name:
             return Response({'error': 'First name is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -425,7 +427,9 @@ def lecturer_settings(request):
         'first_name': user.first_name,
         'last_name': user.last_name,
         'email': user.email,
+        'salutation': user.salutation or '',
         'department': user.department or '',
+        'staff_id': user.staff_id or '',
         'courses_taught': user.courses_taught or '',
     })
 
@@ -836,7 +840,9 @@ def lecturer_dashboard(request):
                 'id': user.id,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
+                'salutation': user.salutation or '',
                 'email': user.email,
+                'avatar': avatar_url(user),
                 'user_type': user.user_type,
                 'course': user.course,
                 'year_of_study': user.year_of_study,
