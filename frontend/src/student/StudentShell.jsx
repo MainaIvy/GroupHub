@@ -32,16 +32,16 @@ const StudentShell = () => {
   const notif = useStudentNotifications();
   const insights = useGroupInsights(workspace.groups, workspace.user?.id);
   const access = useAccessActions({ notif, refreshGroups: workspace.refreshGroups, reloadInsights: insights.reload });
-  const { groupId: routeGroupId } = useParams();
+  const { groupId: routeGroupId, unitId: routeUnitId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const requestedTab = location.state?.tab;
 
   useEffect(() => {
     if (requestedTab && !routeGroupId) workspace.setActiveTab(requestedTab);
-    // Only react to navigation, not to every workspace render.
+    if (routeUnitId && !routeGroupId && !requestedTab) workspace.setActiveTab('units');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedTab, routeGroupId]);
+  }, [requestedTab, routeGroupId, routeUnitId]);
 
   // On /student/groups/:groupId the sidebar acts as navigation back to the dashboard pages.
   const ctx = {

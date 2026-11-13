@@ -221,10 +221,9 @@ const Overview = ({ ctx }) => {
                     <BookOpen size={16} className="text-[#4A6079]" aria-hidden="true" />
                     <h2 className={PANEL_TITLE}>My units</h2>
                   </div>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={openJoinModal} className={`${btnSecondary} text-[11px] px-3 py-1.5`}><LogIn size={12} className="mr-1" aria-hidden="true" /> Join with code</button>
-                    <button type="button" onClick={openCreateModal} className={`${btnPrimary} text-[11px] px-3 py-1.5`}><Plus size={12} className="mr-1" aria-hidden="true" /> Create group</button>
-                  </div>
+                  <a href="/student/units" className="text-[11px] font-semibold text-[#4A6079] hover:underline flex items-center gap-1">
+                    View all units <ChevronRight size={12} />
+                  </a>
                 </div>
                 {units.length === 0 ? (
                   <div className={`flex flex-col items-center justify-center gap-1 text-center pt-6 ${EMPTY_MIN_H}`}>
@@ -237,13 +236,14 @@ const Overview = ({ ctx }) => {
                       <article
                         key={unit.id}
                         className="rounded-xl border border-[#D5DDE6] bg-white p-4 hover:bg-[#EEF1F4] hover:shadow-sm transition-colors cursor-pointer"
-                        onClick={() => navigate('/student/dashboard', { state: { tab: 'units', unit: unit.id } })}
+                        onClick={() => navigate(`/student/units/${unit.id}`)}
                         role="button"
                         tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/student/units/${unit.id}`); }}
                       >
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <span className="block text-[11px] font-mono font-bold text-[#35475C] uppercase">{unit.code}</span>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); navigate('/student/dashboard', { state: { tab: 'units', unit: unit.id } }); }} className="text-[10px] font-semibold text-[#4A6079] hover:underline">View groups in this unit</button>
+                          <ChevronRight size={14} className="text-[#4A6079]" aria-hidden="true" />
                         </div>
                         <p className="mt-0.5 block text-sm font-semibold text-[#1F2D3D]">{unit.name}</p>
                       </article>

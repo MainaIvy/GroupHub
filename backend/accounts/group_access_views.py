@@ -144,21 +144,28 @@ def unit_open_groups(request, unit_id):
     my_requests = dict(JoinRequest.objects.filter(
         student=request.user, status='pending'
     ).values_list('group_id', 'id'))
-    groups = Group.objects.filter(unit=unit, is_archived=False, is_locked=False).select_related('lecturer').exclude(
-        memberships__student=request.user
-    ).order_by('name')
+    my_memberships = dict(GroupMembership.objects.filter(
+        student=request.user, group__unit=unit
+    ).values_list('group_id', 'id'))
+    groups = Group.objects.filter(unit=unit, is_archived=False).select_related('lecturer').order_by('name')
     data = []
     for group in groups:
         count = group.members_count
-        if group.max_members is not None and count >= group.max_members:
-            continue
+        is_member = group.id in my_memberships
+        is_full = group.max_members is not None and count >= group.max_members
+        is_locked = group.is_locked
+        can_request = (not is_member and not is_full and not is_locked and group.id not in my_requests)
         data.append({
             'id': group.id,
             'name': group.name,
             'members_count': count,
             'max_members': group.max_members,
             'leader_name': _display_name(group.lecturer),
+            'is_member': is_member,
+            'is_full': is_full,
+            'is_locked': is_locked,
             'request_pending': group.id in my_requests,
+            'can_request': can_request,
         })
     return Response(data)
 
