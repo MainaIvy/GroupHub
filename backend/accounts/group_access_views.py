@@ -3,7 +3,6 @@ import logging
 
 from django.db import transaction
 from django.db.models import Q
-from django.utils.crypto import get_random_string
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -15,7 +14,6 @@ from .models import Group, GroupInvite, GroupMembership, JoinRequest, Notificati
 
 logger = logging.getLogger(__name__)
 
-CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 LOCKED_MESSAGE = 'This group is locked and is not accepting new members.'
 FULL_MESSAGE = 'This group is full.'
 CLOSED_MESSAGE = 'This group is closed and cannot accept new members.'
@@ -150,10 +148,8 @@ def _notify(user, notification_type, title, message, **related):
 
 
 def _new_join_code():
-    code = get_random_string(6, allowed_chars=CODE_ALPHABET)
-    while Group.objects.filter(join_code=code).exists():
-        code = get_random_string(6, allowed_chars=CODE_ALPHABET)
-    return code
+    from .join_codes import generate_join_code
+    return generate_join_code()
 
 
 @api_view(['GET'])

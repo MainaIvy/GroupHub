@@ -1,5 +1,6 @@
 from django.db.models import Exists, OuterRef
 
+from .health_thresholds import get_balance_thresholds, get_minimum_points
 from .models import GroupMembership, Task
 
 
@@ -44,15 +45,17 @@ def calculate_group_balance(group, *, exclude_task_id=None, task_weight_to_add=0
 
     member_count = len(members)
     fair_share = 100 / member_count if member_count else 0
+    warning_percent, critical_percent = get_balance_thresholds()
+    minimum_points = get_minimum_points()
     balance_members = []
     for membership in members:
         points = points_by_member[membership.student_id]
         share_percent = round(points / total_points * 100, 2) if total_points else 0
-        if total_points < 6:
+        if total_points < minimum_points:
             warning_level = 'too_early'
-        elif share_percent > fair_share + 25:
+        elif share_percent > fair_share + critical_percent:
             warning_level = 'critical'
-        elif share_percent > fair_share + 15:
+        elif share_percent > fair_share + warning_percent:
             warning_level = 'warning'
         else:
             warning_level = 'ok'

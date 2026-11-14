@@ -21,21 +21,21 @@ const NotificationBell = ({ notif, open, onToggle, onClose }) => {
     setLocalUnreadCount(unreadBell);
   }, [bellItems, unreadBell]);
 
-  // Live polling for new notifications
+// Live polling for new notifications
   useEffect(() => {
     if (!open) return;
-    
+
     const interval = setInterval(async () => {
       try {
         const response = await axios.get('/api/accounts/notifications/', {
           headers: { Authorization: `Bearer ${getStoredToken()}` },
           params: { limit: 50 }
         });
-        if (response.data?.results) {
-          setLocalBellItems(response.data.results);
-          const unread = response.data.results.filter(n => !n.is_read).length;
-          setLocalUnreadCount(unread);
-        }
+        // The API returns a plain list of notifications (no `results` envelope).
+        const items = Array.isArray(response.data) ? response.data : [];
+        setLocalBellItems(items);
+        const unread = items.filter(n => !n.is_read).length;
+        setLocalUnreadCount(unread);
       } catch (err) {
         console.error('Failed to poll notifications:', err);
       }

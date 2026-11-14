@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from '../../api';
-import { computeHealth, DAY, isDone, isLeaf, taskIsOverdue } from '../health';
+import { DAY, isDone, isLeaf, taskIsOverdue } from '../health';
 
 const ROOT = '/api/accounts';
 
@@ -44,6 +44,11 @@ export default function useGroupInsights(groups, userId) {
         const tasks = Array.isArray(workspace.tasks) ? workspace.tasks : [];
         const members = Array.isArray(workspace.members) ? workspace.members : [];
         const lastActivity = activity[0]?.created_at || null;
+        // Health is computed server-side and returned by the workspace endpoint.
+        const apiHealth = workspace.health || null;
+        const health = apiHealth
+          ? { status: apiHealth.status, reason: (apiHealth.reasons || []).join(' · ') }
+          : { status: 'too_early', reason: 'Health data unavailable' };
         next[group.id] = {
           members,
           tasks,
@@ -52,7 +57,7 @@ export default function useGroupInsights(groups, userId) {
           progress: Number(workspace.project_progress) || 0,
           nextDeadline: workspace.group?.next_deadline || null,
           lastActivity,
-          health: computeHealth({ tasks, workload, lastActivity }),
+          health,
           openPollsToVote: polls.filter((poll) => poll.status === 'open' && poll.can_vote && (poll.my_vote == null)),
         };
       });

@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 
 from accounts.consumers import ChatConsumer
 from accounts.balance import calculate_group_balance
-from accounts.models import ChatRoom, Course, Group, GroupMembership, Message, Notification, Project, Semester, StudentEnrollment, Submission, SubmissionAttachment, Task, TaskActivity, TaskComment, Unit, User
+from accounts.models import AdminSetting, ChatRoom, Course, Group, GroupMembership, Message, Notification, Project, Semester, StudentEnrollment, Submission, SubmissionAttachment, Task, TaskActivity, TaskComment, Unit, UnitAssignment, User
 
 
 class LecturerClaimFlowTests(TestCase):
@@ -389,17 +389,6 @@ class LoginEndpointTests(TestCase):
         }, format='json')
         self.assertEqual(email_login.status_code, 200, email_login.json())
         self.assertEqual(email_login.json()['user']['username'], user.username)
-
-        account_id_login = APIClient().post('/api/accounts/login/', {
-            'username': 'CT101',
-            'password': 'StrongPass123',
-        }, format='json')
-        self.assertEqual(account_id_login.status_code, 200, account_id_login.json())
-        email_identifier_login = APIClient().post('/api/accounts/login/', {
-            'username': 'ct101@zetech.ac.ke',
-            'password': 'StrongPass123',
-        }, format='json')
-        self.assertEqual(email_identifier_login.status_code, 400)
 
         refreshed = APIClient().post('/api/accounts/jwt/refresh/', {
             'refresh': payload['refresh'],
@@ -1724,3 +1713,245 @@ class StudentSubmissionTests(TestCase):
         task.refresh_from_db()
         self.assertIsNotNone(task.completed_at)
         self.assertEqual(TaskActivity.objects.filter(task=task, action='completed').count(), 1)
+
+
+class NotificationEndpointTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='notif-user', email='notif-user@zetech.ac.ke', password='StrongPass123', user_type='student')
+        self.other = User.objects.create_user(
+            username='notif-other', email='notif-other@zetech.ac.ke', password='StrongPass123', user_type='student')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        Notification.objects.create(user=self.user, notification_type='task_assigned', title='One', message='m')
+        Notification.objects.create(user=self.user, notification_type='task_assigned', title='Two', message='m', is_read=True)
+        Notification.objects.create(user=self.other, notification_type='task_assigned', title='Three', message='m')
+
+    def test_mark_all_read_marks_only_own_notifications(self):
+        response = self.client.post('/api/accounts/notifications/mark-all-read/', format='json')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['updated'], 1)
+        self.assertFalse(Notification.objects.filter(user=self.user, is_read=False).exists())
+        self.assertTrue(Notification.objects.filter(user=self.other, is_read=False).exists())
+
+    def test_patch_notification_toggle_read(self):
+        notif = Notification.objects.create(user=self.user, notification_type='task_assigned', title='X', message='m')
+        response = self.client.patch(
+            f'/api/accounts/notifications/{notif.id}/', {'is_read': True}, format='json')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertTrue(response.json()['is_read'])
+        response = self.client.patch(
+            f'/api/accounts/notifications/{notif.id}/', {'is_read': False}, format='json')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertFalse(response.json()['is_read'])
+
+    def test_patch_notification_is_own_only(self):
+        notif = Notification.objects.create(user=self.other, notification_type='task_assigned', title='X', message='m')
+        response = self.client.patch(
+            f'/api/accounts/notifications/{notif.id}/', {'is_read': True}, format='json')
+        self.assertEqual(response.status_code, 404)
+
+    def test_patch_notification_not_found(self):
+        response = self.client.patch('/api/accounts/notifications/999999/', {'is_read': True}, format='json')
+        self.assertEqual(response.status_code, 404)
+
+    def test_patch_notification_requires_boolean(self):
+        notif = Notification.objects.create(user=self.user, notification_type='task_assigned', title='X', message='m')
+        response = self.client.patch(
+            f'/api/accounts/notifications/{notif.id}/', {'is_read': 'yes'}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_notifications_returns_plain_list(self):
+        response = self.client.get('/api/accounts/notifications/', {'limit': 50})
+        self.assertEqual(response.status_code, 200, response.json())
+        body = response.json()
+        self.assertIsInstance(body, list)
+        self.assertNotIn('results', body)
+
+
+class NotificationTypeTests(TestCase):
+    def test_announcement_is_a_declared_notification_type(self):
+        self.assertIn('announcement', dict(Notification.NOTIFICATION_TYPES))
+
+
+class TaskWeightSaveTests(TestCase):
+    def test_save_mirrors_weight_into_task_weight(self):
+        course = Course.objects.create(code='CS', name='CS', department='Computing')
+        semester = Semester.objects.create(name='Y1S1', year=1, semester=1)
+        unit = Unit.objects.create(course=course, code='CS 101', name='Intro', year_of_study=1, semester=1)
+        lecturer = User.objects.create_user(
+            username='tw-lecturer', email='tw-lecturer@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='A', last_name='B')
+        group = Group.objects.create(name='G', course='CS', year_of_study='2', unit=unit, lecturer=lecturer)
+        project = Project.objects.create(group=group, title='P')
+        task = Task.objects.create(project=project, title='T', weight=4, task_weight=1)
+        self.assertEqual(task.task_weight, 4)
+        task.weight = 2
+        task.save()
+        task.refresh_from_db()
+        self.assertEqual(task.task_weight, 2)
+
+    def test_save_is_no_op_when_task_weight_matches_weight(self):
+        course = Course.objects.create(code='CS', name='CS', department='Computing')
+        semester = Semester.objects.create(name='Y1S1', year=1, semester=1)
+        unit = Unit.objects.create(course=course, code='CS 101', name='Intro', year_of_study=1, semester=1)
+        lecturer = User.objects.create_user(
+            username='tw-lecturer2', email='tw-lecturer2@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='A', last_name='B')
+        group = Group.objects.create(name='G', course='CS', year_of_study='2', unit=unit, lecturer=lecturer)
+        project = Project.objects.create(group=group, title='P')
+        task = Task.objects.create(project=project, title='T', weight=3, task_weight=3)
+        task.save()
+        task.refresh_from_db()
+        self.assertEqual(task.task_weight, 3)
+
+
+class JoinCodeTests(TestCase):
+    def test_generate_join_code_uses_safe_alphabet(self):
+        from accounts.join_codes import generate_join_code, JOIN_CODE_ALPHABET
+        code = generate_join_code()
+        self.assertEqual(len(code), 6)
+        self.assertTrue(all(ch in JOIN_CODE_ALPHABET for ch in code))
+        for ch in 'IO01':
+            self.assertNotIn(ch, code)
+
+    def test_generate_join_code_is_unique(self):
+        from accounts.join_codes import generate_join_code
+        code = generate_join_code()
+        lecturer = User.objects.create_user(
+            username='jc-lecturer', email='jc-lecturer@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='A', last_name='B')
+        Group.objects.create(name='G', course='C', year_of_study='1', join_code=code, lecturer=lecturer)
+        self.assertNotEqual(generate_join_code(), code)
+
+
+class HealthThresholdTests(TestCase):
+    def setUp(self):
+        self.student = User.objects.create_user(
+            username='ht-student', email='ht-student@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='C', year_of_study='1', semester=1)
+        lecturer = User.objects.create_user(
+            username='ht-lecturer', email='ht-lecturer@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='A', last_name='B')
+        self.group = Group.objects.create(name='HG', course='C', year_of_study='1', lecturer=lecturer)
+        GroupMembership.objects.create(group=self.group, student=self.student)
+        self.project = Project.objects.create(group=self.group, title='P')
+        self.task = Task.objects.create(
+            project=self.project, title='T', weight=3, status='pending', assigned_to=self.student)
+        TaskActivity.objects.create(task=self.task, actor=self.student, action='created')
+
+    def test_balance_reads_minimum_points_from_admin_setting(self):
+        from accounts.balance import calculate_group_balance
+        AdminSetting.objects.create(key='minimum_points', value=10)
+        balance = calculate_group_balance(self.group)
+        self.assertEqual(balance['members'][0]['warning_level'], 'too_early')
+
+    def test_health_reads_minimum_points_from_admin_setting(self):
+        from accounts.health import compute_group_health
+        AdminSetting.objects.create(key='minimum_points', value=10)
+        self.assertEqual(compute_group_health(self.group), 'too_early')
+
+    def test_health_reads_overdue_count_from_admin_setting(self):
+        from accounts.health import compute_group_health
+        AdminSetting.objects.create(key='minimum_points', value=1)
+        AdminSetting.objects.create(key='overdue_count', value=1)
+        overdue = Task.objects.create(
+            project=self.project, title='Overdue', weight=1, status='pending',
+            due_date=timezone.now() - timedelta(days=1))
+        self.assertEqual(compute_group_health(self.group), 'at_risk')
+
+
+class HealthEndpointsTests(TestCase):
+    def setUp(self):
+        self.student = User.objects.create_user(
+            username='he-student', email='he-student@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='C', year_of_study='1', semester=1)
+        course = Course.objects.create(code='HEC', name='HEC', department='Computing')
+        unit = Unit.objects.create(course=course, code='HEC 101', name='Intro', year_of_study=1, semester=1)
+        lecturer = User.objects.create_user(
+            username='he-lecturer', email='he-lecturer@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='A', last_name='B')
+        self.group = Group.objects.create(name='HE', course='C', year_of_study='1', unit=unit, lecturer=lecturer)
+        GroupMembership.objects.create(group=self.group, student=self.student)
+        self.project = Project.objects.create(group=self.group, title='P')
+        self.task = Task.objects.create(project=self.project, title='T', weight=3, status='pending')
+        TaskActivity.objects.create(task=self.task, actor=self.student, action='created')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.student)
+
+    def test_student_dashboard_returns_health(self):
+        response = self.client.get('/api/accounts/dashboard/student/')
+        self.assertEqual(response.status_code, 200, response.json())
+        group_data = response.json()['groups'][0]
+        self.assertIn('health', group_data)
+        self.assertIn('status', group_data['health'])
+        self.assertIn('reasons', group_data['health'])
+
+    def test_group_workspace_returns_health(self):
+        response = self.client.get(f'/api/accounts/groups/{self.group.id}/workspace/')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertIn('health', response.json())
+        self.assertIn('status', response.json()['health'])
+        self.assertIn('reasons', response.json()['health'])
+
+    def test_lecturer_dashboard_returns_health(self):
+        term = Semester.objects.create(name='Y1S1', year=1, semester=1, is_current=True)
+        lecturer = User.objects.create_user(
+            username='he-lecturer2', email='he-lecturer2@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='A', last_name='B')
+        self.group.lecturer = lecturer
+        self.group.save(update_fields=['lecturer'])
+        UnitAssignment.objects.create(lecturer=lecturer, unit=self.group.unit, term=term, status='approved')
+        client = APIClient()
+        client.force_authenticate(user=lecturer)
+        response = client.get('/api/accounts/dashboard/lecturer/')
+        self.assertEqual(response.status_code, 200, response.json())
+        group_data = response.json()['groups'][0]
+        self.assertIn('health', group_data)
+        self.assertIn('status', group_data['health'])
+
+    def test_admin_groups_returns_health(self):
+        admin = User.objects.create_user(
+            username='he-admin', email='he-admin@zetech.ac.ke', password='StrongPass123',
+            user_type='student', is_staff=True, is_superuser=True)
+        client = APIClient()
+        client.force_authenticate(user=admin)
+        response = client.get('/api/accounts/admin/groups/')
+        self.assertEqual(response.status_code, 200, response.json())
+        row = next(item for item in response.json() if item['id'] == self.group.id)
+        self.assertIn('health', row)
+        self.assertIn('status', row['health'])
+        self.assertIn('reasons', row['health'])
+
+
+class LoginRouteTests(TestCase):
+    def test_views_login_routes_are_removed(self):
+        response = APIClient().post('/api/accounts/login/', {'username': 'x', 'password': 'y'}, format='json')
+        self.assertEqual(response.status_code, 404)
+        response = APIClient().post('/api/accounts/jwt/login/', {'username': 'x', 'password': 'y'}, format='json')
+        self.assertEqual(response.status_code, 404)
+
+
+class ProfileCompleteSharedTests(TestCase):
+    def test_compute_profile_complete_lecturer(self):
+        from accounts.profile import compute_profile_complete
+        complete = User.objects.create_user(
+            username='pc-l', email='pc-l@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='Ada', last_name='Lovelace')
+        self.assertTrue(compute_profile_complete(complete))
+        incomplete = User.objects.create_user(
+            username='pc-l2', email='pc-l2@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', first_name='Ada')
+        self.assertFalse(compute_profile_complete(incomplete))
+
+    def test_compute_profile_complete_student(self):
+        from accounts.profile import compute_profile_complete
+        course = Course.objects.create(code='CS', name='CS', department='Computing')
+        complete = User.objects.create_user(
+            username='pc-s', email='pc-s@zetech.ac.ke', password='StrongPass123',
+            user_type='student', enrolled_course=course, year_of_study='1', semester=1)
+        self.assertTrue(compute_profile_complete(complete))
+        incomplete = User.objects.create_user(
+            username='pc-s2', email='pc-s2@zetech.ac.ke', password='StrongPass123',
+            user_type='student', enrolled_course=course)
+        self.assertFalse(compute_profile_complete(incomplete))

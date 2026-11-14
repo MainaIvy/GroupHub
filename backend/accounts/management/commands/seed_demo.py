@@ -165,7 +165,6 @@ class Command(BaseCommand):
                 status='completed' if completed else ('in_progress' if index == 0 else 'pending'),
                 progress_percentage=100 if completed else (35 if index == 0 else 0),
                 weight=weight,
-                task_weight=weight,
                 due_date=due_date,
                 completed_at=(activity_base + timedelta(days=index % 3)) if completed else None,
             )
@@ -207,7 +206,6 @@ class Command(BaseCommand):
                 status='completed' if parent.status == 'completed' else 'pending',
                 progress_percentage=100 if parent.status == 'completed' else 0,
                 weight=1,
-                task_weight=1,
                 due_date=parent.due_date,
                 completed_at=parent.completed_at,
             )

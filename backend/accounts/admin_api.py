@@ -16,6 +16,7 @@ from .academic import (
     current_term, sync_student_enrollments, term_for_cohort, advance_cohort,
 )
 from .balance import calculate_group_balance
+from .health import get_health_details
 from .models import (
     AdminSetting, Announcement, AuditLog, Course, Group, GroupMembership,
     ImportBatch, LecturerRoster, Notification, Project, Semester, StudentEnrollment, Submission, Task, Unit, UnitAssignment, User,
@@ -423,11 +424,13 @@ def admin_groups(request):
     for group in groups[:300]:
         balance = calculate_group_balance(group)
         risk = any(item['warning_level'] in ('warning', 'critical') for item in balance['members'])
+        health = get_health_details(group)
         rows.append({
             'id': group.id, 'name': group.name, 'unit': group.unit.name if group.unit else group.unit_code,
             'lecturer': _name(group.lecturer), 'members': group.members_count,
             'locked': group.is_locked, 'archived': group.is_archived, 'at_risk': risk,
             'join_code': group.join_code,
+            'health': health,
         })
     return Response(rows)
 
@@ -474,8 +477,8 @@ def admin_group_action(request, group_id, action):
         group.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     elif action == 'regenerate-code':
-        from django.utils.crypto import get_random_string
-        group.join_code = get_random_string(6).upper()
+        from .join_codes import generate_join_code
+        group.join_code = generate_join_code()
     else:
         return Response({'error': 'Unknown action.'}, status=status.HTTP_400_BAD_REQUEST)
     group.save()

@@ -187,7 +187,8 @@ class GoogleLoginView(APIView):
                 roster_entry.save(update_fields=['status', 'activated_at'])
 
             # Compute profile_complete
-            profile_complete = self._compute_profile_complete(user)
+            from .profile import compute_profile_complete, lecturer_setup_required
+            profile_complete = compute_profile_complete(user)
 
             refresh = RefreshToken.for_user(user)
             return Response({
@@ -202,30 +203,13 @@ class GoogleLoginView(APIView):
                     'university': user.university,
                     'avatar_url': user.avatar_url,
                     'profile_complete': profile_complete,
-                    'lecturer_setup_required': (
-                        user.user_type == 'lecturer'
-                        and not UnitAssignment.objects.filter(lecturer=user).exists()
-                    ),
+                    'lecturer_setup_required': lecturer_setup_required(user),
                 }
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.exception(f"Google login failed: {e}")
             return Response({'error': 'Google login failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def _compute_profile_complete(self, user):
-        """Compute profile completeness for a user."""
-        if user.user_type == 'lecturer':
-            # Lecturers are complete once they have a name
-            return bool(user.first_name and user.last_name)
-        else:
-            # Students need admission number (username), programme (enrolled_course), year, semester
-            return bool(
-                user.username and
-                user.enrolled_course_id and
-                user.year_of_study and
-                user.semester
-            )
 
 
 @api_view(['POST'])
@@ -529,15 +513,8 @@ def logout_view(request):
 def profile_view(request):
     user = request.user
     # Compute profile_complete
-    if user.user_type == 'lecturer':
-        profile_complete = bool(user.first_name and user.last_name)
-    else:
-        profile_complete = bool(
-            user.username and
-            user.enrolled_course_id and
-            user.year_of_study and
-            user.semester
-        )
+    from .profile import compute_profile_complete
+    profile_complete = compute_profile_complete(user)
     return JsonResponse({
         'id': user.id,
         'email': user.email,
@@ -1129,12 +1106,21 @@ def lecturer_dashboard(request):
             status='submitted'
         ).count()
 
-        groups = lecturer_groups.values(
-            'id', 'name', 'course', 'year_of_study', 'created_at', 'unit_id', 'unit_code'
-        )
-        for group in groups:
-            group['members_count'] = GroupMembership.objects.filter(group_id=group['id']).count()
-            group['projects'] = list(Project.objects.filter(group_id=group['id']).values('id', 'title', 'status'))
+        groups = []
+        for group in lecturer_groups.select_related('lecturer').order_by('name'):
+            health = get_health_details(group)
+            groups.append({
+                'id': group.id,
+                'name': group.name,
+                'course': group.course,
+                'year_of_study': group.year_of_study,
+                'created_at': group.created_at.isoformat(),
+                'unit_id': group.unit_id,
+                'unit_code': group.unit_code,
+                'members_count': group.members_count,
+                'projects': list(Project.objects.filter(group=group).values('id', 'title', 'status')),
+                'health': health,
+            })
 
         recent_submissions = Submission.objects.filter(
             project__group__in=lecturer_groups
@@ -1913,7 +1899,6 @@ def assign_group_task(request, group_id):
             description=description,
             assigned_to=assigned_to,
             weight=weight,
-            task_weight=weight,
             parent_task=parent_task,
             due_date=due_date,
         )
@@ -2153,7 +2138,6 @@ def create_task(request, group_id):
             assigned_to=assigned_to,
             due_date=parsed_due_date,
             weight=weight,
-            task_weight=weight,
         )
 
         TaskActivity.objects.create(
@@ -2359,6 +2343,39 @@ def mark_notification_read(request, notification_id):
         return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         logger.error(f"Error in mark_notification_read: {str(e)}")
+        return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_all_notifications_read(request):
+    """Mark every notification belonging to the requesting user as read."""
+    try:
+        user = request.user
+        updated = Notification.objects.filter(user=user, is_read=False).update(is_read=True)
+        return Response({'message': 'All notifications marked as read', 'updated': updated})
+    except Exception as e:
+        logger.error(f"Error in mark_all_notifications_read: {str(e)}")
+        return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_notification(request, notification_id):
+    """PATCH notifications/<id>/ — body {is_read: true|false}. Own notifications only."""
+    try:
+        user = request.user
+        notification = Notification.objects.get(id=notification_id, user=user)
+        is_read = request.data.get('is_read')
+        if not isinstance(is_read, bool):
+            return Response({'error': 'is_read must be true or false'}, status=status.HTTP_400_BAD_REQUEST)
+        notification.is_read = is_read
+        notification.save()
+        return Response({'id': notification.id, 'is_read': notification.is_read})
+    except Notification.DoesNotExist:
+        return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error in update_notification: {str(e)}")
         return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -2982,9 +2999,8 @@ def create_group_view(request):
 
     try:
         with transaction.atomic():
-            join_code = get_random_string(6, allowed_chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789')
-            while Group.objects.filter(join_code=join_code).exists():
-                join_code = get_random_string(6, allowed_chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789')
+            from .join_codes import generate_join_code
+            join_code = generate_join_code()
             group = Group.objects.create(
                 name=str(name).strip(),
                 course=str(course).strip(),

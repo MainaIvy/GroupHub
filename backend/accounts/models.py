@@ -235,6 +235,11 @@ class Task(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if self.task_weight != self.weight:
+            self.task_weight = self.weight
+        super().save(*args, **kwargs)
+
     class Meta:
         ordering = ['-created_at']
 
@@ -367,6 +372,7 @@ class Notification(models.Model):
         ('invite_response', 'Invite Response'),
         ('poll_opened', 'Poll Opened'),
         ('mention', 'Mention'),
+        ('announcement', 'Announcement'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
@@ -383,7 +389,7 @@ class Notification(models.Model):
     related_join_request = models.ForeignKey('JoinRequest', on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.notification_type} for {self.user.username}"
+        return self.title
 
     class Meta:
         ordering = ['-created_at']

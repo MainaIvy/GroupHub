@@ -57,14 +57,8 @@ urlpatterns = [
     path('staff/forgot-password/', views.staff_forgot_password, name='staff_forgot_password'),
     path('staff/reset-password/', views.staff_reset_password, name='staff_reset_password'),
 
-    # API login (DRF). DO NOT route the API login to the plain Django function view,
-    # otherwise the browser can render the token JSON outside of React.
-    path('login/', views.LoginView.as_view(), name='api_login'),
-
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
-    # JWT endpoints (frontend expects this at /api/accounts/jwt/login/)
-    path('jwt/login/', views.LoginView.as_view(), name='api_jwt_login'),
     path('jwt/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # Student account settings
@@ -132,6 +126,8 @@ urlpatterns = [
     path('work-items/<int:item_id>/file/', work_views.work_item_file, name='work_item_file'),
     path('submissions/attachments/<int:attachment_id>/', work_views.submission_file, name='submission_file'),
     path('notifications/', views.get_notifications, name='get_notifications'),
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('notifications/<int:notification_id>/', views.update_notification, name='update_notification'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('groups/<int:group_id>/members/', views.get_group_members, name='get_group_members'),
     path('students/', views.get_students_for_lecturer, name='get_students_for_lecturer'),

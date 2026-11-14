@@ -128,7 +128,7 @@ def propose_task(request, group_id):
     with transaction.atomic():
         task = Task.objects.create(
             project=project, title=title, description=str(request.data.get('description') or '').strip(),
-            weight=weight, task_weight=weight, due_date=due_date, parent_task=parent,
+            weight=weight, due_date=due_date, parent_task=parent,
             assigned_to=None, proposal_status='proposed', proposed_by=user, weight_confirmed=False,
         )
         TaskActivity.objects.create(
@@ -278,10 +278,9 @@ def change_task_weight(request, group_id, task_id):
         return Response({'task': {'id': task.id, 'weight': task.weight}})
     with transaction.atomic():
         task.weight = new_weight
-        task.task_weight = new_weight
         task.weight_confirmed = False
         task.weight_confirmed_by = None
-        task.save(update_fields=['weight', 'task_weight', 'weight_confirmed', 'weight_confirmed_by', 'updated_at'])
+        task.save(update_fields=['weight', 'weight_confirmed', 'weight_confirmed_by', 'updated_at'])
         TaskActivity.objects.create(
             task=task,
             actor=request.user,
