@@ -4,7 +4,10 @@ from datetime import timedelta
 from asgiref.sync import async_to_sync
 
 from django.apps import apps
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -14,6 +17,7 @@ from accounts.balance import calculate_group_balance
 from accounts.models import AdminSetting, ChatRoom, Course, Group, GroupMembership, Message, Notification, Project, Semester, StudentEnrollment, Submission, SubmissionAttachment, Task, TaskActivity, TaskComment, Unit, UnitAssignment, User
 from accounts.access import can_manage_group, can_view_group, can_view_student, can_view_unit, is_supervising_lecturer
 from accounts.academic import current_term
+from accounts.weights import WEIGHT_MIN, WEIGHT_MAX
 
 
 class LecturerClaimFlowTests(TestCase):
@@ -457,7 +461,8 @@ class GroupLifecycleTests(TestCase):
         self.assertEqual(group_data['members_count'], 2)
 
         project = Project.objects.create(group=group, title='Team project')
-        task = Task.objects.create(project=project, title='Build interface', assigned_to=self.member)
+        task = Task.objects.create(project=project, title='Build interface', assigned_to=self.member,
+                                   due_date=timezone.now() + timedelta(days=2))
         workspace = self.client.get(f'/api/accounts/groups/{group.id}/workspace/')
         self.assertEqual(workspace.status_code, 200, workspace.json())
         self.assertEqual(workspace.json()['group']['project_count'], 1)
@@ -624,6 +629,7 @@ class SeedDemoCommandTests(TestCase):
         unrelated_project = Project.objects.create(group=unrelated_group, title='Keep this project')
         unrelated_task = Task.objects.create(
             project=unrelated_project, title='Keep this task', assigned_to=unrelated_student,
+            due_date=timezone.now() + timedelta(days=2),
         )
 
         call_command('seed_demo', stdout=StringIO())
@@ -1228,6 +1234,7 @@ class GroupTaskBalanceTests(TestCase):
             assigned_to=self.member_one,
             weight=5,
             task_weight=5,
+            due_date=timezone.now() + timedelta(days=2),
         )
         balance = calculate_group_balance(self.group)
         brian = next(member for member in balance['members'] if member['user_id'] == self.member_one.id)
@@ -1272,6 +1279,7 @@ class GroupTaskBalanceTests(TestCase):
         Task.objects.create(
             project=self.project, title='Existing load', assigned_to=self.member_one,
             weight=5, task_weight=5,
+            due_date=timezone.now() + timedelta(days=2),
         )
         warning = self.client.post(path, {
             'assigned_to_id': self.member_one.id,
@@ -1429,6 +1437,7 @@ class GroupTaskBalanceTests(TestCase):
             title='Database design',
             assigned_to=self.member_one,
             weight=2,
+            due_date=timezone.now() + timedelta(days=2),
         )
         completed_microtask = Task.objects.create(
             project=self.project,
@@ -1439,6 +1448,7 @@ class GroupTaskBalanceTests(TestCase):
             status='completed',
             progress_percentage=100,
             completed_at=timezone.now(),
+            due_date=timezone.now() + timedelta(days=2),
         )
         pending_microtask = Task.objects.create(
             project=self.project,
@@ -1446,6 +1456,7 @@ class GroupTaskBalanceTests(TestCase):
             title='Write the SQL schema',
             assigned_to=self.member_two,
             weight=3,
+            due_date=timezone.now() + timedelta(days=2),
         )
 
         workspace = self.client.get(f'/api/accounts/groups/{self.group.id}/workspace/')
@@ -1478,8 +1489,10 @@ class GroupTaskBalanceTests(TestCase):
         self.assertIsNotNone(parent.completed_at)
 
     def test_parent_task_status_is_derived_from_microtasks(self):
-        parent = Task.objects.create(project=self.project, title='Report', assigned_to=self.member_one)
-        Task.objects.create(project=self.project, parent_task=parent, title='Introduction', assigned_to=self.member_one)
+        parent = Task.objects.create(project=self.project, title='Report', assigned_to=self.member_one,
+                                     due_date=timezone.now() + timedelta(days=2))
+        Task.objects.create(project=self.project, parent_task=parent, title='Introduction', assigned_to=self.member_one,
+                            due_date=timezone.now() + timedelta(days=2))
         response = self.client.post(f'/api/accounts/tasks/{parent.id}/update-status/', {'status': 'completed'}, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('micro-tasks', response.json()['error'])
@@ -1513,7 +1526,8 @@ class GroupTaskBalanceTests(TestCase):
         self.assertEqual([task['title'] for task in children], ['Draw the ERD'])
 
     def test_group_activity_returns_latest_events_for_members_and_denies_outsiders(self):
-        task = Task.objects.create(project=self.project, title='Chat page', assigned_to=self.member_one)
+        task = Task.objects.create(project=self.project, title='Chat page', assigned_to=self.member_one,
+                                   due_date=timezone.now() + timedelta(days=2))
         created = TaskActivity.objects.create(task=task, actor=self.member_one, action='created', note='Created task')
         TaskActivity.objects.create(
             task=task, actor=self.member_two, action='reassigned', from_user=self.member_one,
@@ -1535,7 +1549,8 @@ class GroupTaskBalanceTests(TestCase):
         self.assertEqual(denied.status_code, 403)
 
     def test_group_comments_are_visible_to_members_and_denied_to_outsiders(self):
-        task = Task.objects.create(project=self.project, title='Design screen', assigned_to=self.member_one)
+        task =         Task.objects.create(project=self.project, title='Design screen', assigned_to=self.member_one,
+                            due_date=timezone.now() + timedelta(days=2))
         TaskComment.objects.create(task=task, author=self.lecturer, content='Please add mobile layouts.')
         response = self.client.get(f'/api/accounts/groups/{self.group.id}/comments/')
         self.assertEqual(response.status_code, 200, response.json())
@@ -1556,7 +1571,8 @@ class GroupTaskBalanceTests(TestCase):
         self.group.save(update_fields=['unit', 'term'])
         UnitAssignment.objects.create(lecturer=self.lecturer, unit=unit, term=term, status='approved')
 
-        task = Task.objects.create(project=self.project, title='Write report', assigned_to=self.member_one)
+        task = Task.objects.create(project=self.project, title='Write report', assigned_to=self.member_one,
+                                   due_date=timezone.now() + timedelta(days=2))
         self.client.force_authenticate(user=self.lecturer)
         created = self.client.post(f'/api/accounts/groups/{self.group.id}/comments/', {
             'task_id': task.id,
@@ -1645,6 +1661,7 @@ class StudentSubmissionTests(TestCase):
             assigned_to=self.member_one,
             weight=5,
             task_weight=5,
+            due_date=timezone.now() + timedelta(days=2),
         )
         payload = {
             'title': 'Research',
@@ -1685,6 +1702,7 @@ class StudentSubmissionTests(TestCase):
             assigned_to=self.member_two,
             weight=1,
             task_weight=1,
+            due_date=timezone.now() + timedelta(days=2),
         )
         Task.objects.create(
             project=self.project,
@@ -1692,6 +1710,7 @@ class StudentSubmissionTests(TestCase):
             assigned_to=self.member_one,
             weight=5,
             task_weight=5,
+            due_date=timezone.now() + timedelta(days=2),
         )
 
         path = f'/api/accounts/groups/{self.group.id}/tasks/{task.id}/reassign/'
@@ -1800,7 +1819,8 @@ class TaskWeightSaveTests(TestCase):
             user_type='lecturer', first_name='A', last_name='B')
         group = Group.objects.create(name='G', course='CS', year_of_study='2', unit=unit, lecturer=lecturer)
         project = Project.objects.create(group=group, title='P')
-        task = Task.objects.create(project=project, title='T', weight=4, task_weight=1)
+        task = Task.objects.create(project=project, title='T', weight=4, task_weight=1,
+                                   due_date=timezone.now() + timedelta(days=2))
         self.assertEqual(task.task_weight, 4)
         task.weight = 2
         task.save()
@@ -1816,7 +1836,8 @@ class TaskWeightSaveTests(TestCase):
             user_type='lecturer', first_name='A', last_name='B')
         group = Group.objects.create(name='G', course='CS', year_of_study='2', unit=unit, lecturer=lecturer)
         project = Project.objects.create(group=group, title='P')
-        task = Task.objects.create(project=project, title='T', weight=3, task_weight=3)
+        task = Task.objects.create(project=project, title='T', weight=3, task_weight=3,
+                                   due_date=timezone.now() + timedelta(days=2))
         task.save()
         task.refresh_from_db()
         self.assertEqual(task.task_weight, 3)
@@ -1853,7 +1874,8 @@ class HealthThresholdTests(TestCase):
         GroupMembership.objects.create(group=self.group, student=self.student)
         self.project = Project.objects.create(group=self.group, title='P')
         self.task = Task.objects.create(
-            project=self.project, title='T', weight=3, status='pending', assigned_to=self.student)
+            project=self.project, title='T', weight=3, status='pending', assigned_to=self.student,
+            due_date=timezone.now() + timedelta(days=2))
         TaskActivity.objects.create(task=self.task, actor=self.student, action='created')
 
     def test_balance_reads_minimum_points_from_admin_setting(self):
@@ -1890,7 +1912,8 @@ class HealthEndpointsTests(TestCase):
         self.group = Group.objects.create(name='HE', course='C', year_of_study='1', unit=unit, lecturer=lecturer)
         GroupMembership.objects.create(group=self.group, student=self.student)
         self.project = Project.objects.create(group=self.group, title='P')
-        self.task = Task.objects.create(project=self.project, title='T', weight=3, status='pending')
+        self.task = Task.objects.create(project=self.project, title='T', weight=3, status='pending',
+                                        due_date=timezone.now() + timedelta(days=2))
         TaskActivity.objects.create(task=self.task, actor=self.student, action='created')
         self.client = APIClient()
         self.client.force_authenticate(user=self.student)
@@ -2112,7 +2135,8 @@ class LeaderPermissionTests(TestCase):
         GroupMembership.objects.create(group=self.group, student=self.member, role='member')
         GroupMembership.objects.create(group=self.other_group, student=self.member, role='member')
         self.project = Project.objects.create(group=self.group, title='Project')
-        self.task = Task.objects.create(project=self.project, title='Task', weight=3)
+        self.task = Task.objects.create(project=self.project, title='Task', weight=3,
+                                        due_date=timezone.now() + timedelta(days=2))
 
     def test_student_leader_can_approve_own_group_task(self):
         client = APIClient()
@@ -2133,7 +2157,8 @@ class LeaderPermissionTests(TestCase):
     def test_student_leader_cannot_approve_other_group_task(self):
         # A leader of one group cannot approve tasks in another group they do not lead.
         other_project = Project.objects.create(group=self.other_group, title='Other Project')
-        other_task = Task.objects.create(project=other_project, title='Their task', weight=3)
+        other_task = Task.objects.create(project=other_project, title='Their task', weight=3,
+                                         due_date=timezone.now() + timedelta(days=2))
         client = APIClient()
         client.force_authenticate(user=self.leader)
         approved = client.post(
@@ -2272,3 +2297,325 @@ class LecturerAssignmentTests(TestCase):
         self.assertTrue(can_view_student(same, same))
         self.assertFalse(can_view_student(same, diff_unit))
         self.assertFalse(can_view_student(same, diff_term))
+
+
+class BackendInvariantTests(TestCase):
+    """One Django test per backend rule:
+
+    Academic structure, lecturer assignment, access control, and the
+    group/task invariants (one group per student per unit per term,
+    weights 1 to 5 from one constant, due date required, no
+    reassigning to the same person, leader-only approval, no
+    self-confirmation of weights, full/locked groups reject joins).
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.course = Course.objects.create(code='INV', name='Invariant Course', department='Computing')
+        self.term = Semester.objects.create(name='Y1S1', year=1, semester=1, is_current=True)
+        self.unit = Unit.objects.create(course=self.course, code='INV 101', name='Invariant Unit',
+                                        year_of_study=1, semester=1)
+        self.unit_other_semester = Unit.objects.create(course=self.course, code='INV 201', name='Invariant Unit 2',
+                                                       year_of_study=2, semester=1)
+        self.other_unit = Unit.objects.create(course=self.course, code='INV 102', name='Other Unit',
+                                              year_of_study=1, semester=2)
+        self.lecturer = User.objects.create_user(
+            username='il', email='il@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', staff_id='IS1234',
+        )
+        self.admin = User.objects.create_user(
+            username='ia', email='ia@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', is_staff=True, is_superuser=True,
+        )
+        UnitAssignment.objects.create(lecturer=self.lecturer, unit=self.unit, term=self.term, status='approved')
+        self.leader = User.objects.create_user(
+            username='ivl', email='ivl@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='Invariant Course', year_of_study='1', semester=1,
+            enrolled_course=self.course,
+        )
+        self.member = User.objects.create_user(
+            username='ivm', email='ivm@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='Invariant Course', year_of_study='1', semester=1,
+            enrolled_course=self.course,
+        )
+        self.outsider = User.objects.create_user(
+            username='ivo', email='ivo@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='Invariant Course', year_of_study='1', semester=1,
+            enrolled_course=self.course,
+        )
+        StudentEnrollment.objects.create(student=self.leader, unit=self.unit, semester=self.term)
+        StudentEnrollment.objects.create(student=self.member, unit=self.unit, semester=self.term)
+        self.group = Group.objects.create(
+            name='Invariant Group', course='Invariant Course', year_of_study='1',
+            join_code='IVG001', unit=self.unit, term=self.term,
+            lecturer=self.leader, leader=self.leader, max_members=5,
+        )
+        GroupMembership.objects.create(group=self.group, student=self.leader, role='member')
+        GroupMembership.objects.create(group=self.group, student=self.member, role='member')
+        self.project = Project.objects.create(group=self.group, title='Invariant Project')
+
+    def _auth(self, user):
+        self.client.force_authenticate(user=user)
+
+    def test_only_one_academic_term_is_current(self):
+        newer = Semester.objects.create(name='Y2S1', year=2, semester=1, is_current=True)
+        self.term.refresh_from_db()
+        self.assertFalse(self.term.is_current)
+        self.assertTrue(Semester.objects.get(pk=newer.pk).is_current)
+        self.assertEqual(Semester.objects.filter(is_current=True).count(), 1)
+
+    def test_unit_belongs_to_programme_year_and_semester(self):
+        self.assertEqual(self.unit.course_id, self.course.id)
+        self.assertEqual(self.unit.year_of_study, 1)
+        self.assertEqual(self.unit.semester, 1)
+        with self.assertRaises(IntegrityError):
+            Unit.objects.create(course=self.course, code='INV 101', name='Duplicate', year_of_study=1, semester=1)
+
+    def test_student_enrollment_created_for_current_term_and_updated_when_cohort_changes(self):
+        self.assertEqual(
+            StudentEnrollment.objects.filter(student=self.leader, semester=self.term).count(), 1,
+        )
+        self._auth(self.leader)
+        response = self.client.patch('/api/accounts/profile/settings/', {
+            'first_name': 'Changed',
+            'last_name': 'Student',
+            'course_id': self.course.id,
+            'year_of_study': '2',
+            'semester': 1,
+        }, format='json')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.leader.refresh_from_db()
+        self.assertEqual(StudentEnrollment.objects.filter(student=self.leader, unit=self.unit).count(), 0)
+        self.assertEqual(
+            StudentEnrollment.objects.filter(
+                student=self.leader, unit=self.unit_other_semester, semester=self.term,
+            ).count(), 1,
+        )
+
+    def test_unit_assignment_admin_or_bulk_import_only_no_self_assignment(self):
+        self._auth(self.lecturer)
+        response = self.client.post('/api/accounts/admin/assignments/', {
+            'lecturer_id': self.lecturer.id,
+            'unit_id': self.unit.id,
+        }, format='json')
+        self.assertEqual(response.status_code, 403, response.json())
+        assignment = UnitAssignment.objects.create(
+            lecturer=self.lecturer, unit=self.other_unit, term=self.term, status='pending',
+        )
+        response = self.client.post(
+            f'/api/accounts/admin/assignments/{assignment.id}/approve/', format='json',
+        )
+        self.assertEqual(response.status_code, 403, response.json())
+        response = self.client.post('/api/accounts/admin/roster/import/commit/', format='json')
+        self.assertEqual(response.status_code, 403, response.json())
+
+        self._auth(self.admin)
+        response = self.client.post(
+            f'/api/accounts/admin/assignments/{assignment.id}/approve/', format='json',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, 'approved')
+
+    def test_lecturer_access_comes_only_from_active_assignment_for_current_term(self):
+        self.assertTrue(can_view_group(self.lecturer, self.group))
+        self.assertTrue(can_view_unit(self.lecturer, self.unit))
+        self.assertFalse(can_view_unit(self.lecturer, self.other_unit))
+
+        # An end-dated assignment revokes access.
+        assignment = UnitAssignment.objects.get(lecturer=self.lecturer, unit=self.unit, term=self.term)
+        assignment.end_date = timezone.now().date() - timedelta(days=1)
+        assignment.save(update_fields=['end_date'])
+        self.assertFalse(can_view_group(self.lecturer, self.group))
+        self.assertFalse(can_view_unit(self.lecturer, self.unit))
+
+        # A pending (not approved) assignment grants no access.
+        assignment.end_date = None
+        assignment.status = 'pending'
+        assignment.save(update_fields=['status', 'end_date'])
+        self.assertFalse(can_view_group(self.lecturer, self.group))
+        self.assertFalse(can_view_unit(self.lecturer, self.unit))
+
+        # Access returns when the assignment is active again.
+        assignment.status = 'approved'
+        assignment.save(update_fields=['status'])
+        self.assertTrue(can_view_group(self.lecturer, self.group))
+        self.assertTrue(can_view_unit(self.lecturer, self.unit))
+
+        self.assertTrue(can_view_unit(self.admin, self.unit))
+        self.assertTrue(can_view_unit(self.admin, self.other_unit))
+
+    def test_access_functions_cover_admin_lecturer_student(self):
+        self.assertTrue(can_view_student(self.admin, self.outsider))
+        self.assertTrue(can_view_student(self.lecturer, self.member))
+        self.assertTrue(can_view_student(self.member, self.member))
+        self.assertTrue(can_view_student(self.member, self.leader))
+        self.assertFalse(can_view_student(self.member, self.outsider))
+        self.assertFalse(can_view_student(self.outsider, self.member))
+        self.assertTrue(can_view_group(self.admin, self.group))
+        self.assertTrue(can_view_group(self.lecturer, self.group))
+        self.assertTrue(can_view_group(self.leader, self.group))
+        self.assertTrue(can_view_group(self.member, self.group))
+        self.assertFalse(can_view_group(self.outsider, self.group))
+        self.assertTrue(can_manage_group(self.leader, self.group))
+        self.assertTrue(can_manage_group(self.admin, self.group))
+        self.assertFalse(can_manage_group(self.member, self.group))
+        self.assertFalse(can_manage_group(self.outsider, self.group))
+        self.assertFalse(can_manage_group(self.lecturer, self.group))
+
+    def test_classmates_are_same_unit_and_term_name_and_admission_number_only(self):
+        self._auth(self.member)
+        response = self.client.get(f'/api/accounts/units/{self.unit.id}/classmates/')
+        self.assertEqual(response.status_code, 200, response.json())
+        for person in response.json():
+            self.assertIn('name', person)
+            self.assertIn('admission_number', person)
+            self.assertNotIn('email', person)
+
+    def test_one_group_per_student_per_unit_per_term(self):
+        StudentEnrollment.objects.create(student=self.outsider, unit=self.unit, semester=self.term)
+        other_group = Group.objects.create(
+            name='Other Group', course='Invariant Course', year_of_study='1', join_code='IVG002',
+            unit=self.unit, term=self.term, lecturer=self.leader, leader=self.leader,
+        )
+        membership = GroupMembership(group=other_group, student=self.member)
+        with self.assertRaises(ValidationError):
+            membership.full_clean()
+
+        self._auth(self.outsider)
+        first = self.client.post('/api/accounts/groups/join/', {'code': 'IVG001'}, format='json')
+        self.assertEqual(first.status_code, 200, first.json())
+        second = self.client.post('/api/accounts/groups/join/', {'code': 'IVG002'}, format='json')
+        self.assertEqual(second.status_code, 400, second.json())
+        self.assertIn('already in a group for this unit', second.json()['error'])
+
+    def test_task_weights_must_be_one_to_five_from_one_constant(self):
+        weight_field = Task._meta.get_field('weight')
+        limits = [
+            validator.limit_value for validator in weight_field.validators
+            if isinstance(validator, (MinValueValidator, MaxValueValidator))
+        ]
+        self.assertIn(WEIGHT_MIN, limits)
+        self.assertIn(WEIGHT_MAX, limits)
+
+        task = Task.objects.create(project=self.project, title='Weighted', assigned_to=self.member,
+                                   weight=2, due_date=timezone.now() + timedelta(days=2))
+        task.weight = WEIGHT_MIN - 1
+        with self.assertRaises(ValidationError):
+            task.full_clean()
+        task.weight = WEIGHT_MAX + 1
+        with self.assertRaises(ValidationError):
+            task.full_clean()
+        task.weight = WEIGHT_MAX + 1
+        with self.assertRaises(IntegrityError):
+            task.save()
+
+    def test_due_date_is_required(self):
+        with self.assertRaises(ValidationError):
+            Task(project=self.project, title='Undated', assigned_to=self.member, weight=1).full_clean()
+        try:
+            with transaction.atomic():
+                Task.objects.create(project=self.project, title='Undated', assigned_to=self.member, weight=1)
+        except IntegrityError:
+            pass
+        self.assertEqual(Task.objects.filter(title='Undated').count(), 0)
+        self._auth(self.member)
+        response = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/assign/',
+            {'title': 'Undated via API', 'weight': 1, 'assigned_to_id': self.member.id},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('due date', response.json()['error'].lower())
+
+    def test_cannot_reassign_task_to_same_person(self):
+        task = Task.objects.create(project=self.project, title='Reassign', assigned_to=self.member,
+                                   weight=2, due_date=timezone.now() + timedelta(days=2))
+        self._auth(self.member)
+        before = TaskActivity.objects.filter(task=task, action='reassigned').count()
+        response = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/{task.id}/reassign/',
+            {'assigned_to_id': self.member.id, 'confirm_override': True}, format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertEqual(
+            TaskActivity.objects.filter(task=task, action='reassigned').count(), before,
+        )
+
+    def test_only_leader_approves_proposed_tasks(self):
+        self._auth(self.member)
+        propose = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/propose/',
+            {'title': 'Research', 'weight': 2, 'due_date': '2026-12-01', 'project_id': self.project.id},
+            format='json',
+        )
+        self.assertEqual(propose.status_code, 201, propose.json())
+        task_id = propose.json()['task']['id']
+        approval = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/{task_id}/approve/',
+            {'assignment_mode': 'open_to_claim'}, format='json',
+        )
+        self.assertEqual(approval.status_code, 403, approval.json())
+
+        self._auth(self.leader)
+        approval = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/{task_id}/approve/',
+            {'assignment_mode': 'open_to_claim'}, format='json',
+        )
+        self.assertEqual(approval.status_code, 200, approval.json())
+
+    def test_leader_cannot_confirm_own_weight(self):
+        # A member's proposed weight is confirmed by the leader.
+        self._auth(self.member)
+        propose = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/propose/',
+            {'title': 'Research', 'weight': 2, 'due_date': '2026-12-01', 'project_id': self.project.id},
+            format='json',
+        )
+        self.assertEqual(propose.status_code, 201, propose.json())
+        task_id = propose.json()['task']['id']
+        self._auth(self.leader)
+        confirm = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/{task_id}/confirm-weight/',
+            {'weight': 3}, format='json',
+        )
+        self.assertEqual(confirm.status_code, 200, confirm.json())
+        self.assertTrue(Task.objects.get(pk=task_id).weight_confirmed)
+
+        # The leader cannot confirm a weight they proposed themselves.
+        self._auth(self.leader)
+        own = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/propose/',
+            {'title': 'Own task', 'weight': 4, 'due_date': '2026-12-02', 'project_id': self.project.id},
+            format='json',
+        )
+        self.assertEqual(own.status_code, 201, own.json())
+        own_id = own.json()['task']['id']
+        confirm = self.client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/{own_id}/confirm-weight/',
+            {'weight': 4}, format='json',
+        )
+        self.assertEqual(confirm.status_code, 403, confirm.json())
+        self.assertIn('own task', confirm.json()['error'].lower())
+
+    def test_full_or_locked_group_rejects_joins(self):
+        StudentEnrollment.objects.create(student=self.outsider, unit=self.unit, semester=self.term)
+        full_group = Group.objects.create(
+            name='Full Group', course='Invariant Course', year_of_study='1', join_code='IVGFULL',
+            unit=self.unit, term=self.term, lecturer=self.leader, leader=self.leader, max_members=2,
+        )
+        GroupMembership.objects.create(group=full_group, student=self.leader, role='member')
+        GroupMembership.objects.create(group=full_group, student=self.member, role='member')
+        self._auth(self.outsider)
+        response = self.client.post('/api/accounts/groups/join/', {'code': 'IVGFULL'}, format='json')
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('full', response.json()['error'].lower())
+
+        locked_group = Group.objects.create(
+            name='Locked Group', course='Invariant Course', year_of_study='1', join_code='IVGLOCK',
+            unit=self.unit, term=self.term, lecturer=self.leader, leader=self.leader,
+            max_members=5, is_locked=True,
+        )
+        response = self.client.post('/api/accounts/groups/join/', {'code': 'IVGLOCK'}, format='json')
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('locked', response.json()['error'].lower())

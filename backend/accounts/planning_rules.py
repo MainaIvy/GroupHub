@@ -1,12 +1,11 @@
 """Permission rules shared by the project-planning views and the task workspace payload."""
 from .access import is_supervising_lecturer
 from .models import GroupMembership
+from .weights import WEIGHT_MIN, WEIGHT_MAX
 
 BOARD_STATUSES = ('proposed', 'open_to_claim', 'assigned', 'in_progress', 'done')
 
-# Single source of truth for task weight range
-WEIGHT_MIN = 1
-WEIGHT_MAX = 5
+# Single source of truth for task weight range (lives in accounts.weights).
 WEIGHT_CHOICES = tuple(range(WEIGHT_MIN, WEIGHT_MAX + 1))
 
 

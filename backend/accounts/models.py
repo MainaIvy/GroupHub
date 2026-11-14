@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 import re
 import uuid
 
+from .weights import WEIGHT_MIN, WEIGHT_MAX
+
 class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(max_length=254, unique=True)
@@ -173,6 +175,27 @@ class GroupMembership(models.Model):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
     joined_at = models.DateTimeField(auto_now_add=True)
 
+    def clean(self):
+        super().clean()
+        # One group per student per unit per term.
+        if self.group_id and self.student_id:
+            unit_id = self.group.unit_id
+            term_id = self.group.term_id
+            if unit_id is not None:
+                queryset = GroupMembership.objects.filter(
+                    student=self.student, group__unit_id=unit_id,
+                )
+                if term_id is not None:
+                    queryset = queryset.filter(group__term_id=term_id)
+                else:
+                    queryset = queryset.filter(group__term_id__isnull=True)
+                if self.pk:
+                    queryset = queryset.exclude(pk=self.pk)
+                if queryset.exists():
+                    raise ValidationError({
+                        'student': 'This student is already in a group for this unit and term.',
+                    })
+
     class Meta:
         unique_together = ['group', 'student']
 
@@ -222,18 +245,18 @@ class Task(models.Model):
     progress_percentage = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     task_weight = models.PositiveIntegerField(
         default=1,
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        validators=[MinValueValidator(WEIGHT_MIN), MaxValueValidator(WEIGHT_MAX)],
     )
     weight = models.PositiveSmallIntegerField(
         default=1,
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        validators=[MinValueValidator(WEIGHT_MIN), MaxValueValidator(WEIGHT_MAX)],
     )
     parent_task = models.ForeignKey(
         'self', on_delete=models.CASCADE, related_name='subtasks', null=True, blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    due_date = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateTimeField(null=False, blank=False)
     completed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
@@ -246,6 +269,16 @@ class Task(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(weight__gte=WEIGHT_MIN, weight__lte=WEIGHT_MAX),
+                name='task_weight_between_1_and_5',
+            ),
+            models.CheckConstraint(
+                check=models.Q(due_date__isnull=False),
+                name='task_due_date_required',
+            ),
+        ]
 
 
 class TaskActivity(models.Model):

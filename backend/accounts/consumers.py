@@ -2,7 +2,8 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import Message, ChatRoom, User, Group
-from .academic import is_supervising_lecturer, supervising_lecturers
+from .academic import supervising_lecturers
+from .access import can_view_group
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
@@ -140,10 +141,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return room.user1 == self.user or room.user2 == self.user
         elif room.chat_type == 'group':
             # Allow access if user is a member of the group or an approved supervisor of its unit.
-            return (
-                room.group.memberships.filter(student=self.user).exists()
-                or is_supervising_lecturer(self.user, room.group)
-            )
+            return can_view_group(self.user, room.group)
         return False
 
     @database_sync_to_async

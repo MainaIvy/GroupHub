@@ -33,10 +33,12 @@ from .models import (
     ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster,
 )
 from .planning_rules import avatar_url, board_status, weight_change_block, weight_confirm_block, WEIGHT_MIN, WEIGHT_MAX
+from .access import can_view_group, can_manage_group
+from .group_access_views import _is_enrolled_in_unit, _join_block, _unit_group_block
 from .balance import calculate_group_balance
 from .health import compute_group_health, get_health_details
 from .academic import (
-    approved_units_for_lecturer, current_term, is_supervising_lecturer,
+    approved_units_for_lecturer, current_term,
     sync_student_enrollments, supervising_lecturer_ids, supervising_lecturers,
 )
 
@@ -1402,12 +1404,8 @@ def get_group_tasks(request, group_id):
         user = request.user
         group = Group.objects.get(id=group_id)
 
-        if user.user_type == 'lecturer':
-            if not is_supervising_lecturer(user, group):
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-        else:
-            if not GroupMembership.objects.filter(group=group, student=user).exists():
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if not can_view_group(user, group):
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         tasks = Task.objects.filter(project__group=group).select_related('assigned_to', 'project').prefetch_related('comments__author', 'subtasks').order_by('-created_at')
 
@@ -1433,7 +1431,7 @@ def get_group_tasks(request, group_id):
                 'parent_task_id': task.parent_task_id,
                 'is_parent': task.subtasks.exists(),
                 'is_overdue': bool(task.due_date and task.due_date < timezone.now() and task.status != 'completed'),
-                'can_update_progress': can_update_progress or (user.user_type == 'lecturer' and is_supervising_lecturer(user, group)),
+                'can_update_progress': can_update_progress or (user.user_type == 'lecturer' and can_view_group(user, group)),
                 'comments': [{
                     'id': comment.id,
                     'author_id': comment.author_id,
@@ -1457,9 +1455,7 @@ def get_group_tasks(request, group_id):
 def get_group_task_workspace(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        is_member = GroupMembership.objects.filter(group=group, student=request.user).exists()
-        is_supervisor = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
-        if not is_supervisor and not is_member:
+        if not can_view_group(request.user, group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         members = GroupMembership.objects.filter(group=group).select_related('student').order_by('joined_at')
@@ -1537,8 +1533,7 @@ def get_group_task_workspace(request, group_id):
                 'has_subtasks': bool(children_by_parent.get(task.id)),
                 'can_update_progress': (
                     task.assigned_to_id == request.user.id
-                    or (request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group))
-                    or GroupMembership.objects.filter(group=group, student=request.user, role='admin').exists()
+                    or can_view_group(request.user, group)
                 ),
                 'can_change_weight': weight_change_block(request.user, group, task) is None,
                 'proposed_by_id': task.proposed_by_id,
@@ -1595,10 +1590,7 @@ def get_group_task_workspace(request, group_id):
 def get_group_activity(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        is_supervisor = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
-        if not is_supervisor and not GroupMembership.objects.filter(
-            group=group, student=request.user
-        ).exists():
+        if not can_view_group(request.user, group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         activities = TaskActivity.objects.filter(task__project__group=group).select_related(
@@ -1633,9 +1625,7 @@ def get_group_activity(request, group_id):
 def get_group_comments(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        is_lecturer = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
-        is_member = GroupMembership.objects.filter(group=group, student=request.user).exists()
-        if not is_lecturer and not is_member:
+        if not can_view_group(request.user, group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         if request.method == 'POST':
@@ -1703,7 +1693,7 @@ def grade_submission(request, submission_id):
         submission = Submission.objects.select_related('project__group', 'project', 'submitted_by').get(pk=submission_id)
     except Submission.DoesNotExist:
         return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
-    if not is_supervising_lecturer(request.user, submission.project.group):
+    if not can_view_group(request.user, submission.project.group):
         return Response({'error': 'You can only grade submissions from your groups.'}, status=status.HTTP_403_FORBIDDEN)
     raw_grade = request.data.get('grade')
     try:
@@ -1725,10 +1715,7 @@ def grade_submission(request, submission_id):
 def group_submissions(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        is_supervisor = request.user.user_type == 'lecturer' and is_supervising_lecturer(request.user, group)
-        if not is_supervisor and not GroupMembership.objects.filter(
-            group=group, student=request.user
-        ).exists():
+        if not can_view_group(request.user, group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         if request.method == 'GET':
@@ -1844,9 +1831,7 @@ def _sync_parent_task_rollups(task):
 
 
 def _group_task_participant(user, group):
-    if user.user_type == 'lecturer':
-        return is_supervising_lecturer(user, group)
-    return GroupMembership.objects.filter(group=group, student=user).exists()
+    return can_view_group(user, group)
 
 
 @api_view(['POST'])
@@ -2039,12 +2024,8 @@ def get_group_balance(request, group_id):
         user = request.user
         group = Group.objects.get(id=group_id)
 
-        if user.user_type == 'lecturer':
-            if not is_supervising_lecturer(user, group):
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-        else:
-            if not GroupMembership.objects.filter(group=group, student=user).exists():
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if not can_view_group(user, group):
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         if request.method == 'POST':
             try:
@@ -2103,7 +2084,7 @@ def create_task(request, group_id):
         user = request.user
         group = Group.objects.get(id=group_id)
 
-        if user.user_type != 'lecturer' or not is_supervising_lecturer(user, group):
+        if user.user_type != 'lecturer' or not can_view_group(user, group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         title = request.data.get('title', '').strip()
@@ -2198,11 +2179,9 @@ def update_task_status(request, task_id):
         task = Task.objects.get(id=task_id)
 
         if user.user_type == 'lecturer':
-            if not is_supervising_lecturer(user, task.project.group):
+            if not can_view_group(user, task.project.group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-        elif task.assigned_to != user and not GroupMembership.objects.filter(
-            group=task.project.group, student=user, role='admin'
-        ).exists():
+        elif task.assigned_to != user and not can_view_group(user, task.project.group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         if task.subtasks.exists():
@@ -2251,11 +2230,9 @@ def update_task_progress(request, task_id):
         task = Task.objects.get(id=task_id)
 
         if user.user_type == 'lecturer':
-            if not is_supervising_lecturer(user, task.project.group):
+            if not can_view_group(user, task.project.group):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-        elif task.assigned_to != user and not GroupMembership.objects.filter(
-            group=task.project.group, student=user, role='admin'
-        ).exists():
+        elif task.assigned_to != user and not can_view_group(user, task.project.group):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         if task.subtasks.exists():
@@ -2394,12 +2371,8 @@ def get_group_members(request, group_id):
         user = request.user
         group = Group.objects.get(id=group_id)
 
-        if user.user_type == 'lecturer':
-            if not is_supervising_lecturer(user, group):
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-        else:
-            if not GroupMembership.objects.filter(group=group, student=user).exists():
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if not can_view_group(user, group):
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         memberships = GroupMembership.objects.filter(group=group).select_related('student')
 
@@ -2558,12 +2531,8 @@ def get_messages(request, room_id):
         chat_room = ChatRoom.objects.get(id=room_id)
 
         if chat_room.chat_type == 'group':
-            if user.user_type == 'lecturer':
-                if not is_supervising_lecturer(user, chat_room.group):
-                    return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-            else:
-                if not GroupMembership.objects.filter(group=chat_room.group, student=user).exists():
-                    return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+            if not can_view_group(user, chat_room.group):
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         else:  
             if not (chat_room.user1 == user or chat_room.user2 == user):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
@@ -2629,12 +2598,8 @@ def send_message(request, room_id):
         chat_room = ChatRoom.objects.get(id=room_id)
 
         if chat_room.chat_type == 'group':
-            if user.user_type == 'lecturer':
-                if not is_supervising_lecturer(user, chat_room.group):
-                    return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-            else:
-                if not GroupMembership.objects.filter(group=chat_room.group, student=user).exists():
-                    return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+            if not can_view_group(user, chat_room.group):
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         else:  
             if not (chat_room.user1 == user or chat_room.user2 == user):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
@@ -2677,10 +2642,7 @@ def send_message(request, room_id):
             for username in mentions:
                 mentioned_user = User.objects.filter(username__iexact=username).first()
                 if mentioned_user and mentioned_user != user:
-                    # Check if mentioned user is in the group
-                    is_member = GroupMembership.objects.filter(group=chat_room.group, student=mentioned_user).exists()
-                    is_lecturer = is_supervising_lecturer(mentioned_user, chat_room.group)
-                    if is_member or is_lecturer:
+                    if can_view_group(mentioned_user, chat_room.group):
                         Notification.objects.create(
                             user=mentioned_user,
                             notification_type='mention',
@@ -2732,9 +2694,7 @@ def download_message_attachment(request, message_id):
         chat_room = message.chat_room
         user = request.user
         if chat_room.chat_type == 'group':
-            allowed = is_supervising_lecturer(user, chat_room.group) or GroupMembership.objects.filter(
-                group=chat_room.group, student=user
-            ).exists()
+            allowed = can_view_group(user, chat_room.group)
         else:
             allowed = chat_room.user1_id == user.id or chat_room.user2_id == user.id
         if not allowed:
@@ -2761,9 +2721,7 @@ def download_message_voice_note(request, message_id):
         chat_room = message.chat_room
         user = request.user
         if chat_room.chat_type == 'group':
-            allowed = is_supervising_lecturer(user, chat_room.group) or GroupMembership.objects.filter(
-                group=chat_room.group, student=user
-            ).exists()
+            allowed = can_view_group(user, chat_room.group)
         else:
             allowed = chat_room.user1_id == user.id or chat_room.user2_id == user.id
         if not allowed:
@@ -2913,9 +2871,7 @@ def mark_room_notifications_read(request, room_id):
         user = request.user
         room = ChatRoom.objects.get(pk=room_id)
         if room.chat_type == 'group':
-            allowed = is_supervising_lecturer(user, room.group) or GroupMembership.objects.filter(
-                group=room.group, student=user
-            ).exists()
+            allowed = can_view_group(user, room.group)
         else:
             allowed = room.user1_id == user.id or room.user2_id == user.id
         if not allowed:
@@ -2997,6 +2953,8 @@ def create_group_view(request):
             return Response({'error': f'No student account was found for {username}.'}, status=status.HTTP_400_BAD_REQUEST)
         if invitee.id == user.id:
             continue
+        if unit and GroupMembership.objects.filter(student=invitee, group__unit=unit).exists():
+            return Response({'error': f'{username} is already in a group for this unit.'}, status=status.HTTP_400_BAD_REQUEST)
         expected_course_values = {
             str(course).strip().casefold(),
             course_record.code.casefold() if course_record else '',
@@ -3017,19 +2975,21 @@ def create_group_view(request):
         with transaction.atomic():
             from .join_codes import generate_join_code
             join_code = generate_join_code()
+            if unit and user.user_type == 'student' and GroupMembership.objects.filter(student=user, group__unit=unit).exists():
+                return Response({'error': 'You are already in a group for this unit.'}, status=status.HTTP_400_BAD_REQUEST)
             group = Group.objects.create(
                 name=str(name).strip(),
                 course=str(course).strip(),
                 year_of_study=year_of_study,
                 description=str(description or '').strip(),
                 join_code=join_code,
-                    unit=unit,
-                    unit_code=unit.code if unit else '',
-                    term=current_term(),
-                    lecturer=user,
-                    leader=user,
-                    max_members=max_members,
-                )
+                unit=unit,
+                unit_code=unit.code if unit else '',
+                term=current_term(),
+                lecturer=user,
+                leader=user,
+                max_members=max_members,
+            )
             if user.user_type == 'student':
                 GroupMembership.objects.create(group=group, student=user, role='member')
             GroupMembership.objects.bulk_create([
@@ -3068,7 +3028,7 @@ def create_group_view(request):
 def delete_group_view(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        if group.leader_id != request.user.id and not is_supervising_lecturer(request.user, group):
+        if group.leader_id != request.user.id and not can_manage_group(request.user, group):
             return Response({'error': 'Only the group creator or a supervising lecturer can delete this group.'}, status=status.HTTP_403_FORBIDDEN)
 
         attachment_names = list(Message.objects.filter(
@@ -3092,12 +3052,8 @@ def get_group_chat_room(request, group_id):
         user = request.user
         group = Group.objects.get(id=group_id)
 
-        if user.user_type == 'lecturer':
-            if not is_supervising_lecturer(user, group):
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
-        else:
-            if not GroupMembership.objects.filter(group=group, student=user).exists():
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if not can_view_group(user, group):
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         chat_room, _ = ChatRoom.objects.get_or_create(group=group, defaults={'chat_type': 'group'})
 
@@ -3137,14 +3093,15 @@ def join_group_view(request):
             if GroupMembership.objects.filter(group=group, student=user).exists():
                 return Response({'error': 'You are already a member of this group'}, status=status.HTTP_400_BAD_REQUEST)
 
-            member_count = GroupMembership.objects.filter(group=group).count()
-            if group.is_archived:
-                return Response({'error': 'This group is closed and cannot accept new members.'}, status=status.HTTP_400_BAD_REQUEST)
-            if group.max_members is not None and member_count >= group.max_members:
-                return Response({'error': 'This group is full.'}, status=status.HTTP_400_BAD_REQUEST)
+            if group.unit_id and not _is_enrolled_in_unit(user, group.unit):
+                return Response({'error': 'You are not enrolled in this group\'s unit.'}, status=status.HTTP_403_FORBIDDEN)
+            block = _unit_group_block(group, user) or _join_block(group)
+            if block:
+                return Response({'error': block}, status=status.HTTP_400_BAD_REQUEST)
 
             GroupMembership.objects.create(group=group, student=user, role='member')
             ChatRoom.objects.get_or_create(group=group, defaults={'chat_type': 'group'})
+            member_count = GroupMembership.objects.filter(group=group).count()
 
             return Response({
                 'message': 'Successfully joined the group',
