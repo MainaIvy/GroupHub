@@ -46,8 +46,8 @@ class GoogleLoginView(APIView):
 
     """Handle POST /api/accounts/google/login/ from the React frontend.
 
-    Expected body: { "token": <google id_token or access_token> }
-    Returns: { access, refresh, user }
+    Expected body: { "token": <google id_token> }
+    Returns: { access, refresh, user, profile_complete }
     """
 
     authentication_classes = []
@@ -60,6 +60,7 @@ class GoogleLoginView(APIView):
                 return Response({'error': 'Missing token'}, status=status.HTTP_400_BAD_REQUEST)
 
             google_client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None) or os.getenv('GOOGLE_CLIENT_ID')
+            allowed_domains = getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['zetech.ac.ke'])
 
             payload = None
             # Preferred: verify ID token using google-auth.
@@ -97,22 +98,42 @@ class GoogleLoginView(APIView):
             if not payload:
                 return Response({'error': 'Invalid Google token'}, status=status.HTTP_401_UNAUTHORIZED)
 
+            # Verify email is verified by Google
+            if not payload.get('email_verified'):
+                return Response({'error': 'Google email not verified'}, status=status.HTTP_400_BAD_REQUEST)
+
             email = payload.get('email')
             if not email:
                 return Response({'error': 'Google token missing email'}, status=status.HTTP_400_BAD_REQUEST)
 
             email = str(email).strip().lower()
+
+            # Check domain is allowed
+            if not any(email.endswith(f'@{d}') for d in allowed_domains):
+                return Response({'error': f'Email domain not allowed. Allowed: {", ".join(allowed_domains)}'}, status=status.HTTP_400_BAD_REQUEST)
+
             name = payload.get('name') or ''
             given_name = payload.get('given_name') or ''
             family_name = payload.get('family_name') or ''
+            picture = payload.get('picture') or ''
 
             if given_name or family_name:
                 first_name = given_name.strip()
                 last_name = family_name.strip()
             else:
                 parts = name.split(' ', 1)
-                first_name = parts[0].strip() if parts and parts[0] else 'User'
-                last_name = parts[1].strip() if len(parts) > 1 else 'Account'
+                first_name = parts[0].strip() if parts and parts[0] else ''
+                last_name = parts[1].strip() if len(parts) > 1 else ''
+
+            # If names are still empty, derive from email prefix
+            if not first_name and not last_name:
+                email_prefix = email.split('@')[0]
+                # Clean up the prefix (remove numbers, dots, etc. for better name)
+                clean_prefix = email_prefix.replace('.', ' ').replace('_', ' ').replace('-', ' ')
+                parts = clean_prefix.split()
+                if parts:
+                    first_name = parts[0].capitalize()
+                    last_name = ' '.join(parts[1:]).capitalize() if len(parts) > 1 else ''
 
             # Check if email is in lecturer roster
             roster_entry = LecturerRoster.objects.filter(email=email).first()
@@ -130,6 +151,7 @@ class GoogleLoginView(APIView):
                     'university': payload.get('hd', ''),
                     'email_verified': True,
                     'is_active': True,
+                    'avatar_url': picture,
                 },
             )
 
@@ -137,15 +159,23 @@ class GoogleLoginView(APIView):
             if not user.email_verified:
                 user.email_verified = True
             user.is_active = True
-            if first_name:
+
+            # Fill empty names from Google claims or email prefix
+            if not user.first_name and first_name:
                 user.first_name = first_name
-            if last_name:
+            if not user.last_name and last_name:
                 user.last_name = last_name
+
+            # Update avatar_url from Google picture
+            if picture:
+                user.avatar_url = picture
+
             # Update user_type based on roster
             if is_lecturer and user.user_type != 'lecturer':
                 user.user_type = 'lecturer'
             elif not is_lecturer and user.user_type != 'student':
                 user.user_type = 'student'
+
             user.save()
 
             # Update roster entry if lecturer
@@ -155,6 +185,9 @@ class GoogleLoginView(APIView):
                     from django.utils import timezone
                     roster_entry.activated_at = timezone.now()
                 roster_entry.save(update_fields=['status', 'activated_at'])
+
+            # Compute profile_complete
+            profile_complete = self._compute_profile_complete(user)
 
             refresh = RefreshToken.for_user(user)
             return Response({
@@ -167,15 +200,32 @@ class GoogleLoginView(APIView):
                     'last_name': user.last_name,
                     'user_type': user.user_type,
                     'university': user.university,
+                    'avatar_url': user.avatar_url,
+                    'profile_complete': profile_complete,
                     'lecturer_setup_required': (
                         user.user_type == 'lecturer'
                         and not UnitAssignment.objects.filter(lecturer=user).exists()
                     ),
                 }
             }, status=status.HTTP_200_OK)
+
         except Exception as e:
             logger.exception(f"Google login failed: {e}")
             return Response({'error': 'Google login failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _compute_profile_complete(self, user):
+        """Compute profile completeness for a user."""
+        if user.user_type == 'lecturer':
+            # Lecturers are complete once they have a name
+            return bool(user.first_name and user.last_name)
+        else:
+            # Students need admission number (username), programme (enrolled_course), year, semester
+            return bool(
+                user.username and
+                user.enrolled_course_id and
+                user.year_of_study and
+                user.semester
+            )
 
 
 @api_view(['POST'])
@@ -478,6 +528,16 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     user = request.user
+    # Compute profile_complete
+    if user.user_type == 'lecturer':
+        profile_complete = bool(user.first_name and user.last_name)
+    else:
+        profile_complete = bool(
+            user.username and
+            user.enrolled_course_id and
+            user.year_of_study and
+            user.semester
+        )
     return JsonResponse({
         'id': user.id,
         'email': user.email,
@@ -490,7 +550,9 @@ def profile_view(request):
         'staff_id': user.staff_id,
         'department': user.department,
         'courses_taught': user.courses_taught,
-        'salutation': user.salutation
+        'salutation': user.salutation,
+        'avatar_url': user.avatar_url,
+        'profile_complete': profile_complete,
     })
 
 
@@ -574,6 +636,108 @@ def student_settings(request):
         'course_code': course.code if course else '',
         'year_of_study': user.year_of_study,
         'semester': user.semester,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def student_complete_profile(request):
+    """Complete student profile after Google login.
+    Expects: admission_number, course_id, year_of_study, semester, first_name, last_name
+    Triggers automatic enrolment into matching units for current term.
+    """
+    user = request.user
+    if user.user_type != 'student':
+        return Response({'error': 'Only students can complete profile.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if user.username and user.enrolled_course_id and user.year_of_study and user.semester:
+        return Response({'error': 'Profile already complete.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    admission_number = str(request.data.get('admission_number', '')).strip().upper()
+    course_id = request.data.get('course_id')
+    year_value = request.data.get('year_of_study')
+    semester_value = request.data.get('semester')
+    first_name = str(request.data.get('first_name', user.first_name) or '').strip()
+    last_name = str(request.data.get('last_name', user.last_name) or '').strip()
+
+    if not admission_number:
+        return Response({'error': 'Admission number is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate admission number format (same as signup)
+    if not re.match(r'^[A-Z0-9\-/]+$', admission_number):
+        return Response({'error': 'Admission number can only contain letters, numbers, hyphens, and slashes.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if User.objects.filter(username__iexact=admission_number).exclude(pk=user.pk).exists():
+        return Response({'error': 'Admission number already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not first_name:
+        return Response({'error': 'First name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    course = None
+    if course_id not in (None, ''):
+        try:
+            course = Course.objects.get(pk=int(course_id))
+        except (Course.DoesNotExist, TypeError, ValueError):
+            return Response({'error': 'Select a valid programme.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    year = ''
+    semester = None
+    if year_value not in (None, ''):
+        try:
+            year = str(int(year_value))
+            if int(year) not in range(1, 5):
+                raise ValueError
+        except (TypeError, ValueError):
+            return Response({'error': 'Year of study must be between 1 and 4.'}, status=status.HTTP_400_BAD_REQUEST)
+    if semester_value not in (None, ''):
+        try:
+            semester = int(semester_value)
+            if semester not in (1, 2):
+                raise ValueError
+        except (TypeError, ValueError):
+            return Response({'error': 'Semester must be 1 or 2.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not course or not year or semester is None:
+        return Response({'error': 'Programme, year, and semester are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not Unit.objects.filter(
+        course=course,
+        year_of_study=year,
+        semester=semester,
+    ).exists():
+        return Response({'error': 'That year and semester are not available for the selected programme.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    with transaction.atomic():
+        user.username = admission_number
+        user.first_name = first_name
+        user.last_name = last_name
+        user.enrolled_course = course
+        user.course = course.name
+        user.year_of_study = year
+        user.semester = semester
+        try:
+            user.save()
+        except ValidationError as error:
+            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Trigger automatic enrolment into matching units for current term
+        term, enrolled_count = sync_student_enrollments(user, year, semester)
+
+    return Response({
+        'message': 'Profile completed successfully.',
+        'enrolled_units': enrolled_count,
+        'term': term.name if term else None,
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'username': user.username,
+            'course': user.course,
+            'year_of_study': user.year_of_study,
+            'semester': user.semester,
+            'profile_complete': True,
+        }
     })
 
 

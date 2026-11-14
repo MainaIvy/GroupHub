@@ -356,12 +356,43 @@ export default function useStudentWorkspace() {
     const first = user?.first_name;
     const last = user?.last_name;
     const derived = `${first || ''} ${last || ''}`.trim();
-    return derived.split(' ')[0] || 'Student';
+    if (derived) {
+      return derived.split(' ')[0];
+    }
+    // Fallback to email prefix
+    const email = user?.email || '';
+    const prefix = email.split('@')[0];
+    // Clean up prefix (replace dots, underscores, hyphens with spaces)
+    const cleanPrefix = prefix.replace(/[._-]/g, ' ').trim();
+    if (cleanPrefix) {
+      return cleanPrefix.split(/\s+/)[0];
+    }
+    return 'Student';
   }, [user]);
-  const avatarInitials = [user?.first_name, user?.last_name]
-    .map((name) => String(name || '').trim().split(/\s+/)[0]?.[0] || '')
-    .join('')
-    .toUpperCase() || 'S';
+
+  const avatarInitials = useMemo(() => {
+    const first = user?.first_name;
+    const last = user?.last_name;
+    let initials = [first, last]
+      .map((name) => String(name || '').trim().split(/\s+/)[0]?.[0] || '')
+      .join('')
+      .toUpperCase();
+    if (initials) {
+      return initials;
+    }
+    // Fallback to email prefix
+    const email = user?.email || '';
+    const prefix = email.split('@')[0];
+    // Take first letter of each part separated by dots, underscores, hyphens
+    const parts = prefix.split(/[._-]/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    if (parts.length === 1 && parts[0].length >= 2) {
+      return (parts[0][0] + parts[0][1]).toUpperCase();
+    }
+    return prefix.slice(0, 2).toUpperCase() || 'ST';
+  }, [user]);
 
   const greeting = useMemo(() => {
     const h = now.getHours();

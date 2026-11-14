@@ -69,6 +69,7 @@ urlpatterns = [
 
     # Student account settings
     path('profile/settings/', views.student_settings, name='student_settings'),
+    path('profile/complete/', views.student_complete_profile, name='student_complete_profile'),
     path('lecturer/settings/', views.lecturer_settings, name='lecturer_settings'),
     path('lecturer/units/', units_views.lecturer_my_units, name='lecturer_my_units'),
     path('lecturer/units/create/', views.lecturer_create_unit, name='lecturer_create_unit'),

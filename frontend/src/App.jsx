@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Home from './components/Home';
 import SignUp from './components/SignUp';
@@ -18,7 +18,25 @@ import StaffActivateEmail from './components/StaffActivateEmail';
 import StaffActivate from './components/StaffActivate';
 import StaffForgotPassword from './components/StaffForgotPassword';
 import StaffResetPassword from './components/StaffResetPassword';
+import CompleteProfile from './student/pages/CompleteProfile';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+
+const ProtectedStudentRoute = ({ children }) => {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    return <Navigate to="/login" replace />;
+  }
+  try {
+    const user = JSON.parse(userStr);
+    if (user.user_type === 'student' && !user.profile_complete) {
+      // Allow access to complete-profile page
+      return <Navigate to="/student/complete-profile" replace />;
+    }
+    return children;
+  } catch {
+    return <Navigate to="/login" replace />;
+  }
+};
 
 function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -72,10 +90,40 @@ function App() {
         <Route path="/staff/forgot-password" element={<StaffForgotPassword />} />
         <Route path="/staff/reset-password/:token" element={<StaffResetPassword />} />
 
-        <Route path="/student/dashboard" element={<StudentDashboard />} />
-        <Route path="/student-dashboard" element={<StudentDashboard />} />
-        <Route path="/student/units/:unitId" element={<StudentDashboard />} />
-        <Route path="/student/groups/:groupId" element={<StudentDashboard />} />
+        <Route path="/student/complete-profile" element={<CompleteProfile />} />
+
+        <Route
+          path="/student/dashboard"
+          element={
+            <ProtectedStudentRoute>
+              <StudentDashboard />
+            </ProtectedStudentRoute>
+          }
+        />
+        <Route
+          path="/student-dashboard"
+          element={
+            <ProtectedStudentRoute>
+              <StudentDashboard />
+            </ProtectedStudentRoute>
+          }
+        />
+        <Route
+          path="/student/units/:unitId"
+          element={
+            <ProtectedStudentRoute>
+              <StudentDashboard />
+            </ProtectedStudentRoute>
+          }
+        />
+        <Route
+          path="/student/groups/:groupId"
+          element={
+            <ProtectedStudentRoute>
+              <StudentDashboard />
+            </ProtectedStudentRoute>
+          }
+        />
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer/setup" element={<LecturerSetup />} />

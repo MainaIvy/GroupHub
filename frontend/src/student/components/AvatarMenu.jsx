@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { LogOut, Settings } from 'lucide-react';
 import useOutsideClick from '../hooks/useOutsideClick';
 
 const AvatarMenu = ({ user, academic, initials, open, onToggle, onClose, onSettings }) => {
   useOutsideClick(open, onClose);
-  const name = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Student';
+  const name = useMemo(() => {
+    const first = user?.first_name;
+    const last = user?.last_name;
+    const derived = `${first || ''} ${last || ''}`.trim();
+    if (derived) {
+      return derived;
+    }
+    // Fallback to email prefix
+    const email = user?.email || '';
+    const prefix = email.split('@')[0];
+    // Clean up prefix (replace dots, underscores, hyphens with spaces)
+    const cleanPrefix = prefix.replace(/[._-]/g, ' ').trim();
+    return cleanPrefix || 'Student';
+  }, [user]);
 
   return (
     <div className="relative" data-popover-root>

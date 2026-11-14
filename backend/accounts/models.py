@@ -25,6 +25,7 @@ class User(AbstractUser):
     failed_attempts = models.PositiveIntegerField(default=0)
     email_verified = models.BooleanField(default=False)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    avatar_url = models.URLField(max_length=500, blank=True, help_text='Google profile picture URL')
     enrolled_course = models.ForeignKey(
         'Course', on_delete=models.SET_NULL, related_name='enrolled_students', null=True, blank=True
     )

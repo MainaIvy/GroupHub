@@ -65,12 +65,21 @@ const Login = ({ googleEnabled = false }) => {
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh || '');
       const user = data.user || {};
+      const profileComplete = Boolean(user.profile_complete);
       localStorage.setItem('user', JSON.stringify(user));
-      window.location.href = user.is_staff
-        ? '/admin/dashboard'
-        : user.user_type === 'lecturer'
-          ? (user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard')
-          : '/student/dashboard';
+
+      // Redirect logic
+      let targetPath;
+      if (user.is_staff) {
+        targetPath = '/admin/dashboard';
+      } else if (user.user_type === 'lecturer') {
+        targetPath = user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard';
+      } else if (user.user_type === 'student' && !profileComplete) {
+        targetPath = '/student/complete-profile';
+      } else {
+        targetPath = '/student/dashboard';
+      }
+      window.location.href = targetPath;
     } catch (requestError) {
       console.error('Google login error:', requestError);
       setGoogleError('Google sign-in failed. Please try again.');
@@ -154,6 +163,7 @@ const Login = ({ googleEnabled = false }) => {
       const userType = rawUserType === 'lecturer' ? 'lecturer' : 'student';
       const userEmail = (profile.email || data.email || '').toString().trim();
       const isAdmin = Boolean(profile.is_staff || data.is_staff);
+      const profileComplete = Boolean(profile.profile_complete || data.profile_complete);
 
       localStorage.setItem('user', JSON.stringify({
         id: profile.id || null,
@@ -164,15 +174,21 @@ const Login = ({ googleEnabled = false }) => {
         last_name: profile.last_name || '',
             is_staff: isAdmin,
             lecturer_setup_required: Boolean(profile.lecturer_setup_required || data.lecturer_setup_required),
+            profile_complete: profileComplete,
       }));
 
       setSuccessMessage('Login successful! Redirecting to your dashboard...');
       setTimeout(() => {
-            const targetPath = isAdmin
-              ? '/admin/dashboard'
-              : userType === 'lecturer'
-                ? (Boolean(profile.lecturer_setup_required || data.lecturer_setup_required) ? '/lecturer/setup' : '/lecturer/dashboard')
-                : '/student/dashboard';
+            let targetPath;
+            if (isAdmin) {
+              targetPath = '/admin/dashboard';
+            } else if (userType === 'lecturer') {
+              targetPath = Boolean(profile.lecturer_setup_required || data.lecturer_setup_required) ? '/lecturer/setup' : '/lecturer/dashboard';
+            } else if (userType === 'student' && !profileComplete) {
+              targetPath = '/student/complete-profile';
+            } else {
+              targetPath = '/student/dashboard';
+            }
             window.location.href = targetPath;
       }, 500);
     } catch {
