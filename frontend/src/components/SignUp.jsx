@@ -1,8 +1,37 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, X } from 'lucide-react';
+import { useGoogleLogin } from '@react-oauth/google';
+import { GraduationCap, X, ShieldCheck, Mail } from 'lucide-react';
 import { getAcademicCourses } from '../api';
 import logo from '../assets/images/groubhub logo.svg';
+
+const GoogleGIcon = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C34.73 32.657 30.83 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.962 3.037l5.657-5.657C34.046 6.053 29.268 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20c0-1.341-.138-2.65-.389-3.917z" />
+    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 19.123 12 24 12c3.059 0 5.842 1.154 7.962 3.037l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+    <path fill="#4CAF50" d="M24 44c5.268 0 10.046-2.053 13.719-5.419l-5.657-5.657C30.842 35.187 28.059 36 24 36c-6.83 0-10.73-3.343-11.303-7.999L6.306 33.31C9.656 39.663 16.318 44 24 44z" />
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a11.999 11.999 0 0 1-3.68 6.592l5.657 5.657C36.963 36.116 44 30.44 44 24c0-1.341-.138-2.65-.389-3.917z" />
+  </svg>
+);
+
+const GoogleSignInButton = ({ onSuccess, onError, isLoading }) => {
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess,
+    onError,
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={() => handleGoogleLogin()}
+      disabled={isLoading}
+      className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-70"
+    >
+      <GoogleGIcon className="h-5 w-5" />
+      <span>{isLoading ? 'Signing in...' : 'Continue with Google'}</span>
+    </button>
+  );
+};
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
