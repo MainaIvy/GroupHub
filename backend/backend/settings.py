@@ -41,6 +41,9 @@ ALLOWED_HOSTS = ['192.168.0.61', 'localhost', '127.0.0.1', '*']
 # Allowed email domains for user registration (comma-separated in .env, e.g. zetech.ac.ke,university.edu)
 ALLOWED_EMAIL_DOMAINS = [d.strip() for d in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'zetech.ac.ke').split(',')]
 
+# Google OAuth Client ID for token verification
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '623176595516-7ogaes5u6up7s4ilv7l9alpmnmb8i270.apps.googleusercontent.com')
+
 
 # Application definition
 

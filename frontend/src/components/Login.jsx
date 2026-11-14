@@ -48,10 +48,11 @@ const Login = ({ googleEnabled = false }) => {
     try {
       setGoogleLoading(true);
       setGoogleError('');
-      const googleToken = tokenResponse?.access_token || tokenResponse?.id_token || tokenResponse?.token;
+      // @react-oauth/google returns the ID token in the `credential` field
+      const googleToken = tokenResponse?.credential || tokenResponse?.id_token || tokenResponse?.access_token || tokenResponse?.token;
       if (!googleToken) throw new Error('Missing Google token.');
 
-      const response = await fetch('/api/google/login/', {
+      const response = await fetch('/api/accounts/google/login/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: googleToken }),

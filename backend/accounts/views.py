@@ -80,8 +80,19 @@ class GoogleLoginView(APIView):
                 try:
                     import jwt as pyjwt
                     payload = pyjwt.decode(token, options={"verify_signature": False})
-                except Exception:
+                except Exception as decode_error:
+                    logger.warning(f"JWT decode fallback also failed: {decode_error}")
                     payload = None
+
+            # If still no payload, try to parse as access token by calling Google's tokeninfo endpoint
+            if not payload:
+                try:
+                    import requests
+                    resp = requests.get('https://www.googleapis.com/oauth2/v3/tokeninfo', params={'access_token': token}, timeout=5)
+                    if resp.ok:
+                        payload = resp.json()
+                except Exception:
+                    pass
 
             if not payload:
                 return Response({'error': 'Invalid Google token'}, status=status.HTTP_401_UNAUTHORIZED)
