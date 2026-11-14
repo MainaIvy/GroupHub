@@ -719,99 +719,22 @@ def admin_export(request, export_type):
     return response
 
 
-@api_view(['GET', 'POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def lecturer_setup(request):
-    """Lecturer teaching-unit picker. Filters only find units; submitting creates claims."""
+    """Read-only lecturer setup status: current assignments for the term."""
     if request.user.user_type != 'lecturer':
         return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
-    if request.method == 'GET':
-        catalog = _catalog_data()
-        term = current_term()
-        catalog['assignments'] = [{
-            'id': item.id, 'unit_id': item.unit_id, 'unit': item.unit.name,
-            'unit_code': item.unit.code, 'term': item.term.name, 'status': item.status,
-        } for item in UnitAssignment.objects.filter(
-            lecturer=request.user, term=term,
-        ).select_related('unit', 'term')] if term else []
-        catalog['auto_approve'] = auto_approve_lecturer_claims()
-        return Response(catalog)
-
-    raw_unit_ids = request.data.get('unit_ids')
-    if raw_unit_ids is None:
-        raw_unit_ids = [
-            row.get('unit_id') for row in (request.data.get('assignments') or [])
-            if isinstance(row, dict)
-        ]
-    if not isinstance(raw_unit_ids, list) or not raw_unit_ids:
-        return Response({'error': 'Select at least one teaching unit.'}, status=status.HTTP_400_BAD_REQUEST)
-    try:
-        unit_ids = []
-        for value in raw_unit_ids:
-            unit_id = int(value)
-            if unit_id not in unit_ids:
-                unit_ids.append(unit_id)
-    except (TypeError, ValueError):
-        return Response({'error': 'Select valid teaching units.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    units = list(Unit.objects.filter(id__in=unit_ids).select_related('course'))
-    if len(units) != len(unit_ids):
-        return Response({'error': 'One or more selected units could not be found.'}, status=status.HTTP_400_BAD_REQUEST)
-
+    catalog = _catalog_data()
     term = current_term()
-    if term is None and units:
-        term = term_for_cohort(units[0].year_of_study, units[0].semester)
-        term.is_current = True
-        term.save(update_fields=['is_current'])
-    if term is None:
-        return Response({'error': 'Create an academic term before claiming units.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    auto_approve = auto_approve_lecturer_claims()
-    claims = []
-    approved = 0
-    with transaction.atomic():
-        for unit in units:
-            assignment = UnitAssignment.objects.filter(
-                lecturer=request.user, unit=unit, term=term,
-            ).first()
-            if assignment is None:
-                assignment = UnitAssignment.objects.create(
-                    lecturer=request.user, unit=unit, term=term,
-                    status='pending', requested_by=request.user,
-                )
-                claims.append(assignment)
-            elif assignment.status == 'rejected':
-                assignment.status = 'pending'
-                assignment.requested_by = request.user
-                assignment.save(update_fields=['status', 'requested_by'])
-
-            if assignment.status == 'pending' and auto_approve:
-                has_lecturer = (
-                    unit.assigned_lecturer_id is not None
-                    or UnitAssignment.objects.filter(
-                        unit=unit, term=term, status='approved',
-                    ).exclude(pk=assignment.pk).exists()
-                )
-                if not has_lecturer:
-                    assignment.status = 'approved'
-                    assignment.approved_by = None
-                    assignment.approved_at = timezone.now()
-                    assignment.save(update_fields=['status', 'approved_by', 'approved_at'])
-                    unit.assigned_lecturer = request.user
-                    unit.save(update_fields=['assigned_lecturer'])
-            if assignment.status == 'approved':
-                approved += 1
-
-    _audit(request, 'lecturer_claim_units', 'Lecturer', request.user.id, {
-        'unit_ids': unit_ids, 'term_id': term.id, 'auto_approved': auto_approve,
-    })
-    return Response({
-        'message': 'Teaching units submitted for approval.' if approved < len(units)
-        else 'Teaching units approved.',
-        'term': term.name,
-        'pending': len(units) - approved,
-        'approved': approved,
-    })
+    catalog['assignments'] = [{
+        'id': item.id, 'unit_id': item.unit_id, 'unit': item.unit.name,
+        'unit_code': item.unit.code, 'term': item.term.name, 'status': item.status,
+    } for item in UnitAssignment.objects.filter(
+        lecturer=request.user, term=term,
+    ).select_related('unit', 'term')] if term else []
+    catalog['auto_approve'] = auto_approve_lecturer_claims()
+    return Response(catalog)
 
 
 @api_view(['GET'])

@@ -112,29 +112,20 @@ from django.utils import timezone
 
 
 def approved_units_for_lecturer(lecturer, term):
-    """Units the lecturer is approved to teach in a term (plus legacy assigned_lecturer units).
-    Only returns units with active assignments (end_date is null or in the future)."""
+    """Units the lecturer is approved to teach in a term.
+
+    Only returns units with an active ``UnitAssignment`` (approved, end date
+    empty or in the future). ``Group.lecturer`` / ``Unit.assigned_lecturer``
+    are never consulted for access decisions.
+    """
     if term is None:
-        # No academic term yet: preserve the legacy single-owner model.
-        return Unit.objects.filter(assigned_lecturer=lecturer).select_related('course')
+        return Unit.objects.none()
     today = timezone.now().date()
     unit_ids = set(UnitAssignment.objects.filter(
         lecturer=lecturer, term=term, status='approved',
     ).filter(
         models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
     ).values_list('unit_id', flat=True))
-    # Legacy rows (pre-UnitAssignment) where the unit itself points at the lecturer.
-    has_rows = UnitAssignment.objects.filter(unit_id__in=unit_ids).exists() if unit_ids else False
-    legacy = Unit.objects.filter(
-        assigned_lecturer=lecturer, year_of_study=term.year, semester=term.semester,
-    )
-    if not has_rows:
-        unit_ids.update(legacy.values_list('id', flat=True))
-    else:
-        # Still include legacy units that have no UnitAssignment row at all.
-        unit_ids.update(
-            legacy.exclude(lecturer_assignments__term=term).values_list('id', flat=True)
-        )
     return Unit.objects.filter(id__in=unit_ids).select_related('course')
 
 
@@ -143,24 +134,14 @@ def group_term(group):
 
 
 def supervising_lecturer_ids(group):
-    """User ids with an approved assignment for the group's unit and term."""
+    """User ids with an active (approved, end-date empty/future)
+    ``UnitAssignment`` for the group's unit in the current term."""
     term = group_term(group)
-    if term is None:
-        # Legacy group with no unit/term: the recorded owner is the supervisor.
-        return {group.lecturer_id} if group.lecturer_id else set()
-    if group.unit_id is None:
-        return {group.lecturer_id} if group.lecturer_id else set()
-    ids = set(UnitAssignment.objects.filter(
+    if term is None or group.unit_id is None:
+        return set()
+    return set(UnitAssignment.objects.filter(
         unit_id=group.unit_id, term=term, status='approved',
     ).values_list('lecturer_id', flat=True))
-    if not ids and not UnitAssignment.objects.filter(unit_id=group.unit_id, term=term).exists():
-        # Legacy group/unit: fall back to Unit.assigned_lecturer.
-        ids.update(
-            Unit.objects.filter(id=group.unit_id)
-            .exclude(assigned_lecturer__isnull=True)
-            .values_list('assigned_lecturer_id', flat=True)
-        )
-    return ids
 
 
 def supervising_lecturers(group):

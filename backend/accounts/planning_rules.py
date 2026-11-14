@@ -1,4 +1,5 @@
 """Permission rules shared by the project-planning views and the task workspace payload."""
+from .access import is_supervising_lecturer
 from .models import GroupMembership
 
 BOARD_STATUSES = ('proposed', 'open_to_claim', 'assigned', 'in_progress', 'done')
@@ -14,16 +15,13 @@ def avatar_url(user):
 
 
 def is_leader(user, group):
-    # The group creator (Group.lecturer) is the leader.
-    return group.lecturer_id == user.id
+    # The recorded group leader (Group.leader) is the leader.
+    return group.leader_id == user.id
 
 
 def is_group_lecturer(user, group):
-    if user.user_type != 'lecturer':
-        return False
-    from .academic import is_supervising_lecturer
-    if group.lecturer_id == user.id:
-        return True
+    # Group.lecturer is never used for permission decisions; authority comes
+    # from an active UnitAssignment for the group's unit and term.
     return is_supervising_lecturer(user, group)
 
 
@@ -36,8 +34,10 @@ def is_participant(user, group):
 
 
 def workflow_enforced(group):
-    """Groups created by a student use the propose/approve workflow; lecturer-owned groups keep direct assignment."""
-    return group.lecturer.user_type == 'student'
+    """Groups led by a student use the propose/approve workflow;
+    lecturer-led groups keep direct assignment."""
+    leader = group.leader
+    return bool(leader and leader.user_type == 'student')
 
 
 def weight_confirm_block(user, group, task):
@@ -48,8 +48,8 @@ def weight_confirm_block(user, group, task):
         return None
     if not is_member(user, group):
         return 'Only group members can confirm a weight.'
-    leader_owns = group.lecturer_id in (task.proposed_by_id, task.assigned_to_id)
-    if user.id == group.lecturer_id:
+    leader_owns = group.leader_id in (task.proposed_by_id, task.assigned_to_id)
+    if user.id == group.leader_id:
         if leader_owns:
             return 'You cannot confirm the weight of your own task. Another member needs to confirm it.'
         return None

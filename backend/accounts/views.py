@@ -1087,12 +1087,20 @@ def lecturer_dashboard(request):
     try:
         user = request.user
         logger.info(f"Dashboard request for user {user.id}: {user.email}, type: {user.user_type}")
-        # Allow access if user is a lecturer OR has approved unit assignments
-        lecturer_units = approved_units_for_lecturer(user, current_term())
+        if user.user_type != 'lecturer':
+            logger.warning(f"Access denied for non-lecturer user {user.id}")
+            return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+        active_term = current_term()
+        lecturer_units = approved_units_for_lecturer(user, active_term)
         logger.info(f"User {user.id} has {lecturer_units.count()} approved units for current term")
-        if user.user_type != 'lecturer' and not lecturer_units.exists():
-            logger.warning(f"Access denied for non-lecturer user {user.id} with {lecturer_units.count()} units")
-            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        if not lecturer_units.exists():
+            return Response({
+                'status': 'no_assignments',
+                'message': 'You have no active unit assignments. Contact an administrator to be assigned units.',
+                'units': [], 'groups': [], 'recent_submissions': [],
+                'stats': {'total_groups': 0, 'total_units': 0, 'total_students': 0, 'pending_submissions': 0},
+                'pending_approval': False,
+            })
         unit_ids = list(lecturer_units.values_list('id', flat=True))
         lecturer_groups = Group.objects.filter(unit_id__in=unit_ids)
         total_groups = lecturer_groups.count()
@@ -1245,7 +1253,7 @@ def student_dashboard(request):
                 'unit_code': group.unit.code if group.unit_id else group.unit_code,
                 'unit_name': group.unit.name if group.unit_id else '',
                 'role': membership.role,
-                'is_leader': group.lecturer_id == user.id,
+                'is_leader': group.leader_id == user.id,
                 'members_count': group.members_count,
                 'max_members': group.max_members,
                 'progress_percentage': progress_percentage,
@@ -1498,7 +1506,7 @@ def get_group_task_workspace(request, group_id):
             'first_name': membership.student.first_name,
             'last_name': membership.student.last_name,
             'role': membership.role,
-            'is_leader': membership.student_id == group.lecturer_id,
+            'is_leader': membership.student_id == group.leader_id,
         } for membership in members]
         task_data = []
         for task in tasks:
@@ -1557,7 +1565,7 @@ def get_group_task_workspace(request, group_id):
                 'join_code': group.join_code,
                 'members_count': len(member_data),
                 'max_members': group.max_members,
-                'leader_id': group.lecturer_id,
+                'leader_id': group.leader_id,
                 'project_count': len(projects),
                 'projects': [{
                     'id': project.id,
@@ -2423,13 +2431,21 @@ def get_students_for_lecturer(request):
     try:
         user = request.user
         if user.user_type != 'lecturer':
-            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
 
-        lecturer_units = approved_units_for_lecturer(user, current_term())
+        active_term = current_term()
+        lecturer_units = approved_units_for_lecturer(user, active_term)
+        if not lecturer_units.exists():
+            return Response({
+                'status': 'no_assignments',
+                'message': 'You have no active unit assignments. Contact an administrator to be assigned units.',
+                'students': [],
+            })
+
         students = User.objects.filter(
             user_type='student',
             enrollments__unit__in=lecturer_units,
-            enrollments__semester=current_term(),
+            enrollments__semester=active_term,
         ).distinct().values(
             'id', 'first_name', 'last_name', 'email', 'course', 'year_of_study'
         ).order_by('first_name', 'last_name', 'id')
@@ -2455,12 +2471,12 @@ def get_students_for_lecturer(request):
 def get_chat_contacts(request):
     user = request.user
     if user.user_type == 'lecturer':
-        group_ids = Group.objects.filter(lecturer=user).values_list('id', flat=True)
+        group_ids = Group.objects.filter(leader=user).values_list('id', flat=True)
     else:
         group_ids = GroupMembership.objects.filter(student=user).values_list('group_id', flat=True)
 
     member_ids = GroupMembership.objects.filter(group_id__in=group_ids).values_list('student_id', flat=True)
-    group_owner_ids = Group.objects.filter(id__in=group_ids).values_list('lecturer_id', flat=True)
+    group_owner_ids = Group.objects.filter(id__in=group_ids).values_list('leader_id', flat=True)
     contacts = User.objects.filter(
         models.Q(id__in=member_ids) | models.Q(id__in=group_owner_ids)
     ).exclude(id=user.id).distinct().order_by('first_name', 'last_name', 'username')
@@ -2502,7 +2518,7 @@ def get_chat_rooms(request):
                 'group_id': room.group.id,
                 'join_code': room.group.join_code,
                 'description': room.group.description,
-                'can_delete': room.group.lecturer_id == user.id,
+                'can_delete': room.group.leader_id == user.id,
                 'unread_count': unread_count,
                 'last_message': last_message.content if last_message else None,
                 'last_message_time': last_message.timestamp.isoformat() if last_message else None,
@@ -3011,6 +3027,7 @@ def create_group_view(request):
                     unit_code=unit.code if unit else '',
                     term=current_term(),
                     lecturer=user,
+                    leader=user,
                     max_members=max_members,
                 )
             if user.user_type == 'student':
@@ -3051,7 +3068,7 @@ def create_group_view(request):
 def delete_group_view(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        if group.lecturer_id != request.user.id and not is_supervising_lecturer(request.user, group):
+        if group.leader_id != request.user.id and not is_supervising_lecturer(request.user, group):
             return Response({'error': 'Only the group creator or a supervising lecturer can delete this group.'}, status=status.HTTP_403_FORBIDDEN)
 
         attachment_names = list(Message.objects.filter(
@@ -3141,8 +3158,11 @@ def join_group_view(request):
                     'unit_code': group.unit.code if group.unit_id else group.unit_code,
                     'unit_name': group.unit.name if group.unit_id else '',
                     'max_members': group.max_members,
-                    'leader_id': group.lecturer_id,
-                    'lecturer': f"{group.lecturer.first_name} {group.lecturer.last_name}",
+                    'leader_id': group.leader_id,
+                    'lecturer': (
+                        f"{group.leader.first_name} {group.leader.last_name}".strip()
+                        if group.leader_id else ''
+                    ),
                     'members_count': member_count + 1,
                 }
             }, status=status.HTTP_200_OK)
@@ -3158,7 +3178,7 @@ def join_group_view(request):
 def leave_group_view(request, group_id):
     try:
         group = Group.objects.get(pk=group_id)
-        if group.lecturer_id == request.user.id:
+        if group.leader_id == request.user.id:
             return Response({'error': 'The group leader cannot leave. Delete the group instead.'}, status=status.HTTP_400_BAD_REQUEST)
         membership = GroupMembership.objects.filter(group=group, student=request.user).first()
         if membership is None:

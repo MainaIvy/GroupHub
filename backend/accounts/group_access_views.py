@@ -8,7 +8,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .academic import current_term, is_supervising_lecturer, supervising_lecturers
+from .access import can_manage_group, is_supervising_lecturer
+from .academic import current_term, supervising_lecturers
 from .academic_links import effective_course, relink_group_units, relink_groups_for_unit
 from .models import Group, GroupInvite, GroupMembership, JoinRequest, Notification, StudentEnrollment, Unit, User
 
@@ -275,7 +276,7 @@ def cancel_group_invite(request, group_id, invite_id):
     invite = GroupInvite.objects.filter(pk=invite_id, group_id=group_id, status='pending').select_related('group').first()
     if invite is None:
         return _error('Invite not found', status.HTTP_404_NOT_FOUND)
-    if request.user.id not in (invite.invited_by_id, invite.group.lecturer_id) and not is_supervising_lecturer(request.user, invite.group):
+    if request.user.id not in (invite.invited_by_id, invite.group.leader_id) and not is_supervising_lecturer(request.user, invite.group):
         return _error('Only the person who sent the invite or a supervising lecturer can cancel it.', status.HTTP_403_FORBIDDEN)
     invite.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
@@ -361,7 +362,7 @@ def _resolve_join_request(request, request_id, approve):
         if join_request is None:
             return _error('Request not found', status.HTTP_404_NOT_FOUND)
         group = Group.objects.select_for_update().select_related('unit').get(pk=join_request.group_id)
-        if group.lecturer_id != user.id and not is_supervising_lecturer(user, group):
+        if group.leader_id != user.id and not is_supervising_lecturer(user, group):
             return _error('Only the group creator or a supervising lecturer can answer join requests.', status.HTTP_403_FORBIDDEN)
         if join_request.status != 'pending':
             return _error('This request has already been answered.')
@@ -403,7 +404,7 @@ def regenerate_join_code(request, group_id):
     group = Group.objects.filter(pk=group_id).first()
     if group is None:
         return _error('Group not found', status.HTTP_404_NOT_FOUND)
-    if group.lecturer_id != request.user.id and not is_supervising_lecturer(request.user, group):
+    if group.leader_id != request.user.id and not is_supervising_lecturer(request.user, group):
         return _error('Only the group creator or a supervising lecturer can regenerate the join code.', status.HTTP_403_FORBIDDEN)
     group.join_code = _new_join_code()
     group.save(update_fields=['join_code', 'updated_at'])
@@ -416,7 +417,7 @@ def update_group_settings(request, group_id):
     group = Group.objects.filter(pk=group_id).first()
     if group is None:
         return _error('Group not found', status.HTTP_404_NOT_FOUND)
-    if group.lecturer_id != request.user.id and not is_supervising_lecturer(request.user, group):
+    if group.leader_id != request.user.id and not is_supervising_lecturer(request.user, group):
         return _error('Only the group creator or a supervising lecturer can change group settings.', status.HTTP_403_FORBIDDEN)
     fields = []
     if 'is_locked' in request.data:

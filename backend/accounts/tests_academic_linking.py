@@ -108,30 +108,19 @@ class AcademicLinkingScenarioTests(TestCase):
             {self.unit_b1.id, self.unit_shared_b.id},
         )
 
-    def test_lecturer_setup_creates_pending_and_auto_approves_unclaimed_units(self):
-        AdminSetting.objects.update_or_create(
-            key='auto_approve_lecturer_claims', defaults={'value': True},
-        )
+    def test_lecturer_setup_is_read_only(self):
+        # Lecturers can no longer self-assign units: lecturer/setup is GET only.
         client = APIClient()
         client.force_authenticate(user=self.approved_lecturer)
-        response = client.post('/api/accounts/lecturer/setup/', {
-            'unit_ids': [self.unit_a1.id, self.unit_shared_a.id, self.unit_shared_b.id],
+        post_response = client.post('/api/accounts/lecturer/setup/', {
+            'unit_ids': [self.unit_a1.id],
         }, format='json')
-        self.assertEqual(response.status_code, 200, response.json())
-        self.assertEqual(
-            set(UnitAssignment.objects.filter(
-                lecturer=self.approved_lecturer, term=self.term, status='approved',
-            ).values_list('unit_id', flat=True)),
-            {self.unit_a1.id, self.unit_shared_a.id, self.unit_shared_b.id},
-        )
-        self.assertTrue(AuditLog.objects.filter(action='lecturer_claim_units').exists())
+        self.assertEqual(post_response.status_code, 405, post_response.json())
 
-        # The same unit code can be claimed across programmes (two distinct unit ids).
-        self.assertEqual(
-            UnitAssignment.objects.filter(
-                lecturer=self.approved_lecturer, unit__code='CSC 101', term=self.term,
-            ).count(), 2,
-        )
+        get_response = client.get('/api/accounts/lecturer/setup/')
+        self.assertEqual(get_response.status_code, 200, get_response.json())
+        self.assertEqual(get_response.json()['assignments'], [])
+        self.assertFalse(AuditLog.objects.filter(action='lecturer_claim_units').exists())
 
     def test_pending_lecturer_sees_nothing_and_unrelated_lecturer_gets_403(self):
         self._approve(self.approved_lecturer, self.unit_a1)
@@ -145,13 +134,11 @@ class AcademicLinkingScenarioTests(TestCase):
 
         pending_client = APIClient()
         pending_client.force_authenticate(user=self.pending_lecturer)
+        # Lecturers can no longer self-claim units: POST is not allowed.
         claim = pending_client.post('/api/accounts/lecturer/setup/', {
             'unit_ids': [self.unit_a1.id],
         }, format='json')
-        self.assertEqual(claim.status_code, 200, claim.json())
-        self.assertTrue(UnitAssignment.objects.filter(
-            lecturer=self.pending_lecturer, unit=self.unit_a1, term=self.term, status='pending',
-        ).exists())
+        self.assertEqual(claim.status_code, 405)
 
         units = pending_client.get('/api/accounts/lecturer/units/')
         self.assertEqual(units.status_code, 200)
@@ -163,6 +150,7 @@ class AcademicLinkingScenarioTests(TestCase):
         denied = pending_client.get(f'/api/accounts/groups/{group.id}/tasks/')
         self.assertEqual(denied.status_code, 403)
 
+        # The approved lecturer can still access their assigned unit's group.
         approved_client = APIClient()
         approved_client.force_authenticate(user=self.approved_lecturer)
         allowed = approved_client.get(f'/api/accounts/groups/{group.id}/tasks/')

@@ -3,6 +3,7 @@ import json
 from datetime import timedelta
 from asgiref.sync import async_to_sync
 
+from django.apps import apps
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -11,6 +12,8 @@ from rest_framework.test import APIClient
 from accounts.consumers import ChatConsumer
 from accounts.balance import calculate_group_balance
 from accounts.models import AdminSetting, ChatRoom, Course, Group, GroupMembership, Message, Notification, Project, Semester, StudentEnrollment, Submission, SubmissionAttachment, Task, TaskActivity, TaskComment, Unit, UnitAssignment, User
+from accounts.access import can_manage_group, can_view_group, can_view_student, can_view_unit, is_supervising_lecturer
+from accounts.academic import current_term
 
 
 class LecturerClaimFlowTests(TestCase):
@@ -69,6 +72,9 @@ class LecturerClaimFlowTests(TestCase):
         unit.assigned_lecturer = lecturer
         unit.save()
         StudentEnrollment.objects.create(student=registered, unit=unit, semester=semester)
+        semester.is_current = True
+        semester.save(update_fields=['is_current'])
+        UnitAssignment.objects.create(lecturer=lecturer, unit=unit, term=semester, status='approved')
 
         client = APIClient()
         client.force_authenticate(user=lecturer)
@@ -1200,6 +1206,7 @@ class GroupTaskBalanceTests(TestCase):
             year_of_study='2',
             join_code='BAL123',
             lecturer=self.lecturer,
+            leader=self.lecturer,
         )
         GroupMembership.objects.create(group=self.group, student=self.member_one)
         GroupMembership.objects.create(group=self.group, student=self.member_two)
@@ -1540,6 +1547,15 @@ class GroupTaskBalanceTests(TestCase):
         self.assertEqual(denied.status_code, 403)
 
     def test_only_group_lecturer_can_add_a_comment_for_a_group_task(self):
+        # Lecturer authority comes from an active UnitAssignment, not Group.lecturer.
+        course = Course.objects.create(code='CMT', name='Comment Unit', department='Computing')
+        term = Semester.objects.create(name='Y1S1', year=1, semester=1, is_current=True)
+        unit = Unit.objects.create(course=course, code='CMT 101', name='Comment Unit', year_of_study=1, semester=1)
+        self.group.unit = unit
+        self.group.term = term
+        self.group.save(update_fields=['unit', 'term'])
+        UnitAssignment.objects.create(lecturer=self.lecturer, unit=unit, term=term, status='approved')
+
         task = Task.objects.create(project=self.project, title='Write report', assigned_to=self.member_one)
         self.client.force_authenticate(user=self.lecturer)
         created = self.client.post(f'/api/accounts/groups/{self.group.id}/comments/', {
@@ -1955,3 +1971,304 @@ class ProfileCompleteSharedTests(TestCase):
             username='pc-s2', email='pc-s2@zetech.ac.ke', password='StrongPass123',
             user_type='student', enrolled_course=course)
         self.assertFalse(compute_profile_complete(incomplete))
+
+
+class GroupLeaderDataMigrationTests(TestCase):
+    def test_copy_lecturer_to_leader_backfills_student_led_groups(self):
+        import importlib
+        migration = importlib.import_module('accounts.migrations.0034_group_leader')
+        course = Course.objects.create(code='CS', name='CS', department='Computing')
+        student_lecturer = User.objects.create_user(
+            username='sl', email='sl@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        lecturer_lecturer = User.objects.create_user(
+            username='ll', email='ll@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer')
+        student_group = Group.objects.create(
+            name='Student group', course='CS', year_of_study='1',
+            join_code='ST1234', lecturer=student_lecturer)
+        lecturer_group = Group.objects.create(
+            name='Lecturer group', course='CS', year_of_study='1',
+            join_code='LE1234', lecturer=lecturer_lecturer)
+        migration.copy_lecturer_to_leader(apps, None)
+        student_group.refresh_from_db()
+        lecturer_group.refresh_from_db()
+        self.assertEqual(student_group.leader_id, student_lecturer.id)
+        self.assertIsNone(lecturer_group.leader_id)
+
+
+class AccessRuleTests(TestCase):
+    def setUp(self):
+        self.course = Course.objects.create(code='CS', name='CS', department='Computing')
+        self.term = Semester.objects.create(name='Y1S1', year=1, semester=1, is_current=True)
+        self.unit = Unit.objects.create(course=self.course, code='CS 101', name='Intro', year_of_study=1, semester=1)
+        self.lecturer = User.objects.create_user(
+            username='al', email='al@zetech.ac.ke', password='StrongPass123', user_type='lecturer')
+        self.other = User.objects.create_user(
+            username='ao', email='ao@zetech.ac.ke', password='StrongPass123', user_type='lecturer')
+        self.admin = User.objects.create_user(
+            username='aa', email='aa@zetech.ac.ke', password='StrongPass123', user_type='lecturer',
+            is_staff=True, is_superuser=True)
+        self.leader = User.objects.create_user(
+            username='al2', email='al2@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        self.member = User.objects.create_user(
+            username='am', email='am@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        self.outsider = User.objects.create_user(
+            username='ao2', email='ao2@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        self.group = Group.objects.create(
+            name='G', course='CS', year_of_study='1', join_code='G1234',
+            unit=self.unit, term=self.term, lecturer=self.leader, leader=self.leader)
+        GroupMembership.objects.create(group=self.group, student=self.member, role='member')
+        StudentEnrollment.objects.create(student=self.member, unit=self.unit, semester=self.term)
+        UnitAssignment.objects.create(
+            lecturer=self.lecturer, unit=self.unit, term=self.term, status='approved')
+
+    def test_can_manage_group_leader_and_admin(self):
+        self.assertTrue(can_manage_group(self.leader, self.group))
+        self.assertTrue(can_manage_group(self.admin, self.group))
+        self.assertFalse(can_manage_group(self.member, self.group))
+        self.assertFalse(can_manage_group(self.outsider, self.group))
+        self.assertFalse(can_manage_group(self.lecturer, self.group))
+
+    def test_is_supervising_lecturer_active_unit_assignment(self):
+        self.assertTrue(is_supervising_lecturer(self.lecturer, self.group))
+        unit2 = Unit.objects.create(course=self.course, code='CS 201', name='Advanced', year_of_study=2, semester=1)
+        ended = UnitAssignment.objects.create(
+            lecturer=self.other, unit=self.unit, term=self.term, status='approved',
+            end_date=timezone.now().date() - timedelta(days=1))
+        self.assertFalse(is_supervising_lecturer(self.other, self.group))
+        pending = UnitAssignment.objects.create(
+            lecturer=self.other, unit=unit2, term=self.term, status='pending')
+        group2 = Group.objects.create(
+            name='G2', course='CS', year_of_study='1', join_code='G2234',
+            unit=unit2, term=self.term, lecturer=self.other, leader=self.other)
+        self.assertFalse(is_supervising_lecturer(self.other, group2))
+        self.assertTrue(is_supervising_lecturer(self.admin, self.group))
+
+    def test_can_view_group_leader_member_supervising(self):
+        self.assertTrue(can_view_group(self.leader, self.group))
+        self.assertTrue(can_view_group(self.member, self.group))
+        self.assertTrue(can_view_group(self.lecturer, self.group))
+        self.assertTrue(can_view_group(self.admin, self.group))
+        self.assertFalse(can_view_group(self.outsider, self.group))
+
+    def test_can_view_unit_only_assigned_lecturer_and_enrolled_student(self):
+        self.assertTrue(can_view_unit(self.lecturer, self.unit))
+        self.assertFalse(can_view_unit(self.other, self.unit))
+        self.assertTrue(can_view_unit(self.admin, self.unit))
+        # self.member is enrolled in setUp.
+        self.assertTrue(can_view_unit(self.member, self.unit))
+        self.assertFalse(can_view_unit(self.outsider, self.unit))
+
+    def test_can_view_student_self_classmates_same_unit_term_admin(self):
+        other_term = Semester.objects.create(name='Y2S1', year=2, semester=1)
+        other_unit = Unit.objects.create(course=self.course, code='CS 201', name='Advanced', year_of_study=2, semester=1)
+        other_unit_term = Unit.objects.create(course=self.course, code='CS 202', name='Advanced 2', year_of_study=2, semester=2)
+        same_term_student = User.objects.create_user(
+            username='st', email='st@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        StudentEnrollment.objects.create(student=same_term_student, unit=self.unit, semester=self.term)
+        diff_unit_student = User.objects.create_user(
+            username='du', email='du@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        StudentEnrollment.objects.create(student=diff_unit_student, unit=other_unit, semester=self.term)
+        diff_term_student = User.objects.create_user(
+            username='dt', email='dt@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        StudentEnrollment.objects.create(student=diff_term_student, unit=self.unit, semester=other_term)
+
+        self.assertTrue(can_view_student(self.member, self.member))
+        self.assertTrue(can_view_student(self.member, same_term_student))
+        self.assertTrue(can_view_student(self.admin, diff_term_student))
+        self.assertTrue(can_view_student(self.lecturer, same_term_student))
+        self.assertFalse(can_view_student(self.member, diff_unit_student))
+        self.assertFalse(can_view_student(self.member, diff_term_student))
+        self.assertFalse(can_view_student(self.outsider, same_term_student))
+
+
+class LeaderPermissionTests(TestCase):
+    def setUp(self):
+        self.course = Course.objects.create(code='CS', name='CS', department='Computing')
+        self.term = Semester.objects.create(name='Y1S1', year=1, semester=1, is_current=True)
+        self.unit = Unit.objects.create(course=self.course, code='CS 101', name='Intro', year_of_study=1, semester=1)
+        self.leader = User.objects.create_user(
+            username='lp-leader', email='lp-leader@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        self.member = User.objects.create_user(
+            username='lp-member', email='lp-member@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        self.other_leader = User.objects.create_user(
+            username='lp-other', email='lp-other@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        self.group = Group.objects.create(
+            name='Own Group', course='CS', year_of_study='1', join_code='OWN123',
+            unit=self.unit, term=self.term, lecturer=self.leader, leader=self.leader)
+        self.other_group = Group.objects.create(
+            name='Other Group', course='CS', year_of_study='1', join_code='OTH123',
+            unit=self.unit, term=self.term, lecturer=self.other_leader, leader=self.other_leader)
+        GroupMembership.objects.create(group=self.group, student=self.member, role='member')
+        GroupMembership.objects.create(group=self.other_group, student=self.member, role='member')
+        self.project = Project.objects.create(group=self.group, title='Project')
+        self.task = Task.objects.create(project=self.project, title='Task', weight=3)
+
+    def test_student_leader_can_approve_own_group_task(self):
+        client = APIClient()
+        client.force_authenticate(user=self.leader)
+        proposed = client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/propose/',
+            {'title': 'Research', 'weight': 2, 'due_date': '2026-12-01', 'project_id': self.project.id},
+            format='json',
+        )
+        self.assertEqual(proposed.status_code, 201, proposed.json())
+        task_id = proposed.json()['task']['id']
+        approved = client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/{task_id}/approve/',
+            {'assignment_mode': 'open_to_claim'}, format='json',
+        )
+        self.assertEqual(approved.status_code, 200, approved.json())
+
+    def test_student_leader_cannot_approve_other_group_task(self):
+        # A leader of one group cannot approve tasks in another group they do not lead.
+        other_project = Project.objects.create(group=self.other_group, title='Other Project')
+        other_task = Task.objects.create(project=other_project, title='Their task', weight=3)
+        client = APIClient()
+        client.force_authenticate(user=self.leader)
+        approved = client.post(
+            f'/api/accounts/groups/{self.other_group.id}/tasks/{other_task.id}/approve/',
+            {'assignment_mode': 'open_to_claim'}, format='json',
+        )
+        self.assertEqual(approved.status_code, 403)
+
+    def test_non_leader_student_cannot_approve_own_group_task(self):
+        client = APIClient()
+        client.force_authenticate(user=self.member)
+        approved = client.post(
+            f'/api/accounts/groups/{self.group.id}/tasks/{self.task.id}/approve/',
+            {'assignment_mode': 'open_to_claim'}, format='json',
+        )
+        self.assertEqual(approved.status_code, 403)
+
+    def test_leader_can_regenerate_join_code_and_manage_settings(self):
+        client = APIClient()
+        client.force_authenticate(user=self.leader)
+        regen = client.post(f'/api/accounts/groups/{self.group.id}/regenerate-code/', format='json')
+        self.assertEqual(regen.status_code, 200, regen.json())
+        settings = client.patch(
+            f'/api/accounts/groups/{self.group.id}/settings/', {'is_locked': True}, format='json',
+        )
+        self.assertEqual(settings.status_code, 200, settings.json())
+
+    def test_non_leader_cannot_regenerate_join_code_or_manage_settings(self):
+        client = APIClient()
+        client.force_authenticate(user=self.member)
+        regen = client.post(f'/api/accounts/groups/{self.group.id}/regenerate-code/', format='json')
+        self.assertEqual(regen.status_code, 403)
+        settings = client.patch(
+            f'/api/accounts/groups/{self.group.id}/settings/', {'is_locked': True}, format='json',
+        )
+        self.assertEqual(settings.status_code, 403)
+
+
+class LecturerAssignmentTests(TestCase):
+    def setUp(self):
+        self.course = Course.objects.create(code='CS', name='CS', department='Computing')
+        self.term = Semester.objects.create(name='Y1S1', year=1, semester=1, is_current=True)
+        self.unit = Unit.objects.create(course=self.course, code='CS 101', name='Intro', year_of_study=1, semester=1)
+        self.lecturer = User.objects.create_user(
+            username='la', email='la@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', staff_id='LA1234')
+        self.admin = User.objects.create_user(
+            username='aa', email='aa@zetech.ac.ke', password='StrongPass123',
+            user_type='lecturer', is_staff=True, is_superuser=True)
+
+    def test_lecturer_with_no_active_assignment_gets_empty_dashboard(self):
+        client = APIClient()
+        client.force_authenticate(user=self.lecturer)
+        response = client.get('/api/accounts/dashboard/lecturer/')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['status'], 'no_assignments')
+        self.assertEqual(response.json()['units'], [])
+        self.assertEqual(response.json()['groups'], [])
+        self.assertEqual(response.json()['stats']['total_students'], 0)
+
+    def test_lecturer_dashboard_only_lists_active_assignments(self):
+        UnitAssignment.objects.create(
+            lecturer=self.lecturer, unit=self.unit, term=self.term, status='approved')
+        student = User.objects.create_user(
+            username='ls', email='ls@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        StudentEnrollment.objects.create(student=student, unit=self.unit, semester=self.term)
+        group = Group.objects.create(
+            name='G', course='CS', year_of_study='1', join_code='GD123',
+            unit=self.unit, term=self.term, lecturer=self.lecturer, leader=self.lecturer)
+        GroupMembership.objects.create(group=group, student=student)
+        client = APIClient()
+        client.force_authenticate(user=self.lecturer)
+        response = client.get('/api/accounts/dashboard/lecturer/')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(len(response.json()['units']), 1)
+        self.assertEqual(response.json()['units'][0]['student_count'], 1)
+
+    def test_lecturer_without_assignment_gets_403_on_students_endpoint(self):
+        client = APIClient()
+        client.force_authenticate(user=self.lecturer)
+        response = client.get('/api/accounts/students/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['students'], [])
+
+    def test_old_self_assign_endpoints_return_404(self):
+        client = APIClient()
+        client.force_authenticate(user=self.lecturer)
+        self.assertEqual(
+            client.post('/api/accounts/lecturer/units/create/', {'code': 'X', 'name': 'X', 'course_id': self.course.id}, format='json').status_code,
+            404,
+        )
+        self.assertEqual(
+            client.patch(f'/api/accounts/lecturer/units/{self.unit.id}/', {'name': 'X'}, format='json').status_code,
+            404,
+        )
+        self.assertEqual(
+            client.post('/api/accounts/lecturer/setup/', {'unit_ids': [self.unit.id]}, format='json').status_code,
+            405,
+        )
+
+    def test_lecturer_setup_is_read_only(self):
+        client = APIClient()
+        client.force_authenticate(user=self.lecturer)
+        response = client.get('/api/accounts/lecturer/setup/')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['assignments'], [])
+
+    def test_admin_sees_all_units_and_groups(self):
+        UnitAssignment.objects.create(
+            lecturer=self.lecturer, unit=self.unit, term=self.term, status='approved')
+        group = Group.objects.create(
+            name='G', course='CS', year_of_study='1', join_code='AD123',
+            unit=self.unit, term=self.term, lecturer=self.lecturer, leader=self.lecturer)
+        client = APIClient()
+        client.force_authenticate(user=self.admin)
+        response = client.get('/api/accounts/admin/groups/')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertTrue(any(item['id'] == group.id for item in response.json()))
+
+    def test_classmates_limited_to_same_unit_and_term(self):
+        other_unit = Unit.objects.create(course=self.course, code='CS 201', name='Advanced', year_of_study=1, semester=2)
+        other_term = Semester.objects.create(name='Y2S1', year=2, semester=1)
+        same = User.objects.create_user(
+            username='cs', email='cs@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        diff_unit = User.objects.create_user(
+            username='cu', email='cu@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        diff_term = User.objects.create_user(
+            username='ct', email='ct@zetech.ac.ke', password='StrongPass123',
+            user_type='student', course='CS', year_of_study='1', semester=1)
+        StudentEnrollment.objects.create(student=same, unit=self.unit, semester=self.term)
+        StudentEnrollment.objects.create(student=diff_unit, unit=other_unit, semester=self.term)
+        StudentEnrollment.objects.create(student=diff_term, unit=self.unit, semester=other_term)
+        self.assertTrue(can_view_student(same, same))
+        self.assertFalse(can_view_student(same, diff_unit))
+        self.assertFalse(can_view_student(same, diff_term))

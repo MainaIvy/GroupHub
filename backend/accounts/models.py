@@ -139,6 +139,10 @@ class Group(models.Model):
         'Unit', on_delete=models.SET_NULL, related_name='groups', null=True, blank=True
     )
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lecturer_groups')
+    leader = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name='led_groups',
+        help_text='The group leader (single source of truth for leadership/permission decisions).',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
