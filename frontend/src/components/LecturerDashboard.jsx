@@ -534,6 +534,11 @@ export default function LecturerDashboard() {
               <Notice tone="error" text={error} clear={() => setError("")} />
             )}
             {notice && <Notice text={notice} clear={() => setNotice("")} />}
+            {data?.pending_approval && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                Waiting for approval. Your unit claims are pending an administrator's review.
+              </div>
+            )}
 
             {tab === "dashboard" && (
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">

@@ -178,9 +178,12 @@ def group_polls(request, group_id):
             message=f'{user.first_name} {user.last_name} opened a poll: "{question}" in {group.name}.',
             related_group=group,
         )
-    if group.lecturer_id != user.id:
+    from .academic import supervising_lecturers
+    for supervisor in supervising_lecturers(group):
+        if supervisor.id == user.id:
+            continue
         Notification.objects.create(
-            user=group.lecturer,
+            user=supervisor,
             notification_type='poll_opened',
             title='New poll opened',
             message=f'{user.first_name} {user.last_name} opened a poll: "{question}" in {group.name}.',

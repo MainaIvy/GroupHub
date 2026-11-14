@@ -9,8 +9,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .academic_links import classmates_queryset, effective_course, relink_group_units, relink_groups_for_unit
-from .models import Group, GroupInvite, GroupMembership, JoinRequest, Notification, Unit, User
+from .academic import current_term, is_supervising_lecturer, supervising_lecturers
+from .academic_links import effective_course, relink_group_units, relink_groups_for_unit
+from .models import Group, GroupInvite, GroupMembership, JoinRequest, Notification, StudentEnrollment, Unit, User
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,17 @@ def _student_year(user):
 
 
 def _is_enrolled_in_unit(user, unit):
+    term = current_term()
+    if term is not None:
+        if StudentEnrollment.objects.filter(student=user, unit=unit, semester=term).exists():
+            return True
+        # Once enrolments are in use for a term, the cohort fallback must not apply.
+        if StudentEnrollment.objects.filter(semester=term).exists():
+            return False
+    course = effective_course(user)
     return (
-        user.enrolled_course_id == unit.course_id
+        course is not None
+        and course.id == unit.course_id
         and _student_year(user) == unit.year_of_study
         and _student_semester(user) == unit.semester
     )
@@ -95,6 +105,40 @@ def _same_cohort(user, other):
     )
 
 
+def _shares_unit(user, other, unit):
+    """Two students are classmates when both are enrolled in the same unit and current term."""
+    if other.user_type != 'student' or unit is None:
+        return _same_cohort(user, other)
+    term = current_term()
+    if term is None:
+        return _same_cohort(user, other)
+    return StudentEnrollment.objects.filter(
+        student=user, unit=unit, semester=term,
+    ).exists() and StudentEnrollment.objects.filter(
+        student=other, unit=unit, semester=term,
+    ).exists()
+
+
+def _classmates(unit):
+    """Students enrolled in this unit for the current term (falls back to cohort when none)."""
+    term = current_term()
+    if term is not None and StudentEnrollment.objects.filter(unit=unit, semester=term).exists():
+        return User.objects.filter(
+            user_type='student',
+            enrollments__unit=unit,
+            enrollments__semester=term,
+        ).distinct()
+    return User.objects.filter(
+        user_type='student',
+        year_of_study=str(unit.year_of_study),
+        semester=unit.semester,
+    ).filter(
+        Q(enrolled_course_id=unit.course_id)
+        | Q(enrolled_course__isnull=True, course__iexact=unit.course.name)
+        | Q(enrolled_course__isnull=True, course__iexact=unit.course.code)
+    ).distinct()
+
+
 def _is_member(group, user):
     return GroupMembership.objects.filter(group=group, student=user).exists()
 
@@ -118,7 +162,7 @@ def unit_classmates(request, unit_id):
     unit, error = _student_unit(request.user, unit_id)
     if error:
         return error
-    classmates = classmates_queryset(unit).exclude(pk=request.user.pk)
+    classmates = _classmates(unit).exclude(pk=request.user.pk)
     query = str(request.query_params.get('q') or '').strip()
     for term in query.split()[:3]:
         classmates = classmates.filter(Q(first_name__icontains=term) | Q(last_name__icontains=term))
@@ -128,8 +172,10 @@ def unit_classmates(request, unit_id):
     ).values_list('student_id', flat=True))
     return Response([{
         'id': student.id,
+        'name': f'{student.first_name} {student.last_name}'.strip() or student.username,
         'first_name': student.first_name,
         'last_name': student.last_name,
+        'admission_number': student.username,
         'has_group': student.id in grouped_ids,
     } for student in classmates])
 
@@ -196,8 +242,8 @@ def group_invites(request, group_id):
     except (TypeError, ValueError):
         return _error('Choose a classmate to invite.')
     student = User.objects.filter(pk=student_id).first()
-    if student is None or student.id == user.id or not _same_cohort(user, student):
-        return _error('You can only invite classmates from your programme, year and semester.')
+    if student is None or student.id == user.id or not _shares_unit(user, student, group.unit):
+        return _error('You can only invite classmates enrolled in this unit for the current term.')
 
     with transaction.atomic():
         group = Group.objects.select_for_update().get(pk=group.pk)
@@ -233,8 +279,8 @@ def cancel_group_invite(request, group_id, invite_id):
     invite = GroupInvite.objects.filter(pk=invite_id, group_id=group_id, status='pending').select_related('group').first()
     if invite is None:
         return _error('Invite not found', status.HTTP_404_NOT_FOUND)
-    if request.user.id not in (invite.invited_by_id, invite.group.lecturer_id):
-        return _error('Only the person who sent the invite or the group creator can cancel it.', status.HTTP_403_FORBIDDEN)
+    if request.user.id not in (invite.invited_by_id, invite.group.lecturer_id) and not is_supervising_lecturer(request.user, invite.group):
+        return _error('Only the person who sent the invite or a supervising lecturer can cancel it.', status.HTTP_403_FORBIDDEN)
     invite.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -303,11 +349,12 @@ def create_join_request(request, group_id):
         if group.join_requests.filter(student=user, status='pending').exists():
             return _error('You have already asked to join this group.')
         join_request = JoinRequest.objects.create(group=group, student=user)
-        _notify(
-            group.lecturer, 'join_request', 'Join request',
-            f'{_display_name(user)} asked to join {group.name}.',
-            related_group=group, related_join_request=join_request,
-        )
+        for supervisor in supervising_lecturers(group):
+            _notify(
+                supervisor, 'join_request', 'Join request',
+                f'{_display_name(user)} asked to join {group.name}.',
+                related_group=group, related_join_request=join_request,
+            )
     return Response({'id': join_request.id, 'status': join_request.status}, status=status.HTTP_201_CREATED)
 
 
@@ -318,8 +365,8 @@ def _resolve_join_request(request, request_id, approve):
         if join_request is None:
             return _error('Request not found', status.HTTP_404_NOT_FOUND)
         group = Group.objects.select_for_update().select_related('unit').get(pk=join_request.group_id)
-        if group.lecturer_id != user.id:
-            return _error('Only the group creator can answer join requests.', status.HTTP_403_FORBIDDEN)
+        if group.lecturer_id != user.id and not is_supervising_lecturer(user, group):
+            return _error('Only the group creator or a supervising lecturer can answer join requests.', status.HTTP_403_FORBIDDEN)
         if join_request.status != 'pending':
             return _error('This request has already been answered.')
         student = join_request.student
@@ -360,8 +407,8 @@ def regenerate_join_code(request, group_id):
     group = Group.objects.filter(pk=group_id).first()
     if group is None:
         return _error('Group not found', status.HTTP_404_NOT_FOUND)
-    if group.lecturer_id != request.user.id:
-        return _error('Only the group creator can regenerate the join code.', status.HTTP_403_FORBIDDEN)
+    if group.lecturer_id != request.user.id and not is_supervising_lecturer(request.user, group):
+        return _error('Only the group creator or a supervising lecturer can regenerate the join code.', status.HTTP_403_FORBIDDEN)
     group.join_code = _new_join_code()
     group.save(update_fields=['join_code', 'updated_at'])
     return Response({'join_code': group.join_code})
@@ -373,8 +420,8 @@ def update_group_settings(request, group_id):
     group = Group.objects.filter(pk=group_id).first()
     if group is None:
         return _error('Group not found', status.HTTP_404_NOT_FOUND)
-    if group.lecturer_id != request.user.id:
-        return _error('Only the group creator can change group settings.', status.HTTP_403_FORBIDDEN)
+    if group.lecturer_id != request.user.id and not is_supervising_lecturer(request.user, group):
+        return _error('Only the group creator or a supervising lecturer can change group settings.', status.HTTP_403_FORBIDDEN)
     fields = []
     if 'is_locked' in request.data:
         if not isinstance(request.data['is_locked'], bool):

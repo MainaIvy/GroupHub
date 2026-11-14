@@ -21,9 +21,10 @@ def is_leader(user, group):
 def is_group_lecturer(user, group):
     if user.user_type != 'lecturer':
         return False
+    from .academic import is_supervising_lecturer
     if group.lecturer_id == user.id:
         return True
-    return bool(group.unit_id and group.unit.assigned_lecturer_id == user.id)
+    return is_supervising_lecturer(user, group)
 
 
 def is_member(user, group):

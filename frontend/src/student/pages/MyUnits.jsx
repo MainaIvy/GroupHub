@@ -25,15 +25,19 @@ const MyUnits = ({ ctx }) => {
   const { unitId: routeUnitId } = useParams();
 
   const initialUnitId = routeUnitId || location.state?.unit;
+  const initialUnitKnown = useMemo(
+    () => Boolean(initialUnitId) && units.some((u) => String(u.id) === String(initialUnitId)),
+    [initialUnitId, units],
+  );
 
   useEffect(() => {
-    if (initialUnitId && selectedUnitId !== String(initialUnitId)) {
+    if (initialUnitId && initialUnitKnown && selectedUnitId !== String(initialUnitId)) {
       setSelectedUnitId(String(initialUnitId));
       setExpandedUnit(String(initialUnitId));
       fetchUnitGroups(String(initialUnitId));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialUnitId]);
+  }, [initialUnitId, initialUnitKnown]);
 
   const selectedUnit = useMemo(() => {
     if (!selectedUnitId) return null;

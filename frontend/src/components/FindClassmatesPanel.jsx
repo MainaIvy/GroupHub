@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api';
 
-const fullName = (person) => `${person.first_name} ${person.last_name}`.trim() || 'Student';
+const fullName = (person) => person.name || `${person.first_name || ''} ${person.last_name || ''}`.trim() || 'Student';
 
 // With groupId, invites are sent to the server; without it, picks are kept in `selected` until the group exists.
 const FindClassmatesPanel = ({ unitId, groupId = null, selected = [], onSelectedChange }) => {
@@ -82,7 +82,7 @@ const FindClassmatesPanel = ({ unitId, groupId = null, selected = [], onSelected
     <section className="space-y-3 rounded-lg border border-[#DDE7E2] bg-white p-4" aria-label="Find classmates">
       <div>
         <h4 className="text-sm font-semibold text-[#17332F]">Find classmates</h4>
-        <p className="mt-0.5 text-[10px] text-[#789089]">Students in this unit, programme, year and semester. Contact details stay private.</p>
+        <p className="mt-0.5 text-[10px] text-[#789089]">Students enrolled in this unit for the current term. Contact details stay private.</p>
       </div>
       <input
         type="search"
@@ -101,6 +101,7 @@ const FindClassmatesPanel = ({ unitId, groupId = null, selected = [], onSelected
               <li key={person.id} className="flex items-center justify-between gap-3 py-2">
                 <div className="min-w-0">
                   <span className="block truncate text-xs font-semibold text-[#17332F]">{fullName(person)}</span>
+                  {person.admission_number && <span className="block text-[10px] text-[#789089]">{person.admission_number}</span>}
                   {person.has_group && <span className="text-[10px] text-[#789089]">Already in a group for this unit</span>}
                 </div>
                 <button

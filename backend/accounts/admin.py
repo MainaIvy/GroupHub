@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import AdminSetting, Announcement, AuditLog, UnitAssignment, User
+from .models import AdminSetting, Announcement, AuditLog, Semester, UnitAssignment, User
+
+
+@admin.register(Semester)
+class SemesterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'year', 'semester', 'start_date', 'end_date', 'is_current')
+    list_filter = ('year', 'semester', 'is_current')
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
