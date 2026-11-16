@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { GraduationCap, X, ShieldCheck, Mail } from 'lucide-react';
+import { GraduationCap, X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { getAcademicCourses } from '../api';
 import logo from '../assets/images/groubhub logo.svg';
 
@@ -33,24 +33,47 @@ const GoogleSignInButton = ({ onSuccess, onError, isLoading }) => {
   );
 };
 
+const PasswordInput = ({ id, name, placeholder, value, onChange, required, autoComplete, showPassword, toggleShowPassword }) => (
+  <div className="relative">
+    <input
+      id={id}
+      name={name}
+      type={showPassword ? 'text' : 'password'}
+      autoComplete={autoComplete}
+      required={required}
+      className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none pr-10"
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+    />
+    <button
+      type="button"
+      onClick={toggleShowPassword}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4A6079] hover:text-[#35475C]"
+      aria-label="Toggle password visibility"
+    >
+      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
+  </div>
+);
+
 const SignUp = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    regNumber: '', // e.g., dcs-00-0001/2025 (optional UI field)
+    regNumber: '',
     university: '',
     academicLevel: '',
     courseId: '',
     yearOfStudy: '',
     password: '',
     confirmPassword: '',
-
-    // legacy fields already used by your current UI
     studentId: '',
     course: '',
-
-    agreeToTerms: false
+    agreeToTerms: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [academicCourses, setAcademicCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
@@ -120,7 +143,7 @@ const SignUp = () => {
     setSignupError('');
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      setSignupError('Passwords do not match');
       return;
     }
 
@@ -147,24 +170,15 @@ const SignUp = () => {
     }
 
     const signupData = {
-      // Django User/serializer typical fields
-      // Backend signup_view requires these keys: email, password, user_type
       user_type: 'student',
-
-      // Map email -> username (and include both for safety)
       email: normalizedEmail,
       username: normalizedEmail,
-
       password: normalizedPassword,
       confirmPassword: normalizedPassword,
-
-      // Backend expects camelCase keys
       fullName: normalizedFullName,
       full_name: normalizedFullName,
       university: normalizedUniversity,
-
-      // Also include snake_case duplicates (harmless if backend ignores them)
-      university_snake_case: normalizedUniversity
+      university_snake_case: normalizedUniversity,
     };
 
     signupData.admissionNumber = studentRegistrationNumber;
@@ -175,13 +189,9 @@ const SignUp = () => {
     signupData.yearOfStudy = studentYearOfStudy;
     signupData.year_of_study = studentYearOfStudy;
     signupData.semester = studentSemester;
-
-    // Not currently used by backend signup_view, but requested by you.
     signupData.registration_number = studentRegistrationNumber;
     signupData.registrationNumber = studentRegistrationNumber;
     signupData.regNumber = studentRegistrationNumber;
-
-    // Keep legacy UI fields from your earlier component (harmless)
     signupData.studentId = studentRegistrationNumber;
 
     try {
@@ -210,256 +220,236 @@ const SignUp = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-slate-950/45 p-2 text-slate-900 backdrop-blur-sm sm:p-3">
+    <div className="min-h-screen bg-[#E4E9EF] flex items-center justify-center p-6">
       <main
         role="dialog"
         aria-modal="true"
         aria-labelledby="signup-title"
-        className="relative my-auto max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-white/80 bg-white/95 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.3)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:p-5"
+        className="w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-8 shadow-lg"
       >
-        <header className="mb-2 flex items-center justify-between">
-          <img src={logo} alt="GroupHub" className="h-8 w-auto" />
-          <Link
-            to="/"
-            aria-label="Close sign up"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
-          >
-            <X className="h-5 w-5" />
-          </Link>
-        </header>
-
-        <div className="mx-auto mb-2 max-w-lg text-center">
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-            <span id="signup-title">Create your account</span>
+        <div className="mb-6 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#35475C]/10 text-[#35475C]">
+            <img src={logo} alt="GroupHub" className="h-7 w-7" />
+          </div>
+          <h1 id="signup-title" className="mt-4 text-2xl font-bold text-[#1F2D3D]">
+            Create your account
           </h1>
-          <p className="mt-1 text-sm leading-5 text-slate-500">
+          <p className="mt-2 text-[#4F5F73]">
             Join your campus community and make great things happen together.
           </p>
         </div>
 
-        <form className="signup-form space-y-2" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:min-h-[216px] sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label htmlFor="fullName" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Full Name"
-                value={formData.fullName}
-                onChange={handleChange}
-              />
-            </div>
-
-                <div>
-                  <label htmlFor="email" className="sr-only">
-                    Email address
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Email address (e.g., email@zetech.ac.ke)"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="regNumber" className="sr-only">
-                    Registration Number
-                  </label>
-                  <input
-                    id="regNumber"
-                    name="regNumber"
-                    type="text"
-                    required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Registration Number (e.g., dcs-00-0001/2025)"
-                    value={formData.regNumber}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label htmlFor="university" className="sr-only">
-                    University/Institution
-                  </label>
-                  <select
-                    id="university"
-                    name="university"
-                    required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    value={formData.university}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select University/Institution</option>
-                    <option value="zetech">Zetech University</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="academicLevel" className="sr-only">
-                    Academic Level
-                  </label>
-                  <select
-                    id="academicLevel"
-                    name="academicLevel"
-                    required
-                    disabled={coursesLoading}
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                    value={formData.academicLevel}
-                    aria-describedby={coursesError ? 'course-load-error' : undefined}
-                    onChange={(event) => setFormData((current) => ({
-                      ...current,
-                      academicLevel: event.target.value,
-                      courseId: '',
-                      yearOfStudy: '',
-                    }))}
-                  >
-                    <option value="">
-                      {coursesLoading ? 'Loading academic levels...' : academicLevels.length ? 'Select Academic Level' : 'No academic levels available'}
-                    </option>
-                    {academicLevels.map((level) => <option key={level} value={level}>{level}</option>)}
-                  </select>
-                  {coursesError && <p id="course-load-error" className="mt-1 text-xs text-red-600">{coursesError}</p>}
-                </div>
-
-                <div>
-                  <label htmlFor="yearOfStudy" className="sr-only">
-                    Year of Study
-                  </label>
-                  <select
-                    id="yearOfStudy"
-                    name="yearOfStudy"
-                    required
-                    disabled={!formData.academicLevel}
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                    value={formData.yearOfStudy}
-                    onChange={(event) => setFormData((current) => ({
-                      ...current,
-                      yearOfStudy: event.target.value,
-                      courseId: '',
-                    }))}
-                  >
-                    <option value="">Select Year of Study</option>
-                    {studentYears.map((year) => <option key={year} value={year}>Year {year}</option>)}
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label htmlFor="courseId" className="sr-only">
-                    Course
-                  </label>
-                  <select
-                    id="courseId"
-                    name="courseId"
-                    required
-                    disabled={!formData.academicLevel || !formData.yearOfStudy || coursesLoading || studentCourses.length === 0}
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                    value={formData.courseId}
-                    onChange={(event) => setFormData((current) => ({
-                      ...current,
-                      courseId: event.target.value,
-                    }))}
-                  >
-                    <option value="">
-                      {coursesLoading ? 'Loading courses...' : 'Select Course'}
-                    </option>
-                    {studentCourses.map((course) => (
-                      <option key={course.id} value={course.id}>{course.code} — {course.name}</option>
-                    ))}
-                  </select>
-                  {!coursesLoading && formData.academicLevel && studentCourses.length === 0 && !coursesError && (
-                    <p className="mt-1 text-xs text-slate-500">No courses are available for this academic level and year.</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="sr-only">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="sr-only">
-                    Confirm Password
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
-                    placeholder="Confirm Password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                {/* keep your older fields hidden/unused in UI contract */}
-                <input type="hidden" name="studentId" value={formData.studentId} />
-                <input type="hidden" name="course" value={formData.course} />
+        <form className="signup-form space-y-5" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="fullName" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              required
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+              placeholder="Full Name"
+              value={formData.fullName}
+              onChange={handleChange}
+            />
           </div>
 
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+              Email address <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+              placeholder="email@zetech.ac.ke"
+              value={formData.email}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="regNumber" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+              Registration Number <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="regNumber"
+              name="regNumber"
+              type="text"
+              required
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+              placeholder="e.g., dcs-00-0001/2025"
+              value={formData.regNumber}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="university" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+              University/Institution <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="university"
+              name="university"
+              required
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+              value={formData.university}
+              onChange={handleChange}
+            >
+              <option value="">Select University/Institution</option>
+              <option value="zetech">Zetech University</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="academicLevel" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+              Academic Level <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="academicLevel"
+              name="academicLevel"
+              required
+              disabled={coursesLoading}
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              value={formData.academicLevel}
+              aria-describedby={coursesError ? 'course-load-error' : undefined}
+              onChange={(event) => setFormData((current) => ({
+                ...current,
+                academicLevel: event.target.value,
+                courseId: '',
+                yearOfStudy: '',
+              }))}
+            >
+              <option value="">
+                {coursesLoading ? 'Loading academic levels...' : academicLevels.length ? 'Select Academic Level' : 'No academic levels available'}
+              </option>
+              {academicLevels.map((level) => <option key={level} value={level}>{level}</option>)}
+            </select>
+            {coursesError && <p id="course-load-error" className="mt-1 text-xs text-red-600">{coursesError}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="yearOfStudy" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+              Year of Study <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="yearOfStudy"
+              name="yearOfStudy"
+              required
+              disabled={!formData.academicLevel}
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              value={formData.yearOfStudy}
+              onChange={(event) => setFormData((current) => ({
+                ...current,
+                yearOfStudy: event.target.value,
+                courseId: '',
+              }))}
+            >
+              <option value="">Select Year of Study</option>
+              {studentYears.map((year) => <option key={year} value={year}>Year {year}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="courseId" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+              Course <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="courseId"
+              name="courseId"
+              required
+              disabled={!formData.academicLevel || !formData.yearOfStudy || coursesLoading || studentCourses.length === 0}
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              value={formData.courseId}
+              onChange={(event) => setFormData((current) => ({
+                ...current,
+                courseId: event.target.value,
+              }))}
+            >
+              <option value="">
+                {coursesLoading ? 'Loading courses...' : 'Select Course'}
+              </option>
+              {studentCourses.map((course) => (
+                <option key={course.id} value={course.id}>{course.code} — {course.name}</option>
+              ))}
+            </select>
+            {!coursesLoading && formData.academicLevel && studentCourses.length === 0 && !coursesError && (
+              <p className="mt-1 text-xs text-[#9AA9B8]">No courses are available for this academic level and year.</p>
+            )}
+          </div>
+
+          <PasswordInput
+            id="password"
+            name="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
+            showPassword={showPassword}
+            toggleShowPassword={() => setShowPassword(!showPassword)}
+          />
+
+          <PasswordInput
+            id="confirmPassword"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
+            showPassword={showConfirmPassword}
+            toggleShowPassword={() => setShowConfirmPassword(!showConfirmPassword)}
+          />
+
+          {/* keep your older fields hidden/unused in UI contract */}
+          <input type="hidden" name="studentId" value={formData.studentId} />
+          <input type="hidden" name="course" value={formData.course} />
+
           {signupError && (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {signupError}
-            </p>
+            <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>{signupError}</span>
+            </div>
           )}
 
-          <div className="flex items-center">
+          <div className="flex items-start gap-3">
             <input
               id="agreeToTerms"
               name="agreeToTerms"
               type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 accent-violet-600 focus:ring-violet-500"
+              className="mt-0.5 h-4 w-4 rounded border-[#D7DEE6] bg-[#EEF1F4] text-[#35475C] focus:ring-[#35475C]"
               checked={formData.agreeToTerms}
               onChange={handleChange}
             />
-            <label htmlFor="agreeToTerms" className="ml-2 block text-sm leading-6 text-slate-600">
+            <label htmlFor="agreeToTerms" className="ml-2 text-sm leading-6 text-[#1F2D3D]">
               I agree to the{' '}
-              <Link to="/terms" className="font-medium text-violet-700 hover:text-violet-900">
+              <Link to="/terms" className="font-medium text-[#35475C] underline">
                 Terms and Conditions
               </Link>{' '}
               and{' '}
-              <Link to="/privacy" className="font-medium text-violet-700 hover:text-violet-900">
+              <Link to="/privacy" className="font-medium text-[#35475C] underline">
                 Privacy Policy
               </Link>
             </label>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              className="group relative flex w-full justify-center rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-violet-500/30 focus:ring-offset-2"
-            >
-              Create Account
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-[#35475C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#435B76] disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+          >
+            Create Account
+          </button>
         </form>
-        <p className="mt-2 border-t border-slate-100 pt-2 text-center text-sm text-slate-500">
+
+        <p className="mt-6 text-center text-sm text-[#4F5F73]">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-violet-700 transition hover:text-violet-900">
+          <Link to="/login" className="font-semibold text-[#35475C] underline">
             Sign in
           </Link>
         </p>

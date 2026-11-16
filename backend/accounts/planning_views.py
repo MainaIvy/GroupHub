@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Group, Project, Task, TaskActivity, User
+from .models import Group, Project, Task, TaskActivity, User, AuditLog
 from .planning_rules import is_leader, is_member, is_participant, weight_change_block, weight_confirm_block
 from .views import _parse_required_task_due_date, _task_balance_warning
 from .weights import WEIGHT_MAX, WEIGHT_MIN, WEIGHT_RANGE
@@ -135,6 +135,22 @@ def propose_task(request, group_id):
             task=task, actor=user, action='proposed', new_weight=weight,
             note=f'Proposed with a suggested weight of {weight}.',
         )
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=user,
+        action='propose_task',
+        target_type='Task',
+        target_id=str(task.id),
+        details={
+            'title': title,
+            'weight': weight,
+            'project_id': project.id,
+            'group_id': group.id,
+            'due_date': due_date.isoformat() if due_date else None,
+        }
+    )
+    
     return Response({'task': {
         'id': task.id, 'title': task.title, 'proposal_status': task.proposal_status,
         'weight': task.weight, 'parent_task_id': task.parent_task_id, 'project_id': project.id,
@@ -193,6 +209,20 @@ def approve_task(request, group_id, task_id):
                 f'Approved and assigned to {_name(assignee)}.' if assignee else 'Approved.'
             ),
         )
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=user,
+        action='approve_task',
+        target_type='Task',
+        target_id=str(task.id),
+        details={
+            'assignment_mode': mode,
+            'assigned_to_id': assignee.id if assignee else None,
+            'group_id': group.id,
+        }
+    )
+    
     return Response({'task': {
         'id': task.id, 'proposal_status': task.proposal_status, 'assignment_mode': task.assignment_mode,
         'assigned_to_id': task.assigned_to_id,
@@ -227,6 +257,19 @@ def claim_task(request, group_id, task_id):
         task.assignment_mode = 'assigned'
         task.save(update_fields=['assigned_to', 'assignment_mode', 'updated_at'])
         TaskActivity.objects.create(task=task, actor=user, action='claimed', to_user=user, note=f'{_name(user)} claimed this task.')
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=user,
+        action='claim_task',
+        target_type='Task',
+        target_id=str(task.id),
+        details={
+            'task_title': task.title,
+            'group_id': group.id,
+        }
+    )
+    
     return Response({'task': {'id': task.id, 'assigned_to_id': user.id, 'assigned_to_name': _name(user)}})
 
 
@@ -252,6 +295,19 @@ def confirm_task_weight(request, group_id, task_id):
             old_weight=task.weight, new_weight=task.weight,
             note=f'{_name(request.user)} confirmed a weight of {task.weight}.',
         )
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=request.user,
+        action='confirm_task_weight',
+        target_type='Task',
+        target_id=str(task.id),
+        details={
+            'weight': task.weight,
+            'group_id': group.id,
+        }
+    )
+    
     return Response({'task': {'id': task.id, 'weight': task.weight, 'weight_confirmed': True}})
 
 
@@ -289,4 +345,18 @@ def change_task_weight(request, group_id, task_id):
             new_weight=new_weight,
             note=f'Weight changed from {old_weight} to {new_weight}.',
         )
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=request.user,
+        action='change_task_weight',
+        target_type='Task',
+        target_id=str(task.id),
+        details={
+            'old_weight': old_weight,
+            'new_weight': new_weight,
+            'group_id': group.id,
+        }
+    )
+    
     return Response({'task': {'id': task.id, 'weight': new_weight, 'weight_confirmed': False}})

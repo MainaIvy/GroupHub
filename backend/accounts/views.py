@@ -30,13 +30,13 @@ from django.db.models import Exists, OuterRef
 from django.core.files.storage import default_storage
 from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
-    ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster,
+    ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster, AuditLog,
 )
-from .planning_rules import avatar_url, board_status, weight_change_block, weight_confirm_block, WEIGHT_MIN, WEIGHT_MAX
+from .profile import compute_profile_complete, lecturer_setup_required
 from .access import can_view_group, can_manage_group
 from .group_access_views import _is_enrolled_in_unit, _join_block, _unit_group_block
+from .services.insights import compute_group_insights, get_group_insights_for_user
 from .balance import calculate_group_balance
-from .health import compute_group_health, get_health_details
 from .academic import (
     approved_units_for_lecturer, current_term,
     sync_student_enrollments, supervising_lecturer_ids, supervising_lecturers,
@@ -1073,6 +1073,7 @@ class LoginView(APIView):
                     'last_name': user.last_name,
                     'university': user.university,
                     'is_staff': user.is_staff,
+                    'profile_complete': compute_profile_complete(user),
                     'lecturer_setup_required': (
                         user.user_type == 'lecturer'
                         and not UnitAssignment.objects.filter(lecturer=user).exists()
@@ -1117,20 +1118,69 @@ def lecturer_dashboard(request):
         ).count()
 
         groups = []
-        for group in lecturer_groups.select_related('lecturer').order_by('name'):
-            health = get_health_details(group)
-            groups.append({
+        at_risk_groups = []
+        all_contributions = {}
+        for group in lecturer_groups.select_related('lecturer', 'unit').order_by('name'):
+            insights = compute_group_insights(group)
+            health = insights['health']
+            balance = insights['balance']
+            progress = insights['progress']
+            overdue_count = insights['overdue_count']
+            next_deadline = insights['next_deadline']
+            
+            # Per-student contributions
+            contributions = []
+            for member in balance['members']:
+                student = User.objects.filter(id=member['user_id']).first()
+                if student:
+                    student_tasks = Task.objects.filter(assigned_to=student, project__group=group)
+                    completed_tasks = student_tasks.filter(status='completed')
+                    tasks_with_due = student_tasks.exclude(due_date__isnull=True)
+                    on_time_tasks = completed_tasks.filter(completed_at__lte=models.F('due_date'))
+                    on_time_rate = round((on_time_tasks.count() / tasks_with_due.count()) * 100) if tasks_with_due.count() > 0 else 0
+                    contributions.append({
+                        'user_id': student.id,
+                        'name': f'{student.first_name} {student.last_name}'.strip() or student.username,
+                        'email': student.email,
+                        'points_assigned': member['points_assigned'],
+                        'points_completed': member['points_completed'],
+                        'tasks_completed': completed_tasks.count(),
+                        'on_time_rate': on_time_rate,
+                        'share_percent': member['share_percent'],
+                        'warning_level': member['warning_level'],
+                    })
+                    all_contributions[student.id] = contributions[-1]
+            
+            group_data = {
                 'id': group.id,
                 'name': group.name,
                 'course': group.course,
                 'year_of_study': group.year_of_study,
                 'created_at': group.created_at.isoformat(),
                 'unit_id': group.unit_id,
-                'unit_code': group.unit_code,
+                'unit_code': group.unit.code if group.unit else group.unit_code,
+                'unit_name': group.unit.name if group.unit else '',
                 'members_count': group.members_count,
                 'projects': list(Project.objects.filter(group=group).values('id', 'title', 'status')),
                 'health': health,
-            })
+                'progress': progress,
+                'overdue_count': overdue_count,
+                'next_deadline': next_deadline,
+                'contributions': contributions,
+            }
+            groups.append(group_data)
+            
+            if health in ('at_risk', 'too_early', 'quiet'):
+                at_risk_groups.append({
+                    'id': group.id,
+                    'name': group.name,
+                    'unit_id': group.unit_id,
+                    'unit_code': group.unit.code if group.unit else group.unit_code,
+                    'health': health,
+                    'progress': progress,
+                    'overdue_count': overdue_count,
+                    'members_count': group.members_count,
+                })
 
         recent_submissions = Submission.objects.filter(
             project__group__in=lecturer_groups
@@ -1148,6 +1198,20 @@ def lecturer_dashboard(request):
                 'submitted_at': sub.submitted_at.isoformat()
             })
 
+        # Recent comments from lecturer on tasks
+        recent_comments = TaskComment.objects.filter(
+            task__project__group__in=lecturer_groups,
+            author=user
+        ).select_related('task', 'task__project').order_by('-created_at')[:10]
+        comments_data = [{
+            'id': c.id,
+            'task_id': c.task_id,
+            'task_title': c.task.title,
+            'project_title': c.task.project.title,
+            'content': c.content,
+            'created_at': c.created_at.isoformat(),
+        } for c in recent_comments]
+
         units = []
         active_term = current_term()
         for unit in lecturer_units:
@@ -1159,6 +1223,10 @@ def lecturer_dashboard(request):
                 **enrollment_filter,
             ).distinct().order_by('first_name', 'last_name', 'id')
             unit_groups = lecturer_groups.filter(unit=unit).order_by('name')
+            grouped_ids = set(GroupMembership.objects.filter(
+                group__unit=unit, student__in=students,
+            ).values_list('student_id', flat=True))
+            without_group = [student for student in students if student.id not in grouped_ids]
             unit_submissions = Submission.objects.filter(project__group__in=unit_groups)
             unit_submission_count = unit_submissions.count()
             unit_submitted_count = unit_submissions.exclude(status='submitted').count()
@@ -1185,6 +1253,12 @@ def lecturer_dashboard(request):
                     'year_of_study': student.year_of_study,
                     'semester': student.semester,
                 } for student in students],
+                'students_without_group': [{
+                    'id': student.id,
+                    'name': f'{student.first_name} {student.last_name}'.strip() or student.username,
+                    'admission_number': student.username,
+                } for student in without_group],
+                'at_risk_groups': [g for g in at_risk_groups if g['unit_id'] == unit.id],
             })
 
         data = {
@@ -1210,7 +1284,10 @@ def lecturer_dashboard(request):
             },
             'units': units,
             'groups': list(groups),
-            'recent_submissions': submissions_data
+            'at_risk_groups': at_risk_groups,
+            'contributions': list(all_contributions.values()),
+            'recent_submissions': submissions_data,
+            'recent_comments': comments_data,
         }
 
         logger.info(f"Dashboard data returned for user {user.id}")
@@ -1236,14 +1313,16 @@ def student_dashboard(request):
 
         memberships = GroupMembership.objects.filter(student=user).select_related('group')
         groups = []
+        all_classmates = set()
         for membership in memberships:
             group = membership.group
             projects = list(Project.objects.filter(group=group).values('id', 'title', 'status'))
-            progress_percentage = 0
-            if projects:
-                completed_projects = sum(1 for p in projects if p['status'] == 'completed')
-                progress_percentage = int((completed_projects / len(projects)) * 100)
-            health = get_health_details(group)
+            insights = compute_group_insights(group)
+            health = insights['health']
+            balance = insights['balance']
+            progress_percentage = insights['progress']
+            own_balance = next((m for m in balance['members'] if m['user_id'] == user.id), {})
+            all_classmates.update(GroupMembership.objects.filter(group=group).exclude(student=user).values_list('student_id', flat=True))
             groups.append({
                 'id': group.id,
                 'name': group.name,
@@ -1261,7 +1340,24 @@ def student_dashboard(request):
                 'progress_percentage': progress_percentage,
                 'projects': projects,
                 'health': health,
+                'share_percent': own_balance.get('share_percent', 0),
+                'fair_share': own_balance.get('fair_share', balance['fair_share']),
+                'warning_level': own_balance.get('warning_level', 'ok'),
+                'overdue_count': insights['overdue_count'],
+                'next_deadline': insights['next_deadline'],
             })
+
+        classmates = User.objects.filter(id__in=all_classmates).select_related('enrolled_course').order_by('first_name', 'last_name')
+        classmates_data = [{
+            'id': c.id,
+            'first_name': c.first_name,
+            'last_name': c.last_name,
+            'email': c.email,
+            'course': c.course,
+            'year_of_study': c.year_of_study,
+            'semester': c.semester,
+            'avatar': avatar_url(c),
+        } for c in classmates]
 
         tasks = Task.objects.filter(assigned_to=user).select_related('project').order_by('-created_at')[:10]
         tasks_data = []
@@ -1331,6 +1427,7 @@ def student_dashboard(request):
             'academic': academic,
             'units': units_data,
             'groups': groups,
+            'classmates': classmates_data,
             'recent_tasks': tasks_data,
             'recent_submissions': submissions_data
         }
@@ -1355,7 +1452,8 @@ def student_workload_summary(request):
     groups = Group.objects.filter(id__in=group_ids).distinct().order_by('name')
     result = []
     for group in groups:
-        balance = calculate_group_balance(group)
+        insights = compute_group_insights(group)
+        balance = insights['balance']
         own_balance = next((member for member in balance['members'] if member['user_id'] == user.id), {})
         due_soon = Task.objects.filter(
             project__group=group,
@@ -1393,6 +1491,10 @@ def student_workload_summary(request):
                 'due_date': task.due_date.isoformat(),
                 'status': task.status,
             } for task in due_tasks],
+            'health': insights['health'],
+            'progress': insights['progress'],
+            'overdue_count': insights['overdue_count'],
+            'next_deadline': insights['next_deadline'],
         })
     return Response(result)
 
@@ -1539,17 +1641,9 @@ def get_group_task_workspace(request, group_id):
                 'proposed_by_id': task.proposed_by_id,
                 'can_confirm_weight': weight_confirm_block(request.user, group, task) is None,
             })
-        now = timezone.now()
-        deadlines = [
-            *[due_date for due_date in Task.objects.filter(
-                project__group=group, due_date__gte=now
-            ).values_list('due_date', flat=True) if due_date],
-            *[deadline for deadline in Project.objects.filter(
-                group=group, deadline__gte=now
-            ).values_list('deadline', flat=True) if deadline],
-        ]
-        next_deadline = min(deadlines).isoformat() if deadlines else None
-        health = get_health_details(group)
+        insights = compute_group_insights(group)
+        health = insights['health']
+        next_deadline = insights['next_deadline']
         return Response({
             'group': {
                 'id': group.id,
@@ -1636,6 +1730,31 @@ def get_group_comments(request, group_id):
             if task is None or not content:
                 return Response({'error': 'Choose a group task and enter a comment.'}, status=status.HTTP_400_BAD_REQUEST)
             comment = TaskComment.objects.create(task=task, author=request.user, content=content)
+            
+            # Notify task assignee if comment is by someone else
+            if task.assigned_to and task.assigned_to.id != request.user.id:
+                Notification.objects.create(
+                    user=task.assigned_to,
+                    notification_type='mention',
+                    title='New comment on your task',
+                    message=f'{request.user.first_name} {request.user.last_name} commented on "{task.title}" in {group.name}.',
+                    related_task=task,
+                    related_group=group,
+                )
+            
+            # Audit log
+            AuditLog.objects.create(
+                actor=request.user,
+                action='create_comment',
+                target_type='TaskComment',
+                target_id=str(comment.id),
+                details={
+                    'task_id': task.id,
+                    'group_id': group.id,
+                    'content_preview': content[:100],
+                }
+            )
+            
             return Response({
                 'id': comment.id,
                 'task_id': task.id,
@@ -1702,11 +1821,42 @@ def grade_submission(request, submission_id):
             raise ValueError
     except (TypeError, ValueError):
         return Response({'error': 'Grade must be a number between 0 and 100.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    old_status = submission.status
+    old_grade = submission.grade
     submission.grade = grade
     submission.feedback = str(request.data.get('feedback', submission.feedback) or '').strip()
     submission.status = str(request.data.get('status') or ('reviewed' if grade is not None else submission.status))
     submission.reviewed_at = timezone.now() if submission.status in ('reviewed', 'approved', 'rejected') else None
     submission.save(update_fields=['grade', 'feedback', 'status', 'reviewed_at'])
+    
+    # Notify student
+    if submission.submitted_by.id != request.user.id:
+        Notification.objects.create(
+            user=submission.submitted_by,
+            notification_type='submission_reviewed',
+            title='Submission graded',
+            message=f'{request.user.first_name} {request.user.last_name} graded your submission for "{submission.project.title}".',
+            related_project=submission.project,
+            related_group=submission.project.group,
+        )
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=request.user,
+        action='grade_submission',
+        target_type='Submission',
+        target_id=str(submission.id),
+        details={
+            'old_status': old_status,
+            'new_status': submission.status,
+            'old_grade': float(old_grade) if old_grade is not None else None,
+            'new_grade': grade,
+            'project_id': submission.project_id,
+            'group_id': submission.project.group_id,
+        }
+    )
+    
     return Response(_serialize_submission(submission))
 
 
@@ -1764,6 +1914,34 @@ def group_submissions(request, group_id):
             for uploaded_file in attachments
         ])
         submission = Submission.objects.select_related('project', 'submitted_by').prefetch_related('attachments').get(pk=submission.pk)
+        
+        # Notify supervising lecturers
+        from .academic import supervising_lecturers
+        for supervisor in supervising_lecturers(group):
+            if supervisor.id != request.user.id:
+                Notification.objects.create(
+                    user=supervisor,
+                    notification_type='submission_reviewed',
+                    title='New submission',
+                    message=f'{request.user.first_name} {request.user.last_name} submitted work for "{project.title}" in {group.name}.',
+                    related_project=project,
+                    related_group=group,
+                )
+        
+        # Audit log
+        AuditLog.objects.create(
+            actor=request.user,
+            action='create_submission',
+            target_type='Submission',
+            target_id=str(submission.id),
+            details={
+                'project_id': project.id,
+                'group_id': group.id,
+                'proof_text': proof_text,
+                'has_attachments': len(attachments) > 0,
+            }
+        )
+        
         return Response(_serialize_submission(submission), status=status.HTTP_201_CREATED)
     except Group.DoesNotExist:
         return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -2062,6 +2240,7 @@ def get_group_balance(request, group_id):
             })
 
         balance = calculate_group_balance(group)
+        insights = compute_group_insights(group)
         return Response({
             'group_id': group.id,
             **balance,
@@ -2069,6 +2248,11 @@ def get_group_balance(request, group_id):
                 member['warning_level'] in ('warning', 'critical')
                 for member in balance['members']
             ),
+            'health': insights['health'],
+            'progress': insights['progress'],
+            'overdue_count': insights['overdue_count'],
+            'next_deadline': insights['next_deadline'],
+            'contributions': insights['contributions'],
         })
     except Group.DoesNotExist:
         return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -2145,6 +2329,33 @@ def create_task(request, group_id):
                 note=f"Assigned to {assigned_to.first_name} {assigned_to.last_name}".strip()
             )
 
+        # Notify assigned user
+        if assigned_to.id != user.id:
+            Notification.objects.create(
+                user=assigned_to,
+                notification_type='task_assigned',
+                title='New task assigned',
+                message=f'{user.first_name} {user.last_name} assigned you to "{task.title}" in {group.name}.',
+                related_task=task,
+                related_group=group,
+            )
+
+        # Audit log
+        AuditLog.objects.create(
+            actor=user,
+            action='create_task',
+            target_type='Task',
+            target_id=str(task.id),
+            details={
+                'title': title,
+                'weight': weight,
+                'assigned_to_id': assigned_to.id,
+                'project_id': project.id,
+                'group_id': group.id,
+                'due_date': parsed_due_date.isoformat() if parsed_due_date else None,
+            }
+        )
+
         return Response({
             'id': task.id,
             'title': task.title,
@@ -2214,6 +2425,31 @@ def update_task_status(request, task_id):
                 note=f"{old_status} -> {new_status}"
             )
 
+        # Notify assignee if updated by someone else
+        if task.assigned_to and task.assigned_to.id != user.id:
+            Notification.objects.create(
+                user=task.assigned_to,
+                notification_type='task_assigned',
+                title='Task status updated',
+                message=f'{user.first_name} {user.last_name} updated the status of "{task.title}" to {new_status} in {task.project.group.name}.',
+                related_task=task,
+                related_group=task.project.group,
+            )
+
+        # Audit log
+        AuditLog.objects.create(
+            actor=user,
+            action='update_task_status',
+            target_type='Task',
+            target_id=str(task.id),
+            details={
+                'old_status': old_status,
+                'new_status': new_status,
+                'task_title': task.title,
+                'group_id': task.project.group_id,
+            }
+        )
+
         return Response({'message': 'Task status updated successfully', 'id': task.id, 'status': task.status})
     except Task.DoesNotExist:
         return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -2250,6 +2486,7 @@ def update_task_progress(request, task_id):
             return Response({'error': 'Progress percentage must be an integer between 0 and 100'}, status=status.HTTP_400_BAD_REQUEST)
 
         old_status = task.status
+        old_progress = task.progress_percentage
         task.progress_percentage = progress_percentage
         if progress_percentage == 100:
             task.status = 'completed'
@@ -2272,6 +2509,33 @@ def update_task_progress(request, task_id):
                 action=progress_action,
                 note=f"{old_status} -> {task.status}; progress {progress_percentage}%",
             )
+
+        # Notify assignee if updated by someone else
+        if task.assigned_to and task.assigned_to.id != user.id:
+            Notification.objects.create(
+                user=task.assigned_to,
+                notification_type='task_assigned',
+                title='Task progress updated',
+                message=f'{user.first_name} {user.last_name} updated progress on "{task.title}" to {progress_percentage}% in {task.project.group.name}.',
+                related_task=task,
+                related_group=task.project.group,
+            )
+
+        # Audit log
+        AuditLog.objects.create(
+            actor=user,
+            action='update_task_progress',
+            target_type='Task',
+            target_id=str(task.id),
+            details={
+                'old_status': old_status,
+                'new_status': task.status,
+                'old_progress': old_progress,
+                'new_progress': progress_percentage,
+                'task_title': task.title,
+                'group_id': task.project.group_id,
+            }
+        )
 
         return Response({
             'id': task.id,

@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Group, Poll, PollOption, PollVote, Notification
+from .models import Group, Poll, PollOption, PollVote, Notification, AuditLog
 from .planning_rules import is_leader, is_member
 
 MAX_OPTIONS = 20
@@ -220,6 +220,21 @@ def vote_on_poll(request, poll_id):
     if option is None:
         return _error('Choose one of the options in this poll.')
     PollVote.objects.update_or_create(poll=poll, user=request.user, defaults={'option': option})
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=request.user,
+        action='vote_on_poll',
+        target_type='Poll',
+        target_id=str(poll.id),
+        details={
+            'poll_question': poll.question,
+            'option_id': option.id,
+            'option_text': option.text,
+            'group_id': poll.group_id,
+        }
+    )
+    
     return Response(serialize_poll(poll, request.user))
 
 
@@ -240,7 +255,22 @@ def add_poll_option(request, poll_id):
         return _error(f'A poll can have at most {MAX_OPTIONS} options.')
     if any(existing.casefold() == text.casefold() for existing in poll.options.values_list('text', flat=True)):
         return _error('That option is already in the poll.')
-    PollOption.objects.create(poll=poll, text=text, pitch=pitch, added_by=request.user)
+    option = PollOption.objects.create(poll=poll, text=text, pitch=pitch, added_by=request.user)
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=request.user,
+        action='add_poll_option',
+        target_type='Poll',
+        target_id=str(poll.id),
+        details={
+            'poll_question': poll.question,
+            'option_id': option.id,
+            'option_text': option.text,
+            'group_id': poll.group_id,
+        }
+    )
+    
     return Response(serialize_poll(poll, request.user), status=status.HTTP_201_CREATED)
 
 
@@ -256,6 +286,19 @@ def close_poll(request, poll_id):
         return _error('Only the poll creator or the group leader can close this poll.', status.HTTP_403_FORBIDDEN)
     poll.status = 'closed'
     poll.save(update_fields=['status'])
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=request.user,
+        action='close_poll',
+        target_type='Poll',
+        target_id=str(poll.id),
+        details={
+            'poll_question': poll.question,
+            'group_id': poll.group_id,
+        }
+    )
+    
     return Response(serialize_poll(poll, request.user))
 
 
@@ -275,6 +318,22 @@ def pick_poll_winner(request, poll_id):
         return _error('Choose one of the tied options.')
     poll.winning_option_id = int(option_id)
     poll.save(update_fields=['winning_option'])
+    
+    # Audit log
+    winning_option = poll.options.filter(pk=option_id).first()
+    AuditLog.objects.create(
+        actor=request.user,
+        action='pick_poll_winner',
+        target_type='Poll',
+        target_id=str(poll.id),
+        details={
+            'poll_question': poll.question,
+            'winning_option_id': option_id,
+            'winning_option_text': winning_option.text if winning_option else '',
+            'group_id': poll.group_id,
+        }
+    )
+    
     return Response(serialize_poll(poll, request.user))
 
 
@@ -286,5 +345,21 @@ def delete_poll(request, poll_id):
         return error
     if not (is_leader(request.user, poll.group) or poll.created_by_id == request.user.id):
         return _error('Only the poll creator or the group leader can delete this poll.', status.HTTP_403_FORBIDDEN)
+    
+    # Audit log before delete
+    poll_question = poll.question
+    group_id = poll.group_id
     poll.delete()
+    
+    AuditLog.objects.create(
+        actor=request.user,
+        action='delete_poll',
+        target_type='Poll',
+        target_id=str(poll_id),
+        details={
+            'poll_question': poll_question,
+            'group_id': group_id,
+        }
+    )
+    
     return Response({'message': 'Poll deleted successfully'})

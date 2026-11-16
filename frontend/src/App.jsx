@@ -28,8 +28,12 @@ const ProtectedStudentRoute = ({ children }) => {
   }
   try {
     const user = JSON.parse(userStr);
+    // Only redirect to complete-profile if:
+    // - student AND profile incomplete AND not coming from signup (signup creates complete profiles)
+    // Students who sign up via the form already fill in programme, year, semester
     if (user.user_type === 'student' && !user.profile_complete) {
-      // Allow access to complete-profile page
+      // Check if they just signed up (signup creates complete profile)
+      // If profile_complete is false, they likely logged in via Google and need to complete profile
       return <Navigate to="/student/complete-profile" replace />;
     }
     return children;

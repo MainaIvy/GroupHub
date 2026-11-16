@@ -47,6 +47,7 @@ urlpatterns = [
 
     # Auth/session endpoints
     path('signup/', views.signup_view, name='signup'),
+    path('login/', views.LoginView.as_view(), name='login'),
 
     # Google OAuth login
     path('google/login/', views.GoogleLoginView.as_view(), name='api_google_login'),

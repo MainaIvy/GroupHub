@@ -42,7 +42,7 @@ export default function CompleteProfile() {
     let cancelled = false;
     setCoursesLoading(true);
     setCoursesError('');
-    api.get('/academic/courses/')
+    api.get('/api/accounts/academic/courses/')
       .then((response) => {
         if (!cancelled) {
           setCourses(response.data.courses || []);

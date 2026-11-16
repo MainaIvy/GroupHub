@@ -129,6 +129,24 @@ def add_work_item(request, group_id, task_id):
             created.append(TaskSubmission.objects.create(task=task, submitted_by=user, file=uploaded, marks_complete=completes and not created))
         _auto_status(task, user, completes)
     task.refresh_from_db()
+    
+    # Audit log
+    AuditLog.objects.create(
+        actor=user,
+        action='add_work_item',
+        target_type='TaskSubmission',
+        target_id=str(created[0].id) if created else '',
+        details={
+            'task_id': task.id,
+            'task_title': task.title,
+            'group_id': group.id,
+            'has_note': bool(note),
+            'has_url': bool(url),
+            'file_count': len(files),
+            'marks_complete': completes,
+        }
+    )
+    
     return Response({'items': [serialize_work_item(item) for item in created], 'task_status': task.status}, status=status.HTTP_201_CREATED)
 
 
@@ -144,7 +162,26 @@ def delete_work_item(request, group_id, task_id, item_id):
         return _error('Only the person who added this or the group leader can remove it.', status.HTTP_403_FORBIDDEN)
     if item.file:
         item.file.delete(save=False)
+    
+    # Audit log before delete
+    task_id_val = item.task_id
+    task_title = item.task.title
+    group_id_val = item.task.project.group_id
+    item_id_val = item.id
     item.delete()
+    
+    AuditLog.objects.create(
+        actor=request.user,
+        action='delete_work_item',
+        target_type='TaskSubmission',
+        target_id=str(item_id_val),
+        details={
+            'task_id': task_id_val,
+            'task_title': task_title,
+            'group_id': group_id_val,
+        }
+    )
+    
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 

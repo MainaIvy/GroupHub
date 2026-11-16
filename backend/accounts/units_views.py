@@ -6,7 +6,7 @@ from rest_framework import status
 import re
 
 from .academic import approved_units_for_lecturer, current_term
-from .balance import calculate_group_balance
+from .services.insights import compute_group_insights
 from .models import Group, GroupMembership, StudentEnrollment, Unit, User
 
 
@@ -73,7 +73,8 @@ def _unit_group_rows(unit, term):
     ).select_related('lecturer').order_by('name')
     rows = []
     for group in groups:
-        balance = calculate_group_balance(group)
+        insights = compute_group_insights(group)
+        balance = insights['balance']
         at_risk = any(
             member.get('warning_level') in ('warning', 'critical')
             for member in balance.get('members', [])

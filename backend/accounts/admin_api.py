@@ -15,8 +15,7 @@ from .academic import (
     advance_cohort, approved_units_for_lecturer, auto_approve_lecturer_claims,
     current_term, sync_student_enrollments, term_for_cohort, advance_cohort,
 )
-from .balance import calculate_group_balance
-from .health import get_health_details
+from .services.insights import compute_group_insights
 from .models import (
     AdminSetting, Announcement, AuditLog, Course, Group, GroupMembership,
     ImportBatch, LecturerRoster, Notification, Project, Semester, StudentEnrollment, Submission, Task, Unit, UnitAssignment, User,
@@ -84,12 +83,37 @@ def admin_overview(request):
     at_risk = []
     quiet = 0
     for group in groups:
-        balance = calculate_group_balance(group)
-        if any(member['warning_level'] in ('warning', 'critical') for member in balance['members']):
-            at_risk.append({'id': group.id, 'name': group.name, 'balance': balance})
+        insights = compute_group_insights(group)
+        if any(member['warning_level'] in ('warning', 'critical') for member in insights['balance']['members']):
+            at_risk.append({'id': group.id, 'name': group.name, 'health': insights['health'], 'balance': insights['balance']})
         recent_activity = Task.objects.filter(project__group=group, updated_at__gte=timezone.now() - timedelta(days=14)).exists()
         if not recent_activity:
             quiet += 1
+    
+    # Units without lecturer
+    units_without_lecturer = Unit.objects.filter(assigned_lecturer__isnull=True).select_related('course')
+    units_without_lecturer_data = [{
+        'id': u.id,
+        'code': u.code,
+        'name': u.name,
+        'course_code': u.course.code,
+        'course_name': u.course.name,
+        'year_of_study': u.year_of_study,
+        'semester': u.semester,
+    } for u in units_without_lecturer]
+    
+    # Recent audit log (last 20)
+    recent_audit = AuditLog.objects.select_related('actor').order_by('-created_at')[:20]
+    audit_data = [{
+        'id': a.id,
+        'actor': f'{a.actor.first_name} {a.actor.last_name}'.strip() or a.actor.username,
+        'action': a.action,
+        'target_type': a.target_type,
+        'target_id': a.target_id,
+        'details': a.details,
+        'created_at': a.created_at.isoformat(),
+    } for a in recent_audit]
+    
     return Response({
         'users': User.objects.count(),
         'groups': Group.objects.count(),
@@ -98,6 +122,8 @@ def admin_overview(request):
         'active_groups': groups.count() - quiet,
         'quiet_groups': quiet,
         'at_risk_groups': at_risk[:20],
+        'units_without_lecturer': units_without_lecturer_data,
+        'recent_audit_log': audit_data,
     })
 
 
@@ -422,15 +448,14 @@ def admin_groups(request):
         groups = groups.filter(is_archived=True)
     rows = []
     for group in groups[:300]:
-        balance = calculate_group_balance(group)
-        risk = any(item['warning_level'] in ('warning', 'critical') for item in balance['members'])
-        health = get_health_details(group)
+        insights = compute_group_insights(group)
+        risk = any(item['warning_level'] in ('warning', 'critical') for item in insights['balance']['members'])
         rows.append({
             'id': group.id, 'name': group.name, 'unit': group.unit.name if group.unit else group.unit_code,
             'lecturer': _name(group.lecturer), 'members': group.members_count,
             'locked': group.is_locked, 'archived': group.is_archived, 'at_risk': risk,
             'join_code': group.join_code,
-            'health': health,
+            'health': insights['health'],
         })
     return Response(rows)
 
