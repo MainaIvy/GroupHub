@@ -74,10 +74,10 @@ textarea {
 
 .signup-form input:not([type='checkbox']):focus,
 .signup-form select:focus {
-  border-color: #8b5cf6;
+  border-color: #35475c;
   background-color: #fff;
   outline: none;
-  box-shadow: 0 0 0 4px rgb(139 92 246 / 12%);
+  box-shadow: 0 0 0 4px rgb(53 71 92 / 12%);
 }
 
 .signup-form select {
