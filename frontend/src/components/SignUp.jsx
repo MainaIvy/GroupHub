@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { GraduationCap, X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { GraduationCap, X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { getAcademicCourses } from '../api';
 import logo from '../assets/images/groubhub logo.svg';
 
@@ -219,6 +219,13 @@ const SignUp = () => {
         aria-labelledby="signup-title"
         className="w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-6 shadow-lg"
       >
+        <Link
+          to="/login"
+          className="mb-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#35475C] border border-[#D7DEE6] hover:bg-[#EEF1F4] hover:text-[#35475C] transition-colors"
+        >
+          <ArrowLeft size={14} aria-hidden="true" />
+          <span>Back</span>
+        </Link>
         <div className="mb-4 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#35475C]/10 text-[#35475C]">
             <img src={logo} alt="GroupHub" className="h-9 w-9" />
