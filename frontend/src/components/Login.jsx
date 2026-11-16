@@ -92,14 +92,6 @@ const Login = ({ googleEnabled = false }) => {
     if (usernameRef.current) usernameRef.current.focus();
   }, []);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -197,7 +189,7 @@ const Login = ({ googleEnabled = false }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#E4E9EF] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#E4E9EF] flex items-start justify-center p-6">
       <main
         role="dialog"
         aria-modal="true"

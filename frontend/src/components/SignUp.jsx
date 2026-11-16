@@ -81,14 +81,6 @@ const SignUp = () => {
   const [signupError, setSignupError] = useState('');
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
     setCoursesLoading(true);
     setCoursesError('');
@@ -220,7 +212,7 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#E4E9EF] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#E4E9EF] flex items-start justify-center p-6">
       <main
         role="dialog"
         aria-modal="true"
