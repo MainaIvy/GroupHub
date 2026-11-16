@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
+import logo from '../assets/images/GROUPHUBLOGO.png';
 
 const GoogleGIcon = ({ className = '' }) => (
   <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">

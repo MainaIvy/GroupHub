@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, GraduationCap, BarChart3, MessageCircle, Shield, Sparkles } from 'lucide-react';
-import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
+import logo from '../assets/images/GROUPHUBLOGO.png';
 import { NavLink } from 'react-router-dom';
 import Footer from './common/Footer';
 

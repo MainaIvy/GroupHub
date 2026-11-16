@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Loader2, CheckCircle, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
-import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
+import logo from '../assets/images/GROUPHUBLOGO.png';
 
 export default function StaffActivate() {
   const { token } = useParams();

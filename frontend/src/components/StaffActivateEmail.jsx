@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Mail, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
+import logo from '../assets/images/GROUPHUBLOGO.png';
 
 export default function StaffActivateEmail() {
   const navigate = useNavigate();
