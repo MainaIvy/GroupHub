@@ -38,6 +38,9 @@ class User(AbstractUser):
         ('suspended', 'Suspended'),
     ]
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='active')
+    notification_preferences = models.JSONField(default=dict, blank=True)
+    email_digest = models.CharField(max_length=20, default='instant')
+    grading_defaults = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return self.username

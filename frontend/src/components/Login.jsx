@@ -24,7 +24,7 @@ const GoogleSignInButton = ({ onSuccess, onError, isLoading }) => {
       type="button"
       onClick={() => handleGoogleLogin()}
       disabled={isLoading}
-      className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-70"
+      className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#D7DEE6] bg-white px-4 py-3 text-sm font-semibold text-[#35475C] transition hover:bg-[#EEF1F4] disabled:opacity-70"
     >
       <GoogleGIcon className="h-5 w-5" />
       <span>{isLoading ? 'Signing in...' : 'Continue with Google'}</span>
@@ -32,7 +32,7 @@ const GoogleSignInButton = ({ onSuccess, onError, isLoading }) => {
   );
 };
 
-const Login = ({ googleEnabled = false }) => {
+const Login = () => {
   const [formData, setFormData] = useState({ username: '', password: '', rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,22 +65,23 @@ const Login = ({ googleEnabled = false }) => {
       localStorage.setItem('refresh_token', data.refresh || '');
       const user = data.user || {};
       const profileComplete = Boolean(user.profile_complete);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify({
+        ...user,
+        profile_complete: profileComplete,
+      }));
 
       let targetPath;
       if (user.is_staff) {
         targetPath = '/admin/dashboard';
       } else if (user.user_type === 'lecturer') {
         targetPath = user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard';
-      } else if (user.user_type === 'student' && !profileComplete) {
-        targetPath = '/student/complete-profile';
       } else {
         targetPath = '/student/dashboard';
       }
       window.location.href = targetPath;
     } catch (requestError) {
       console.error('Google login error:', requestError);
-      setGoogleError('Google sign-in failed. Please try again.');
+      setGoogleError(requestError.message || 'Google sign-in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
@@ -174,8 +175,8 @@ const Login = ({ googleEnabled = false }) => {
           targetPath = '/admin/dashboard';
         } else if (userType === 'lecturer') {
           targetPath = (profile.lecturer_setup_required || data.lecturer_setup_required) ? '/lecturer/setup' : '/lecturer/dashboard';
-        } else if (userType === 'student' && !profileComplete) {
-          targetPath = '/student/complete-profile';
+        } else if (userType === 'student') {
+          targetPath = '/student/dashboard';
         } else {
           targetPath = '/student/dashboard';
         }
@@ -301,23 +302,11 @@ const Login = ({ googleEnabled = false }) => {
             </div>
           </div>
 
-          {googleEnabled ? (
-            <GoogleSignInButton
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              isLoading={googleLoading}
-            />
-          ) : (
-            <button
-              type="button"
-              disabled
-              title="Google sign-in is not configured"
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#D7DEE6] bg-white px-4 py-3 text-sm font-semibold text-[#4F5F73] opacity-70"
-            >
-              <GoogleGIcon className="h-5 w-5" />
-              <span>Continue with Google</span>
-            </button>
-          )}
+          <GoogleSignInButton
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            isLoading={googleLoading}
+          />
 
           {googleError && (
             <p className="text-center text-xs text-red-600">{googleError}</p>
@@ -335,24 +324,6 @@ const Login = ({ googleEnabled = false }) => {
           </div>
 
           <div className="space-y-3">
-            {googleEnabled ? (
-              <GoogleSignInButton
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                isLoading={googleLoading}
-              />
-            ) : (
-              <button
-                type="button"
-                disabled
-                title="Google sign-in is not configured"
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#D7DEE6] bg-white px-4 py-3 text-sm font-semibold text-[#4F5F73] opacity-70"
-              >
-                <GoogleGIcon className="h-5 w-5" />
-                <span>Continue with Google</span>
-              </button>
-            )}
-
             <Link
               to="/staff/activate-email"
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#D7DEE6] bg-white px-4 py-3 text-sm font-semibold text-[#35475C] transition hover:bg-[#EEF1F4]"

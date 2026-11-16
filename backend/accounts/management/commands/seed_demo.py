@@ -12,6 +12,7 @@ from accounts.models import (
     Course,
     Group,
     GroupMembership,
+    LecturerRoster,
     Message,
     Poll,
     PollOption,
@@ -209,6 +210,17 @@ class Command(BaseCommand):
         lecturers = []
         for username, first_name, last_name, dept, staff_id in DEMO_LECTURERS:
             email = f'{username}@zetech.ac.ke'
+            # Create or update LecturerRoster as the source of truth
+            roster, _ = LecturerRoster.objects.update_or_create(
+                email=email,
+                defaults={
+                    'full_name': f'{first_name} {last_name}',
+                    'department': dept,
+                    'staff_id': staff_id,
+                    'status': 'active',
+                },
+            )
+            # Link the User to the roster by email
             user = User.objects.filter(username=username).first()
             if user and user.email.casefold() != email.casefold():
                 raise CommandError(f'Username {username} belongs to a non-demo account.')

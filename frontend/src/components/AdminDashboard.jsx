@@ -282,7 +282,6 @@ export default function AdminDashboard() {
   const quickActions = [
     { label: 'Add a user', icon: <PlusOutlined />, run: () => { setShowCreateUser(true); goTo('Users'); } },
     { label: 'Import the catalogue', icon: <UploadOutlined />, run: () => goTo('Catalog') },
-    { label: 'Export users (CSV)', icon: <DownloadOutlined />, run: () => downloadExport('users') },
     { label: 'Post an announcement', icon: <NotificationOutlined />, run: () => goTo('Announcements') },
   ];
 
@@ -313,7 +312,12 @@ export default function AdminDashboard() {
           <Stat label="Groups" value={data.groups} icon={<UsergroupAddOutlined />} />
           <Stat label="Tasks" value={data.tasks} icon={<CheckSquareOutlined />} />
           <Stat label="Submissions" value={data.submissions} icon={<FileDoneOutlined />} highlight />
-          <Stat label="Units w/o lecturer" value={data.unassigned?.length ?? 0} icon={<WarningOutlined />} />
+          <Stat
+            label="Units w/o lecturer (current term)"
+            value={data.unassigned?.length ?? 0}
+            icon={<WarningOutlined />}
+            highlight
+          />
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -366,19 +370,16 @@ export default function AdminDashboard() {
     content = (
       <>
         <div className="mb-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              action('/api/accounts/admin/catalog/import/', { method: 'POST', confirm: 'Import the Excel catalogue now?' })
-            }
-            className={ui.primary}
-          >
-            Run Excel import
-          </button>
-          <button type="button" onClick={() => downloadExport('users')} className={ui.ghost}>
-            Export users
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() =>
+            action('/api/accounts/admin/catalog/import/', { method: 'POST', confirm: 'Import the Excel catalogue now?' })
+          }
+          className={ui.primary}
+        >
+          Run Excel import
+        </button>
+      </div>
         {renderTable(data?.units, [
           { key: 'code', label: 'Code' },
           { key: 'name', label: 'Unit' },
@@ -467,49 +468,15 @@ export default function AdminDashboard() {
   } else if (tab === 'Units and lecturers') {
     content = <AssignmentManager data={data} onAction={action} onReload={() => load()} />;
   } else if (tab === 'Lecturers') {
-    content = <LecturersManager onAction={action} onReload={() => load()} />;
+    content = <LecturersManager onReload={() => load()} />;
   } else if (tab === 'Import') {
     content = <ImportManager onReload={() => load()} />;
   } else if (tab === 'Import History') {
     content = <ImportHistoryManager onReload={() => load()} />;
   } else if (tab === 'Units') {
-    content = <UnitsManager onReload={() => load()} />;
+    content = <UnitsManager />;
   } else if (tab === 'Groups') {
-    content = renderTable(data, [
-      { key: 'name', label: 'Group' },
-      { key: 'unit', label: 'Unit' },
-      { key: 'lecturer', label: 'Lecturer' },
-      { key: 'members', label: 'Members' },
-      {
-        key: 'at_risk',
-        label: 'At risk',
-        render: (row) =>
-          row.at_risk ? (
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#FBE4E6] px-3 py-1 text-xs font-semibold text-[#B3263A]">
-              <span className="h-2 w-2 rounded-full bg-[#B3263A]" />
-              At risk
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#2F7A4B]">
-              <span className="h-2 w-2 rounded-full bg-[#3F9B67]" />
-              On track
-            </span>
-          ),
-      },
-      {
-        key: 'id',
-        label: 'Actions',
-        render: (row) => (
-          <button
-            type="button"
-            onClick={() => action(`/api/accounts/admin/groups/${row.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' })}
-            className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
-          >
-            Archive
-          </button>
-        ),
-      },
-    ]);
+    content = <GroupsManager data={data} onAction={action} />;
   } else {
     content = renderTable(data, [
       { key: 'actor', label: 'Actor' },
@@ -610,7 +577,11 @@ function SettingsForm({ values, onSave }) {
     ['allowed_email_domain', 'Allowed email domain'],
     ['default_group_size', 'Default group size'],
     ['minimum_points', 'Minimum points'],
-    ['file_size_limit', 'File size limit (bytes)'],
+    ['warning', 'Warning threshold (%)'],
+    ['critical', 'Critical threshold (%)'],
+    ['quiet_days', 'Quiet days'],
+    ['overdue_count', 'Overdue task count'],
+    ['file_size_limit', 'File size limit (MB)'],
   ];
   return (
     <div className="max-w-xl rounded-3xl bg-white p-6 shadow-sm">
@@ -619,6 +590,7 @@ function SettingsForm({ values, onSave }) {
           <label key={key} className="text-sm font-medium text-[#1C1C1C]">
             {label}
             <input
+              type={key === 'file_size_limit' ? 'number' : 'text'}
               className={`mt-1 w-full ${ui.input}`}
               value={form?.[key] ?? ''}
               onChange={(event) => setForm({ ...form, [key]: event.target.value })}
@@ -626,17 +598,9 @@ function SettingsForm({ values, onSave }) {
           </label>
         ))}
       </div>
-      <label className="mt-2 flex items-center gap-2 text-sm font-medium text-[#1C1C1C]">
-        <input
-          type="checkbox"
-          checked={Boolean(form?.auto_approve_lecturer_claims)}
-          onChange={(event) => setForm({ ...form, auto_approve_lecturer_claims: event.target.checked })}
-        />
-        Auto-approve lecturer claims for units with no lecturer
-      </label>
       <button
         type="button"
-        onClick={() => onSave({ ...form, auto_approve_lecturer_claims: Boolean(form?.auto_approve_lecturer_claims) })}
+        onClick={() => onSave({ ...form, file_size_limit: form?.file_size_limit ? Number(form.file_size_limit) * 1024 * 1024 : form?.file_size_limit })}
         className={`mt-5 ${ui.primary}`}
       >
         Save settings
@@ -739,24 +703,6 @@ function AssignmentManager({ data, onAction, onReload }) {
       </form>
 
       {renderLoadCards(data.lecturers)}
-
-      <Panel title="Pending lecturer requests">
-        <div className="space-y-2">
-          {(data.pending || []).map((row) => (
-            <div key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#EFEAE3] p-3">
-              <div className="text-sm">
-                <p className="font-semibold text-[#1C1C1C]">{row.lecturer?.name} · {row.unit_code}</p>
-                <p className="text-xs text-[#8B8680]">{row.unit} · {row.term} · requested by {row.requested_by || 'lecturer'}</p>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => onAction(`/api/accounts/admin/assignments/${row.id}/approve/`, { method: 'POST' })} className="rounded-lg bg-[#3F9B67] px-3 py-1.5 text-xs font-semibold text-white">Approve</button>
-                <button type="button" onClick={() => onAction(`/api/accounts/admin/assignments/${row.id}/reject/`, { method: 'POST' })} className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A]">Reject</button>
-              </div>
-            </div>
-          ))}
-          {!(data.pending || []).length && <p className="py-6 text-center text-sm text-[#8B8680]">No pending lecturer requests.</p>}
-        </div>
-      </Panel>
 
       <Panel title="Units with no lecturer">
         <div className="flex flex-wrap gap-2">
@@ -1101,7 +1047,7 @@ function UserCreateForm({ onCreated }) {
   );
 }
 
-function LecturersManager({ onAction, onReload }) {
+function LecturersManager({ onReload }) {
   const [roster, setRoster] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ email: '', full_name: '', department: '', staff_id: '', status: 'invited' });
@@ -1120,7 +1066,7 @@ function LecturersManager({ onAction, onReload }) {
     e.preventDefault();
     setError('');
     setSaving(true);
-    const url = editingId ? `/api/accounts/admin/rosters/${editingId}/` : '/api/accounts/admin/rosters/';
+    const url = editingId ? `/api/accounts/admin/rosters/${editingId}/` : '/api/accounts/admin/rosters/create/';
     const method = editingId ? 'PATCH' : 'POST';
     try {
       const response = await fetch(url, {
@@ -1254,6 +1200,222 @@ function LecturersManager({ onAction, onReload }) {
   );
 }
 
+function GroupsManager({ data, onAction }) {
+  const [openGroup, setOpenGroup] = useState(null);
+  const [filterUnit, setFilterUnit] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [search, setSearch] = useState('');
+
+  const rows = (data || []).filter((row) => {
+    if (filterUnit && row.unit !== filterUnit) return false;
+    if (filterStatus === 'active' && (row.archived || row.locked)) return false;
+    if (filterStatus === 'archived' && !row.archived) return false;
+    if (filterStatus === 'locked' && !row.locked) return false;
+    const term = (search || '').toLowerCase();
+    return (
+      row.name.toLowerCase().includes(term) ||
+      row.unit.toLowerCase().includes(term) ||
+      row.lecturer.toLowerCase().includes(term) ||
+      row.supervising_lecturers.some((s) => s.toLowerCase().includes(term)) ||
+      (row.leader || '').toLowerCase().includes(term)
+    );
+  });
+
+  const units = Array.from(new Set(rows.map((r) => r.unit).filter(Boolean)));
+
+  const openDrawer = (row) => {
+    setOpenGroup(row);
+  };
+
+  const closeDrawer = () => setOpenGroup(null);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-[#1C1C1C]">Groups</h3>
+          <p className="text-sm text-[#8B8680]">{rows.length} group(s)</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onAction('/api/accounts/admin/groups/create/', { method: 'POST', body: JSON.stringify({ name: 'New Group' }) })}
+          className={ui.primary}
+        >
+          ＋ Create group
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <input
+          placeholder="Search group, unit, lecturer, leader…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={ui.input}
+        />
+        <select value={filterUnit} onChange={(e) => setFilterUnit(e.target.value)} className={ui.input}>
+          <option value="">All units</option>
+          {units.map((u) => <option key={u} value={u}>{u}</option>)}
+        </select>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={ui.input}>
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="archived">Archived</option>
+          <option value="locked">Locked</option>
+        </select>
+      </div>
+
+      <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
+              <th className="px-5 py-4 cursor-pointer">Group</th>
+              <th className="px-5 py-4">Unit</th>
+              <th className="px-5 py-4">Supervising lecturers</th>
+              <th className="px-5 py-4">Leader</th>
+              <th className="px-5 py-4">Members</th>
+              <th className="px-5 py-4">Health</th>
+              <th className="px-5 py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.id}
+                className="border-b border-[#EFEAE3] last:border-0 hover:bg-[#F7F4EF] group"
+                onClick={() => openDrawer(row)}
+              >
+                <td className="px-5 py-3.5 font-medium text-[#1C1C1C]">{row.name}</td>
+                <td className="px-5 py-3.5">{row.unit}</td>
+                <td className="px-5 py-3.5 text-sm">
+                  {row.supervising_lecturers.length ? (
+                    row.supervising_lecturers.map((s, i) => (
+                      <span key={i} className="inline-block mb-1 rounded-full bg-[#FBF0C9] px-2 py-0.5 text-xs text-[#1C1C1C]">{s}</span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-[#8B8680]">—</span>
+                  )}
+                </td>
+                <td className="px-5 py-3.5">{row.leader || '—'}</td>
+                <td className="px-5 py-3.5">{row.members}</td>
+                <td className="px-5 py-3.5">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    row.health === 'at_risk' ? 'bg-[#FBE4E6] text-[#B3263A]' :
+                    row.health === 'quiet' ? 'bg-[#FBF0C9] text-[#D99A4E]' :
+                    'bg-[#E3F1E8] text-[#2F7A4B]'
+                  }`}>
+                    {row.health.replace('_', ' ')}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5">
+                  <div className="flex flex-wrap gap-2">
+                    {!row.locked && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onAction(`/api/accounts/admin/groups/${row.id}/lock/`, { method: 'POST', confirm: 'Lock this group?' }) }}
+                        className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+                      >
+                        Lock
+                      </button>
+                    )}
+                    {row.locked && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onAction(`/api/accounts/admin/groups/${row.id}/lock/`, { method: 'DELETE', confirm: 'Unlock this group?' }) }}
+                        className="rounded-lg bg-[#E3F1E8] px-3 py-1.5 text-xs font-semibold text-[#2F7A4B] hover:bg-[#D2E8DA]"
+                      >
+                        Unlock
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onAction(`/api/accounts/admin/groups/${row.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' }) }}
+                      className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+                    >
+                      Archive
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setOpenGroup(row) }}
+                      className="rounded-lg border border-[#DDD6CC] px-3 py-1.5 text-xs font-semibold text-[#1C1C1C] hover:bg-[#FBF0C9]"
+                    >
+                      Open
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!rows.length && (
+              <tr>
+                <td colSpan={7} className="p-10 text-center text-[#8B8680]">No groups found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Open drawer */}
+      {openGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-[#1C1C1C]/60 backdrop-blur-sm"
+            onClick={closeDrawer}
+          />
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-[#DDD6CC]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-[#1C1C1C]">Group details — {openGroup.name}</h3>
+              <button type="button" onClick={closeDrawer} className="text-[#8B8680] hover:text-[#1C1C1C]">✕</button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-[#EFEAE3] p-4">
+                <h4 className="font-semibold text-[#1C1C1C] mb-3">Members</h4>
+                <div className="text-sm text-[#8B8680] text-center py-8">Loading members…</div>
+              </div>
+              <div className="rounded-2xl border border-[#EFEAE3] p-4">
+                <h4 className="font-semibold text-[#1C1C1C] mb-3">Health & activity</h4>
+                <p className="text-sm text-[#8B8680] mb-2">Health: <span className="font-medium text-[#1C1C1C]">{openGroup.health.replace('_', ' ')}</span></p>
+                <p className="text-sm text-[#8B8680] mb-2">At risk: {openGroup.at_risk ? 'Yes' : 'No'}</p>
+                <p className="text-sm text-[#8B8680]">Members: {openGroup.members}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-[#EFEAE3] p-4">
+              <h4 className="font-semibold text-[#1C1C1C] mb-3">Join code</h4>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[#1C1C1C]">{openGroup.join_code}</span>
+                <button
+                  type="button"
+                  onClick={() => onAction(`/api/accounts/admin/groups/${openGroup.id}/regenerate-code/`, { method: 'POST' })}
+                  className="rounded-lg bg-[#1C1C1C] px-3 py-1 text-xs font-semibold text-white"
+                >
+                  Regenerate
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => onAction(`/api/accounts/admin/groups/${openGroup.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' })}
+                className="rounded-lg bg-[#FBE4E6] px-4 py-2 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+              >
+                Archive group
+              </button>
+              <button
+                type="button"
+                onClick={closeDrawer}
+                className={ui.ghost}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ImportManager({ onReload }) {
   const [mode, setMode] = useState('add');
   const [file, setFile] = useState(null);
@@ -1312,9 +1474,6 @@ function ImportManager({ onReload }) {
     }
   };
 
-  const downloadTemplate = () => {
-    window.open('/api/accounts/admin/roster/template/', '_blank');
-  };
 
   return (
     <div className="space-y-5">
@@ -1479,7 +1638,7 @@ function ImportHistoryManager({ onReload }) {
   );
 }
 
-function UnitsManager({ onReload }) {
+function UnitsManager() {
   const [unassigned, setUnassigned] = useState([]);
   const [loading, setLoading] = useState(true);
 

@@ -18,7 +18,6 @@ import StaffActivateEmail from './components/StaffActivateEmail';
 import StaffActivate from './components/StaffActivate';
 import StaffForgotPassword from './components/StaffForgotPassword';
 import StaffResetPassword from './components/StaffResetPassword';
-import CompleteProfile from './student/pages/CompleteProfile';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const ProtectedStudentRoute = ({ children }) => {
@@ -27,15 +26,7 @@ const ProtectedStudentRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   try {
-    const user = JSON.parse(userStr);
-    // Only redirect to complete-profile if:
-    // - student AND profile incomplete AND not coming from signup (signup creates complete profiles)
-    // Students who sign up via the form already fill in programme, year, semester
-    if (user.user_type === 'student' && !user.profile_complete) {
-      // Check if they just signed up (signup creates complete profile)
-      // If profile_complete is false, they likely logged in via Google and need to complete profile
-      return <Navigate to="/student/complete-profile" replace />;
-    }
+    JSON.parse(userStr);
     return children;
   } catch {
     return <Navigate to="/login" replace />;
@@ -46,7 +37,7 @@ function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const loginPage = (
     <>
-      <Login googleEnabled={Boolean(googleClientId)} />
+      <Login />
     </>
   );
 
@@ -84,8 +75,6 @@ function App() {
         <Route path="/staff/activate/:token" element={<StaffActivate />} />
         <Route path="/staff/forgot-password" element={<StaffForgotPassword />} />
         <Route path="/staff/reset-password/:token" element={<StaffResetPassword />} />
-
-        <Route path="/student/complete-profile" element={<CompleteProfile />} />
 
         <Route
           path="/student/dashboard"

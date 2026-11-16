@@ -143,19 +143,11 @@ class GoogleLoginView(APIView):
 
             user_type = 'lecturer' if is_lecturer else 'student'
 
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'username': email,
-                    'user_type': user_type,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'university': payload.get('hd', ''),
-                    'email_verified': True,
-                    'is_active': True,
-                    'avatar_url': picture,
-                },
-            )
+            # Check if user already exists — Google login is for returning users only
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({'error': 'No account found with this email. Please sign up first.'}, status=status.HTTP_404_NOT_FOUND)
 
             # Update fields on subsequent logins
             if not user.email_verified:
@@ -618,108 +610,6 @@ def student_settings(request):
     })
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def student_complete_profile(request):
-    """Complete student profile after Google login.
-    Expects: admission_number, course_id, year_of_study, semester, first_name, last_name
-    Triggers automatic enrolment into matching units for current term.
-    """
-    user = request.user
-    if user.user_type != 'student':
-        return Response({'error': 'Only students can complete profile.'}, status=status.HTTP_403_FORBIDDEN)
-
-    if user.username and user.enrolled_course_id and user.year_of_study and user.semester:
-        return Response({'error': 'Profile already complete.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    admission_number = str(request.data.get('admission_number', '')).strip().upper()
-    course_id = request.data.get('course_id')
-    year_value = request.data.get('year_of_study')
-    semester_value = request.data.get('semester')
-    first_name = str(request.data.get('first_name', user.first_name) or '').strip()
-    last_name = str(request.data.get('last_name', user.last_name) or '').strip()
-
-    if not admission_number:
-        return Response({'error': 'Admission number is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Validate admission number format (same as signup)
-    if not re.match(r'^[A-Z0-9\-/]+$', admission_number):
-        return Response({'error': 'Admission number can only contain letters, numbers, hyphens, and slashes.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if User.objects.filter(username__iexact=admission_number).exclude(pk=user.pk).exists():
-        return Response({'error': 'Admission number already in use.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if not first_name:
-        return Response({'error': 'First name is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    course = None
-    if course_id not in (None, ''):
-        try:
-            course = Course.objects.get(pk=int(course_id))
-        except (Course.DoesNotExist, TypeError, ValueError):
-            return Response({'error': 'Select a valid programme.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    year = ''
-    semester = None
-    if year_value not in (None, ''):
-        try:
-            year = str(int(year_value))
-            if int(year) not in range(1, 5):
-                raise ValueError
-        except (TypeError, ValueError):
-            return Response({'error': 'Year of study must be between 1 and 4.'}, status=status.HTTP_400_BAD_REQUEST)
-    if semester_value not in (None, ''):
-        try:
-            semester = int(semester_value)
-            if semester not in (1, 2):
-                raise ValueError
-        except (TypeError, ValueError):
-            return Response({'error': 'Semester must be 1 or 2.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if not course or not year or semester is None:
-        return Response({'error': 'Programme, year, and semester are required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if not Unit.objects.filter(
-        course=course,
-        year_of_study=year,
-        semester=semester,
-    ).exists():
-        return Response({'error': 'That year and semester are not available for the selected programme.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    with transaction.atomic():
-        user.username = admission_number
-        user.first_name = first_name
-        user.last_name = last_name
-        user.enrolled_course = course
-        user.course = course.name
-        user.year_of_study = year
-        user.semester = semester
-        try:
-            user.save()
-        except ValidationError as error:
-            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Trigger automatic enrolment into matching units for current term
-        term, enrolled_count = sync_student_enrollments(user, year, semester)
-
-    return Response({
-        'message': 'Profile completed successfully.',
-        'enrolled_units': enrolled_count,
-        'term': term.name if term else None,
-        'user': {
-            'id': user.id,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'username': user.username,
-            'course': user.course,
-            'year_of_study': user.year_of_study,
-            'semester': user.semester,
-            'profile_complete': True,
-        }
-    })
-
-
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def lecturer_settings(request):
@@ -733,6 +623,9 @@ def lecturer_settings(request):
         user.department = str(request.data.get('department', user.department) or '').strip()
         user.staff_id = str(request.data.get('staff_id', user.staff_id) or '').strip()
         user.courses_taught = str(request.data.get('courses_taught', user.courses_taught) or '').strip()
+        user.notification_preferences = request.data.get('notification_preferences', user.notification_preferences)
+        user.email_digest = str(request.data.get('email_digest', user.email_digest) or 'instant')
+        user.grading_defaults = request.data.get('grading_defaults', user.grading_defaults)
         if not user.first_name:
             return Response({'error': 'First name is required.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -748,6 +641,9 @@ def lecturer_settings(request):
         'department': user.department or '',
         'staff_id': user.staff_id or '',
         'courses_taught': user.courses_taught or '',
+        'notification_preferences': user.notification_preferences,
+        'email_digest': user.email_digest,
+        'grading_defaults': user.grading_defaults,
     })
 
 

@@ -7,6 +7,7 @@ from accounts.models import (
     Course,
     Group,
     GroupMembership,
+    LecturerRoster,
     Semester,
     StudentEnrollment,
     Task,
@@ -26,6 +27,7 @@ class Command(BaseCommand):
         issues.extend(self._check_group_members_not_enrolled())
         issues.extend(self._check_units_without_lecturer())
         issues.extend(self._check_lecturers_without_assignment())
+        issues.extend(self._check_lecturers_without_roster())
         issues.extend(self._check_tasks_assigned_to_non_members())
         issues.extend(self._check_tasks_without_due_dates())
         issues.extend(self._check_orphaned_records())
@@ -111,6 +113,15 @@ class Command(BaseCommand):
                 has_assignment = UnitAssignment.objects.filter(lecturer=lecturer, term=current_term).exists()
             if not has_assignment:
                 issues.append(f'Lecturer {lecturer.username} ({lecturer.email}) has no active unit assignment for the current term.')
+        return issues
+
+    def _check_lecturers_without_roster(self):
+        issues = []
+        lecturers = User.objects.filter(user_type='lecturer')
+        roster_emails = set(LecturerRoster.objects.values_list('email', flat=True))
+        for lecturer in lecturers:
+            if lecturer.email.lower() not in {e.lower() for e in roster_emails}:
+                issues.append(f'Lecturer user {lecturer.username} ({lecturer.email}) has no matching LecturerRoster entry by email.')
         return issues
 
     def _check_tasks_assigned_to_non_members(self):

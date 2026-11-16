@@ -166,7 +166,8 @@ const NotificationBell = ({ notif, open, onToggle, onClose }) => {
               filteredItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`border-b border-[#EEF1F4] px-4 py-2 hover:bg-[#EEF1F4] ${!item.is_read ? 'bg-[#F4F7FA]' : ''}`}
+                  className={`border-b border-[#EEF1F4] px-4 py-2 hover:bg-[#EEF1F4] ${!item.is_read ? 'bg-[#F4F7FA]' : ''} cursor-pointer`}
+                  onClick={() => !item.is_read && handleMarkRead(item.id)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-sm font-semibold text-[#1F2D3D] flex-1">{item.title}</span>
@@ -176,7 +177,10 @@ const NotificationBell = ({ notif, open, onToggle, onClose }) => {
                       )}
                       <button
                         type="button"
-                        onClick={() => item.is_read ? handleMarkUnread(item.id) : handleMarkRead(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          item.is_read ? handleMarkUnread(item.id) : handleMarkRead(item.id);
+                        }}
                         className="p-1 text-[#4F5F73] hover:text-[#1F2D3D] hover:bg-[#D7DEE6] rounded"
                         aria-label={item.is_read ? 'Mark as unread' : 'Mark as read'}
                       >

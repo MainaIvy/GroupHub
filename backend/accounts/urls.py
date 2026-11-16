@@ -30,6 +30,7 @@ urlpatterns = [
     path('admin/catalog/<str:item_type>/<int:item_id>/', admin_api.admin_catalog_item, name='admin_catalog_update'),
     path('admin/settings/', admin_api.admin_settings, name='admin_settings'),
     path('admin/announcements/', admin_api.admin_announcements, name='admin_announcements'),
+    path('admin/announcements/<int:announcement_id>/', admin_api.admin_announcement_delete, name='admin_announcement_delete'),
     path('admin/audit/', admin_api.admin_audit, name='admin_audit'),
     path('admin/export/<str:export_type>/', admin_api.admin_export, name='admin_export'),
     path('admin/roster/template/', admin_api.admin_roster_template, name='admin_roster_template'),
@@ -64,7 +65,6 @@ urlpatterns = [
 
     # Student account settings
     path('profile/settings/', views.student_settings, name='student_settings'),
-    path('profile/complete/', views.student_complete_profile, name='student_complete_profile'),
     path('lecturer/settings/', views.lecturer_settings, name='lecturer_settings'),
     path('lecturer/units/', units_views.lecturer_my_units, name='lecturer_my_units'),
     path('lecturer/units/<int:unit_id>/students/<int:student_id>/', views.lecturer_manage_student, name='lecturer_manage_student'),

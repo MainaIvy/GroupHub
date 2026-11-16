@@ -90,17 +90,26 @@ def admin_overview(request):
         if not recent_activity:
             quiet += 1
     
-    # Units without lecturer
-    units_without_lecturer = Unit.objects.filter(assigned_lecturer__isnull=True).select_related('course')
-    units_without_lecturer_data = [{
-        'id': u.id,
-        'code': u.code,
-        'name': u.name,
-        'course_code': u.course.code,
-        'course_name': u.course.name,
-        'year_of_study': u.year_of_study,
-        'semester': u.semester,
-    } for u in units_without_lecturer]
+    # Units without lecturer: current term/semester only, with at least one enrolled student
+    term = current_term()
+    units_without_lecturer_data = []
+    if term:
+        units_without_lecturer = (
+            Unit.objects.filter(year_of_study=term.year, semester=term.semester)
+            .filter(assigned_lecturer__isnull=True)
+            .filter(student_enrollments__semester=term)
+            .distinct()
+            .select_related('course')
+        )
+        units_without_lecturer_data = [{
+            'id': u.id,
+            'code': u.code,
+            'name': u.name,
+            'course_code': u.course.code,
+            'course_name': u.course.name,
+            'year_of_study': u.year_of_study,
+            'semester': u.semester,
+        } for u in units_without_lecturer]
     
     # Recent audit log (last 20)
     recent_audit = AuditLog.objects.select_related('actor').order_by('-created_at')[:20]
@@ -142,13 +151,15 @@ def admin_users(request):
                 users = users.filter(**{field: request.query_params[field]})
         if request.query_params.get('programme'):
             users = users.filter(course__icontains=request.query_params['programme'])
-        rows = []
-        for user in users[:300]:
-            row = _user_data(user)
-            if user.user_type == 'lecturer':
-                row['load_count'] = UnitAssignment.objects.filter(lecturer=user).count()
-            rows.append(row)
-        return Response(rows)
+    rows = []
+    for user in users[:300]:
+        row = _user_data(user)
+        if user.is_staff or user.is_superuser:
+            row['role'] = 'Admin'
+        if user.user_type == 'lecturer' and not user.is_staff and not user.is_superuser:
+            row['load_count'] = UnitAssignment.objects.filter(lecturer=user).count()
+        rows.append(row)
+    return Response(rows)
 
     data = request.data
     if data.get('user_type', 'lecturer') != 'lecturer':
@@ -318,6 +329,8 @@ def admin_assignments(request):
         } for item in assignments])
     try:
         lecturer = User.objects.get(pk=request.data.get('lecturer_id'), user_type='lecturer')
+        if lecturer.is_staff or lecturer.is_superuser:
+            return Response({'error': 'Administrator accounts cannot be assigned as lecturers.'}, status=status.HTTP_400_BAD_REQUEST)
         unit = Unit.objects.get(pk=request.data.get('unit_id'))
         term_id = request.data.get('term_id') or (current_term().id if current_term() else None)
         term = Semester.objects.get(pk=term_id)
@@ -450,8 +463,21 @@ def admin_groups(request):
     for group in groups[:300]:
         insights = compute_group_insights(group)
         risk = any(item['warning_level'] in ('warning', 'critical') for item in insights['balance']['members'])
+        term = current_term()
+        supervising = []
+        if term and group.unit:
+            supervising = list(
+                UnitAssignment.objects.filter(
+                    unit=group.unit, term=term, status='approved',
+                    lecturer__is_staff=False, lecturer__is_superuser=False,
+                ).select_related('lecturer').values(
+                    'lecturer__first_name', 'lecturer__last_name', 'lecturer__staff_id'
+                )
+            )
         rows.append({
             'id': group.id, 'name': group.name, 'unit': group.unit.name if group.unit else group.unit_code,
+            'supervising_lecturers': [f"{s['lecturer__first_name']} {s['lecturer__last_name']}".strip() or s['lecturer__staff_id'] for s in supervising],
+            'leader': _name(group.leader) if group.leader_id else '',
             'lecturer': _name(group.lecturer), 'members': group.members_count,
             'locked': group.is_locked, 'archived': group.is_archived, 'at_risk': risk,
             'join_code': group.join_code,
@@ -564,7 +590,7 @@ def admin_settings(request):
         'allowed_email_domain': 'zetech.ac.ke', 'default_group_size': 5,
         'balance_thresholds': {'warning': 15, 'critical': 25},
         'minimum_points': 6, 'file_size_limit': 10485760,
-        'auto_approve_lecturer_claims': False,
+        'warning': 15, 'critical': 25, 'quiet_days': 5, 'overdue_count': 2,
     }
     if request.method == 'GET':
         values = {setting.key: setting.value for setting in AdminSetting.objects.all()}
@@ -579,7 +605,25 @@ def admin_settings(request):
 @permission_classes(admin_permissions)
 def admin_announcements(request):
     if request.method == 'GET':
-        return Response(list(Announcement.objects.values('id', 'title', 'body', 'audience', 'created_at').order_by('-created_at')[:100]))
+        announcements = Announcement.objects.values(
+            'id', 'title', 'body', 'audience', 'created_at',
+            'programme_id', 'unit_id',
+        ).order_by('-created_at')[:100]
+        result = []
+        for a in announcements:
+            recipient_count = 0
+            users = User.objects.filter(status='active')
+            if a['audience'] == 'programme' and a['programme_id']:
+                recipient_count = users.filter(enrolled_course_id=a['programme_id']).count()
+            elif a['audience'] == 'unit' and a['unit_id']:
+                recipient_count = users.filter(enrollments__unit_id=a['unit_id']).distinct().count()
+            elif a['audience'] == 'all':
+                recipient_count = users.count()
+            result.append({
+                **a,
+                'recipient_count': recipient_count,
+            })
+        return Response(result)
     data = request.data
     audience = data.get('audience', 'all')
     announcement = Announcement.objects.create(
@@ -599,7 +643,18 @@ def admin_announcements(request):
         for user in users
     ])
     _audit(request, 'create_announcement', 'Announcement', announcement.id, {'audience': audience})
-    return Response({'id': announcement.id}, status=status.HTTP_201_CREATED)
+    return Response({'id': announcement.id, 'recipient_count': users.count()}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes(admin_permissions)
+def admin_announcement_delete(request, announcement_id):
+    announcement = Announcement.objects.filter(pk=announcement_id).first()
+    if not announcement:
+        return Response({'error': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
+    announcement.delete()
+    _audit(request, 'delete_announcement', 'Announcement', str(announcement_id))
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['GET', 'POST'])
@@ -708,15 +763,47 @@ def admin_rollover(request):
 @permission_classes(admin_permissions)
 def admin_audit(request):
     logs = AuditLog.objects.select_related('actor').all()
+    activity_type = request.query_params.get('activity_type', 'admin')
+    if activity_type == 'admin':
+        logs = logs.filter(actor__is_staff=True)
     if request.query_params.get('action'):
         logs = logs.filter(action=request.query_params['action'])
     if request.query_params.get('actor'):
         logs = logs.filter(actor_id=request.query_params['actor'])
-    return Response([{
-        'id': log.id, 'actor': _name(log.actor), 'action': log.action,
-        'target_type': log.target_type, 'target_id': log.target_id,
-        'details': log.details, 'created_at': log.created_at,
-    } for log in logs[:300]])
+    if request.query_params.get('date'):
+        logs = logs.filter(created_at__date=request.query_params['date'])
+    if request.query_params.get('target_type'):
+        logs = logs.filter(target_type=request.query_params['target_type'])
+
+    # Pagination
+    try:
+        page = int(request.query_params.get('page', '1'))
+        page_size = int(request.query_params.get('page_size', '50'))
+    except (TypeError, ValueError):
+        page, page_size = 1, 50
+    page = max(page, 1)
+    page_size = max(min(page_size, 100), 1)
+    start = (page - 1) * page_size
+    end = start + page_size
+    total = logs.count()
+    page_logs = logs[start:end]
+
+    return Response({
+        'count': total,
+        'page': page,
+        'page_size': page_size,
+        'activity_type': activity_type,
+        'results': [{
+            'id': log.id,
+            'actor': _name(log.actor),
+            'actor_id': log.actor_id,
+            'action': log.action,
+            'target_type': log.target_type,
+            'target_id': log.target_id,
+            'details': log.details,
+            'created_at': log.created_at.isoformat(),
+        } for log in page_logs],
+    })
 
 
 @api_view(['GET'])
