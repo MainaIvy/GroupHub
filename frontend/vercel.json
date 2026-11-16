@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/:path*" },
+    { "source": "/ws/:path*", "destination": "/ws/:path*" },
+    { "source": "/((?!api|ws|_vercel|.*\\..*).*)", "destination": "/index.html" }
+  ]
+}

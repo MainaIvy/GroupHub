@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { API_BASE, wsUrl } from '../apiConfig';
 
 const makeTimeStamp = (isoString) => {
   if (!isoString) return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -30,7 +31,7 @@ function GroupChatRoom() {
     const token = localStorage.getItem('access_token');
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/groups/${groupId}/chat/`, {
+        const response = await fetch(`${API_BASE}/api/groups/${groupId}/chat/`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -64,8 +65,7 @@ function GroupChatRoom() {
       return undefined;
     }
 
-    const wsUrl = `ws://127.0.0.1:8000/ws/chat/${groupId}/?token=${token}`;
-    const socket = new WebSocket(wsUrl);
+    const socket = new WebSocket(wsUrl(`/ws/chat/${groupId}/?token=${token}`));
     socketRef.current = socket;
 
     socket.onopen = () => setConnected(true);

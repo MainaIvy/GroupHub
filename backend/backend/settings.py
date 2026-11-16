@@ -14,8 +14,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import sys
 import os
 from pathlib import Path
-from dotenv import load_dotenv; load_dotenv
+from dotenv import load_dotenv; load_dotenv()
 from datetime import timedelta
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,10 +35,10 @@ sys.path.insert(0, str(BASE_DIR))
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 # ALLOWED_HOSTS = ['192.168.0.198', 'localhost', '127.0.0.1', '*']
-ALLOWED_HOSTS = ['192.168.0.61', 'localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
 # Allowed email domains for user registration (comma-separated in .env, e.g. zetech.ac.ke,university.edu)
 ALLOWED_EMAIL_DOMAINS = [d.strip() for d in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'zetech.ac.ke').split(',')]
@@ -64,6 +66,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 
     # ✅ CORS must be high up (right above CommonMiddleware)
     'corsheaders.middleware.CorsMiddleware',
@@ -99,20 +102,33 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # ASGI application for WebSocket support
 ASGI_APPLICATION = 'backend.asgi.application'
 
-# In-memory layer works for one dev process; use channels_redis when running several workers.
-CHANNEL_LAYERS = {
-    'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
-}
+REDIS_URL = os.environ.get('REDIS_URL')
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {'hosts': [REDIS_URL]},
+        },
+    }
+else:
+    # In-memory layer works for one dev process (and single-worker Render free instances).
+    CHANNEL_LAYERS = {
+        'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+    }
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get(
+            'DATABASE_URL',
+            'sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        ),
+        conn_max_age=600,
+    )
 }
 
 
@@ -153,6 +169,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -165,18 +183,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 # CORS settings (backend-only fix for React preflight)
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
 CORS_ALLOW_CREDENTIALS = True
+_cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',') if o.strip()]
 
 # Keep CSRF trusted origins as-is if needed for other endpoints.
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-    'http://192.168.0.105:8000',
-    'http://192.168.0.105',
-]
+_csrf_origins = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,http://192.168.0.105:8000,http://192.168.0.105',
+)
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(',') if o.strip()]
 
 
 

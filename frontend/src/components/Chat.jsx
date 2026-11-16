@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from '../api';
+import { API_BASE, wsUrl } from '../apiConfig';
 import { ArrowLeft, Copy, FileText, Image, Loader2, MessageCircle, MoreHorizontal, Paperclip, Search, Send, UserRound, UserRoundPlus, UsersRound, Hash, ChevronDown, ChevronUp, Download, Mic, MicOff, Smile, Play, Pause, Music } from 'lucide-react';
 
-const API_ROOT = '/api/accounts';
+const API_ROOT = `${API_BASE}/api/accounts`;
 
 const authorizedRequest = (config) => axios.request(config);
 
@@ -652,8 +653,7 @@ const Chat = ({
     };
     loadRoomData();
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/chat/${activeRoomId}/?token=${encodeURIComponent(localStorage.getItem('access_token') || '')}`);
+    const socket = new WebSocket(wsUrl(`/ws/chat/${activeRoomId}/?token=${encodeURIComponent(localStorage.getItem('access_token') || '')}`));
     socketRef.current = socket;
     socket.onopen = () => setConnectionState('connected');
     socket.onmessage = (event) => {

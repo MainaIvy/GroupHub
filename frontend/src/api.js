@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE } from './apiConfig';
 
-const api = axios.create();
+const api = axios.create({ baseURL: API_BASE });
 let refreshRequest = null;
 
 export async function getAcademicCourses() {

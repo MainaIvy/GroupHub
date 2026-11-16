@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: grouphub-backend
+    env: python
+    plan: free
+    # Build: install dependencies, collect static files (WhiteNoise), run migrations.
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    # Start: serve HTTP and WebSocket traffic with Daphne (ASGI).
+    startCommand: "daphne -b 0.0.0.0 -p $PORT backend.asgi:application"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: grouphub-backend.onrender.com
+      - key: DATABASE_URL
+        value: <paste the Neon connection string here>
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://grouphub.vercel.app
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://grouphub.vercel.app,https://grouphub-backend.onrender.com
+      - key: REDIS_URL
+        sync: false
