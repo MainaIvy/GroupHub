@@ -220,8 +220,8 @@ const SignUp = () => {
         className="w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-6 shadow-lg"
       >
         <div className="mb-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#35475C]/10 text-[#35475C]">
-            <img src={logo} alt="GroupHub" className="h-6 w-6" />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#35475C]/10 text-[#35475C]">
+            <img src={logo} alt="GroupHub" className="h-9 w-9" />
           </div>
           <h1 id="signup-title" className="mt-3 text-xl font-bold text-[#1F2D3D]">
             Create your account
