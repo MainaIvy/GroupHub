@@ -100,7 +100,7 @@ export default function StaffActivate() {
         className="relative my-auto w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.3)] sm:p-8"
       >
         <header className="mb-5 flex items-center justify-between">
-          <img src={logo} alt="GroupHub" className="h-8 w-auto" />
+          <img src={logo} alt="GroupHub" className="h-10 w-auto" />
           <Link
             to="/login"
             aria-label="Close"

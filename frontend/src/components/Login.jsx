@@ -197,8 +197,8 @@ const Login = ({ googleEnabled = false }) => {
         className="w-full max-w-lg rounded-2xl bg-white p-6 sm:p-8 shadow-lg"
       >
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#35475C]/10 text-[#35475C]">
-            <img src={logo} alt="GroupHub" className="h-9 w-9" />
+          <div className="flex justify-center mb-6">
+            <img src={logo} alt="GroupHub" className="h-14 w-auto" />
           </div>
           <h1 id="login-title" className="mt-4 text-2xl font-bold text-[#1F2D3D]">
             Welcome back
