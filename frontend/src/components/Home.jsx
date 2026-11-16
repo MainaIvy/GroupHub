@@ -1,6 +1,6 @@
 import React from 'react';
 import heroBg from '../assets/images/students-studying-together-medium-shot.jpg';
-import logo from '../assets/images/groubhub logo.svg';
+import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
 import { Users, MessageCircle, Upload, BarChart3 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import Footer from './common/Footer';

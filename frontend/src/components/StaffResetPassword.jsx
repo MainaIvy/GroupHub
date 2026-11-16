@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Loader2, CheckCircle, AlertCircle, ShieldCheck, Eye, EyeOff, X } from 'lucide-react';
-import logo from '../assets/images/groubhub logo.svg';
+import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
 
 export default function StaffResetPassword() {
   const { token } = useParams();

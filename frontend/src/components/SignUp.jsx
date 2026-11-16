@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { GraduationCap, X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { getAcademicCourses } from '../api';
-import logo from '../assets/images/groubhub logo.svg';
+import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
 
 const GoogleGIcon = ({ className = '' }) => (
   <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">

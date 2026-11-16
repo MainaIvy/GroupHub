@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, Mail, AlertCircle, CheckCircle, X } from 'lucide-react';
-import logo from '../assets/images/groubhub logo.svg';
+import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
 
 export default function StaffForgotPassword() {
   const navigate = useNavigate();

@@ -10,7 +10,7 @@ import {
   Shield,
   Users,
 } from 'lucide-react';
-import logo from '../assets/images/groubhub logo.svg';
+import logo from '../assets/images/Blue-Gray Graduation Team Icon.png';
 import { NavLink } from 'react-router-dom';
 import Footer from './common/Footer';
 

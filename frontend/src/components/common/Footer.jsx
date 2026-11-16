@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../../assets/images/groubhub logo.svg';
+import logo from '../../assets/images/Blue-Gray Graduation Team Icon.png';
 import { FileText, Info, Mail, Phone, Shield } from 'lucide-react';
 
 const Footer = ({ active = '' }) => {
