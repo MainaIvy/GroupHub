@@ -212,143 +212,146 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#E4E9EF] flex items-start justify-center p-6">
+    <div className="min-h-screen bg-[#E4E9EF] flex items-center justify-center p-4">
       <main
         role="dialog"
         aria-modal="true"
         aria-labelledby="signup-title"
-        className="w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-8 shadow-lg"
+        className="w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-6 shadow-lg"
       >
-        <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#35475C]/10 text-[#35475C]">
-            <img src={logo} alt="GroupHub" className="h-7 w-7" />
+        <div className="mb-4 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#35475C]/10 text-[#35475C]">
+            <img src={logo} alt="GroupHub" className="h-6 w-6" />
           </div>
-          <h1 id="signup-title" className="mt-4 text-2xl font-bold text-[#1F2D3D]">
+          <h1 id="signup-title" className="mt-3 text-xl font-bold text-[#1F2D3D]">
             Create your account
           </h1>
-          <p className="mt-2 text-[#4F5F73]">
+          <p className="mt-1 text-sm text-[#4F5F73]">
             Join your campus community and make great things happen together.
           </p>
         </div>
 
-        <form className="signup-form space-y-5" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-[#1F2D3D] mb-1">
-              Full Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="fullName"
-              name="fullName"
-              type="text"
-              required
-              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
-              placeholder="Full Name"
-              value={formData.fullName}
-              onChange={handleChange}
-            />
+        <form className="signup-form space-y-3" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="fullName" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                required
+                className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+                placeholder="Full Name"
+                value={formData.fullName}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                Email address <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+                placeholder="email@zetech.ac.ke"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="regNumber" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                Registration Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="regNumber"
+                name="regNumber"
+                type="text"
+                required
+                className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+                placeholder="e.g., dcs-00-0001/2025"
+                value={formData.regNumber}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label htmlFor="university" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                University/Institution <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="university"
+                name="university"
+                required
+                className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+                value={formData.university}
+                onChange={handleChange}
+              >
+                <option value="">Select University/Institution</option>
+                <option value="zetech">Zetech University</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="academicLevel" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                Academic Level <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="academicLevel"
+                name="academicLevel"
+                required
+                disabled={coursesLoading}
+                className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                value={formData.academicLevel}
+                aria-describedby={coursesError ? 'course-load-error' : undefined}
+                onChange={(event) => setFormData((current) => ({
+                  ...current,
+                  academicLevel: event.target.value,
+                  courseId: '',
+                  yearOfStudy: '',
+                }))}
+              >
+                <option value="">
+                  {coursesLoading ? 'Loading academic levels...' : academicLevels.length ? 'Select Academic Level' : 'No academic levels available'}
+                </option>
+                {academicLevels.map((level) => <option key={level} value={level}>{level}</option>)}
+              </select>
+              {coursesError && <p id="course-load-error" className="mt-1 text-xs text-red-600">{coursesError}</p>}
+            </div>
+            <div>
+              <label htmlFor="yearOfStudy" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                Year of Study <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="yearOfStudy"
+                name="yearOfStudy"
+                required
+                disabled={!formData.academicLevel}
+                className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                value={formData.yearOfStudy}
+                onChange={(event) => setFormData((current) => ({
+                  ...current,
+                  yearOfStudy: event.target.value,
+                  courseId: '',
+                }))}
+              >
+                <option value="">Select Year of Study</option>
+                {studentYears.map((year) => <option key={year} value={year}>Year {year}</option>)}
+              </select>
+            </div>
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-[#1F2D3D] mb-1">
-              Email address <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
-              placeholder="email@zetech.ac.ke"
-              value={formData.email}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="regNumber" className="block text-sm font-medium text-[#1F2D3D] mb-1">
-              Registration Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="regNumber"
-              name="regNumber"
-              type="text"
-              required
-              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] placeholder:text-[#9AA9B8] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
-              placeholder="e.g., dcs-00-0001/2025"
-              value={formData.regNumber}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="university" className="block text-sm font-medium text-[#1F2D3D] mb-1">
-              University/Institution <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="university"
-              name="university"
-              required
-              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
-              value={formData.university}
-              onChange={handleChange}
-            >
-              <option value="">Select University/Institution</option>
-              <option value="zetech">Zetech University</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="academicLevel" className="block text-sm font-medium text-[#1F2D3D] mb-1">
-              Academic Level <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="academicLevel"
-              name="academicLevel"
-              required
-              disabled={coursesLoading}
-              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
-              value={formData.academicLevel}
-              aria-describedby={coursesError ? 'course-load-error' : undefined}
-              onChange={(event) => setFormData((current) => ({
-                ...current,
-                academicLevel: event.target.value,
-                courseId: '',
-                yearOfStudy: '',
-              }))}
-            >
-              <option value="">
-                {coursesLoading ? 'Loading academic levels...' : academicLevels.length ? 'Select Academic Level' : 'No academic levels available'}
-              </option>
-              {academicLevels.map((level) => <option key={level} value={level}>{level}</option>)}
-            </select>
-            {coursesError && <p id="course-load-error" className="mt-1 text-xs text-red-600">{coursesError}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="yearOfStudy" className="block text-sm font-medium text-[#1F2D3D] mb-1">
-              Year of Study <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="yearOfStudy"
-              name="yearOfStudy"
-              required
-              disabled={!formData.academicLevel}
-              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
-              value={formData.yearOfStudy}
-              onChange={(event) => setFormData((current) => ({
-                ...current,
-                yearOfStudy: event.target.value,
-                courseId: '',
-              }))}
-            >
-              <option value="">Select Year of Study</option>
-              {studentYears.map((year) => <option key={year} value={year}>Year {year}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="courseId" className="block text-sm font-medium text-[#1F2D3D] mb-1">
+            <label htmlFor="courseId" className="block text-xs font-medium text-[#1F2D3D] mb-1">
               Course <span className="text-red-500">*</span>
             </label>
             <select
@@ -356,7 +359,7 @@ const SignUp = () => {
               name="courseId"
               required
               disabled={!formData.academicLevel || !formData.yearOfStudy || coursesLoading || studentCourses.length === 0}
-              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
               value={formData.courseId}
               onChange={(event) => setFormData((current) => ({
                 ...current,
@@ -375,36 +378,37 @@ const SignUp = () => {
             )}
           </div>
 
-          <PasswordInput
-            id="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            autoComplete="new-password"
-            showPassword={showPassword}
-            toggleShowPassword={() => setShowPassword(!showPassword)}
-          />
-
-          <PasswordInput
-            id="confirmPassword"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-            autoComplete="new-password"
-            showPassword={showConfirmPassword}
-            toggleShowPassword={() => setShowConfirmPassword(!showConfirmPassword)}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <PasswordInput
+              id="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              autoComplete="new-password"
+              showPassword={showPassword}
+              toggleShowPassword={() => setShowPassword(!showPassword)}
+            />
+            <PasswordInput
+              id="confirmPassword"
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              autoComplete="new-password"
+              showPassword={showConfirmPassword}
+              toggleShowPassword={() => setShowConfirmPassword(!showConfirmPassword)}
+            />
+          </div>
 
           {/* keep your older fields hidden/unused in UI contract */}
           <input type="hidden" name="studentId" value={formData.studentId} />
           <input type="hidden" name="course" value={formData.course} />
 
           {signupError && (
-            <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <span>{signupError}</span>
             </div>
@@ -439,7 +443,7 @@ const SignUp = () => {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-[#4F5F73]">
+        <p className="mt-5 text-center text-sm text-[#4F5F73]">
           Already have an account?{' '}
           <Link to="/login" className="font-semibold text-[#35475C] underline">
             Sign in
