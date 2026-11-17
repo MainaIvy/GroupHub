@@ -294,23 +294,25 @@ const Login = () => {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#D7DEE6]" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-xs uppercase tracking-[0.2em] text-[#4F5F73]">
-                or continue with
-              </span>
-            </div>
-          </div>
-
           {googleClientId && (
-            <GoogleSignInButton
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              isLoading={googleLoading}
-            />
+            <>
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#D7DEE6]" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-xs uppercase tracking-[0.2em] text-[#4F5F73]">
+                    or continue with
+                  </span>
+                </div>
+              </div>
+
+              <GoogleSignInButton
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                isLoading={googleLoading}
+              />
+            </>
           )}
 
           {googleError && (
