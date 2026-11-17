@@ -227,14 +227,35 @@ def staff_signin_email(request):
     roster_entry.activation_token_expires = timezone.now() + timedelta(hours=24)
     roster_entry.save(update_fields=['activation_token', 'activation_token_expires'])
 
-    signin_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')}/staff/activate/{token}/"
+    signin_url = f"{settings.FRONTEND_URL}/staff/activate/{token}/"
+
+    try:
+        send_mail(
+            subject='Activate your GroupHub lecturer account',
+            message=(
+                f'Hello {roster_entry.full_name},\n\n'
+                f'Click the link below to set your password and activate your GroupHub lecturer account:\n\n'
+                f'{signin_url}\n\n'
+                f'This link expires in 24 hours.\n\n'
+                f'If you did not request this, please ignore this email.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[roster_entry.email],
+            fail_silently=False,
+        )
+        email_sent = True
+    except Exception as email_error:
+        logger.warning(f'Failed to send activation email to {roster_entry.email}: {email_error}')
+        email_sent = False
+
     print(f"\n=== STAFF SIGN-IN LINK ===")
     print(f"Lecturer: {roster_entry.full_name} ({roster_entry.email})")
     print(f"Activation link: {signin_url}")
     print(f"Expires: {roster_entry.activation_token_expires}")
+    print(f"Email sent: {email_sent}")
     print(f"===========================\n")
 
-    return Response({'message': 'Sign-in link sent. Check backend console for the link in development.'})
+    return Response({'message': 'Activation link sent.'})
 
 
 @api_view(['POST'])
