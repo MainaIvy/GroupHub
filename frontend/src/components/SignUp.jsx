@@ -172,7 +172,18 @@ const SignUp = () => {
         if (data?.access) localStorage.setItem('access_token', data.access);
         if (data?.refresh) localStorage.setItem('refresh_token', data.refresh);
 
-        window.location.href = '/login';
+        const user = data.user || {};
+        localStorage.setItem('user', JSON.stringify(user));
+
+        let targetPath;
+        if (user.is_staff) {
+          targetPath = '/admin/dashboard';
+        } else if (user.user_type === 'lecturer') {
+          targetPath = user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard';
+        } else {
+          targetPath = '/student/dashboard';
+        }
+        window.location.href = targetPath;
       } else {
         const data = await response.json().catch(() => null);
         setSignupError(data?.error || 'Signup failed. Please try again.');
