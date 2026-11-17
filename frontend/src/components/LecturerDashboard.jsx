@@ -46,7 +46,7 @@ import {
   UserRound,
 } from "lucide-react";
 
-const API = API_BASE;
+const API = `${API_BASE}/api/accounts`;
 const auth = () => ({
   Authorization: "Bearer " + window.localStorage.getItem("access_token"),
 });

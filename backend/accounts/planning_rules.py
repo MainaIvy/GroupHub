@@ -1,6 +1,6 @@
 """Permission rules shared by the project-planning views and the task workspace payload."""
 from .access import is_supervising_lecturer
-from .models import GroupMembership
+from .models import GroupMembership, User
 from .weights import WEIGHT_MIN, WEIGHT_MAX
 
 BOARD_STATUSES = ('proposed', 'open_to_claim', 'assigned', 'in_progress', 'done')
@@ -35,7 +35,10 @@ def is_participant(user, group):
 def workflow_enforced(group):
     """Groups led by a student use the propose/approve workflow;
     lecturer-led groups keep direct assignment."""
-    leader = group.leader
+    try:
+        leader = group.leader
+    except User.DoesNotExist:
+        return False
     return bool(leader and leader.user_type == 'student')
 
 

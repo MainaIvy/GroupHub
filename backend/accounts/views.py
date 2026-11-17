@@ -37,10 +37,12 @@ from .access import can_view_group, can_manage_group
 from .group_access_views import _is_enrolled_in_unit, _join_block, _unit_group_block
 from .services.insights import compute_group_insights, get_group_insights_for_user
 from .balance import calculate_group_balance
+from .planning_rules import board_status, weight_change_block, weight_confirm_block
 from .academic import (
     approved_units_for_lecturer, current_term,
     sync_student_enrollments, supervising_lecturer_ids, supervising_lecturers,
 )
+from .weights import WEIGHT_MIN, WEIGHT_MAX
 
 logger = logging.getLogger(__name__)
 
