@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, Clock, History, PieChart, UsersRound, X } from 'lucide-react';
+import { BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, Clock, History, PieChart, X } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import GroupActions from '../components/GroupActions';
 import GroupCard from '../components/GroupCard';
@@ -10,9 +10,6 @@ import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
 import { describeActivity, weightText } from '../workspace/taskUtils';
 import { timeAgo } from '../utils';
-import { btnPrimary, btnSecondary } from '../design';
-import { MIN_BALANCE_POINTS } from '../health';
-
 const PANEL = 'rounded-xl border border-[#D5DDE6] bg-white shadow-sm';
 const PANEL_HEAD = 'mb-3 flex items-center justify-between gap-2';
 const PANEL_TITLE = 'text-base font-bold text-[#1F2D3D]';
@@ -126,41 +123,25 @@ const Overview = ({ ctx }) => {
 
   if (dashboardError) return <section className="space-y-6">{header}<ErrorState message={dashboardError} onRetry={reloadDashboard} /></section>;
 
-  if (!groups.length) {
-    return (
-      <section className="space-y-6">
-        {header}
-        {!dismissedChecklist && !checklist.complete ? (
-          <section className={`${PANEL} p-4`}>
-            <div className={PANEL_HEAD}>
-              <h2 className={PANEL_TITLE}>Getting started</h2>
-              <button type="button" onClick={() => setDismissedChecklist(true)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#4F5F73] hover:bg-[#EEF1F4]" aria-label="Dismiss checklist"><X size={16} /></button>
-            </div>
-            <ul className="space-y-2">
-              {checklist.items.map((item) => (
-                <li key={item.label} className="flex items-center gap-2 text-sm text-[#33445A]">
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${item.done ? 'border-[#35475C] bg-[#35475C] text-white' : 'border-[#D7DEE6] bg-white'}`}>{item.done ? <Check size={12} /> : null}</span>
-                  <span className={item.done ? 'line-through text-[#4F5F73]' : ''}>{item.label}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-        <div className={`${PANEL} p-6 text-center ${EMPTY_MIN_H}`}>
-          <UsersRound size={32} className="mx-auto mb-2 text-[#4F5F73]" aria-hidden="true" />
-          <h2 className="text-base font-semibold text-[#1F2D3D]">You haven't joined a group yet</h2>
-          <p className="mt-1 text-sm text-[#4F5F73]">Join with a code from a classmate, or create a group to start collaborating.</p>
-          <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
-            <button type="button" onClick={openJoinModal} className={btnSecondary}>Join with code</button>
-            <button type="button" onClick={openCreateModal} className={btnPrimary}>Create group</button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   const waiting = insights.loading && !Object.keys(insights.byGroup).length;
   const calendarTasks = insights.mine.filter((task) => task.due_date);
+
+  const noGroupsYet = !dismissedChecklist && !checklist.complete && !groups.length ? (
+    <section className={`${PANEL} p-4`}>
+      <div className={PANEL_HEAD}>
+        <h2 className={PANEL_TITLE}>Getting started</h2>
+        <button type="button" onClick={() => setDismissedChecklist(true)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#4F5F73] hover:bg-[#EEF1F4]" aria-label="Dismiss checklist"><X size={16} /></button>
+      </div>
+      <ul className="space-y-2">
+        {checklist.items.map((item) => (
+          <li key={item.label} className="flex items-center gap-2 text-sm text-[#33445A]">
+            <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${item.done ? 'border-[#35475C] bg-[#35475C] text-white' : 'border-[#D7DEE6] bg-white'}`}>{item.done ? <Check size={12} /> : null}</span>
+            <span className={item.done ? 'line-through text-[#4F5F73]' : ''}>{item.label}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ) : null;
 
   return (
     <section className="space-y-6">
@@ -178,22 +159,7 @@ const Overview = ({ ctx }) => {
             <div className="min-w-0 flex-1 space-y-5">
               {header}
 
-              {!dismissedChecklist && !checklist.complete ? (
-                <section className={`${PANEL} p-4`}>
-                  <div className={PANEL_HEAD}>
-                    <h2 className={PANEL_TITLE}>Getting started</h2>
-                    <button type="button" onClick={() => setDismissedChecklist(true)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#4F5F73] hover:bg-[#EEF1F4]" aria-label="Dismiss checklist"><X size={16} /></button>
-                  </div>
-                  <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {checklist.items.map((item) => (
-                      <li key={item.label} className="flex items-center gap-2 text-sm text-[#33445A]">
-                        <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${item.done ? 'border-[#35475C] bg-[#35475C] text-white' : 'border-[#D7DEE6] bg-white'}`}>{item.done ? <Check size={12} /> : null}</span>
-                        <span className={item.done ? 'text-[#4F5F73] line-through' : ''}>{item.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
+              {noGroupsYet}
 
               <section className={`${PANEL} p-4`}>
                 <div className={PANEL_HEAD}>
@@ -228,20 +194,24 @@ const Overview = ({ ctx }) => {
                   <h2 className={PANEL_TITLE}>My groups</h2>
                 </div>
                 <div className={`grid gap-3 ${groups.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'}`}>
-                  {groups.map((group) => {
-                    const unitLine = group.unit_code ? `${group.unit_code}${group.unit_name ? ` · ${group.unit_name}` : ''}` : group.course || 'Unit';
-                    return (
-                      <button
-                        key={group.id}
-                        type="button"
-                        onClick={() => openGroupDetails(group)}
-                        className="w-full rounded-lg border border-[#D7DEE6] bg-white px-4 py-3 text-left transition-colors hover:bg-[#EEF1F4] hover:shadow-sm"
-                      >
-                        <p className="truncate text-sm font-semibold text-[#1F2D3D]">{group.name}</p>
-                        <p className="mt-0.5 truncate text-xs text-[#4F5F73]">{unitLine}</p>
-                      </button>
-                    );
-                  })}
+                  {groups.length === 0 ? (
+                    <p className="text-sm text-[#4F5F73] text-center">You haven't joined any groups yet.</p>
+                  ) : (
+                    groups.map((group) => {
+                      const unitLine = group.unit_code ? `${group.unit_code}${group.unit_name ? ` · ${group.unit_name}` : ''}` : group.course || 'Unit';
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          onClick={() => openGroupDetails(group)}
+                          className="w-full rounded-lg border border-[#D7DEE6] bg-white px-4 py-3 text-left transition-colors hover:bg-[#EEF1F4] hover:shadow-sm"
+                        >
+                          <p className="truncate text-sm font-semibold text-[#1F2D3D]">{group.name}</p>
+                          <p className="mt-0.5 truncate text-xs text-[#4F5F73]">{unitLine}</p>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </section>
 
