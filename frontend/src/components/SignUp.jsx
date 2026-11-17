@@ -77,27 +77,28 @@ const SignUp = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const academicLevels = useMemo(
-    () => [...new Set(academicCourses.flatMap((course) => (course.units || [])
-      .map((unit) => unit.academic_level?.trim())
-      .filter(Boolean)))].sort(),
-    [academicCourses]
-  );
+  const levelOrder = { certificate: 0, diploma: 1, bachelors: 2 };
+  const academicLevels = [...new Set(academicCourses.flatMap((course) => (course.units || [])
+    .map((unit) => unit.academic_level?.trim())
+    .filter(Boolean)))].sort((a, b) => {
+    const la = levelOrder[a.toLowerCase()] ?? 99;
+    const lb = levelOrder[b.toLowerCase()] ?? 99;
+    return la - lb || a.localeCompare(b);
+  });
   const studentCourses = academicCourses.filter((course) => (
     formData.academicLevel
     && (course.units || []).some((unit) => (
       unit.academic_level?.trim() === formData.academicLevel
-      && (!formData.yearOfStudy || String(unit.year_of_study) === formData.yearOfStudy)
     ))
   ));
   const selectedStudentCourse = academicCourses.find((course) => String(course.id) === formData.courseId);
-  const studentYears = [...new Set(studentCourses.flatMap((course) => (course.units || [])
+  const studentYears = [...new Set(selectedStudentCourse?.units
     .filter((unit) => unit.academic_level?.trim() === formData.academicLevel)
-    .map((unit) => String(unit.year_of_study))))].sort((a, b) => Number(a) - Number(b));
+    .map((unit) => String(unit.year_of_study)))].sort((a, b) => Number(a) - Number(b));
 
   const studentSemesters = [...new Set(selectedStudentCourse?.units
     .filter((unit) => unit.academic_level?.trim() === formData.academicLevel
-      && (!formData.yearOfStudy || String(unit.year_of_study) === formData.yearOfStudy))
+      && String(unit.year_of_study) === formData.yearOfStudy)
     .map((unit) => Number(unit.semester))
     .filter((semester) => Number.isInteger(semester) && semester > 0)
     .sort((a, b) => a - b))];
@@ -315,10 +316,6 @@ const SignUp = () => {
                   semester: '',
                 }))}
               >
-                <option value="">
-                  {coursesLoading ? 'Loading academic levels...' : academicLevels.length ? 'Select Academic Level' : 'No academic levels available'}
-                </option>
-                {academicLevels.map((level) => <option key={level} value={level}>{level}</option>)}
               </select>
               {coursesError && <p id="course-load-error" className="mt-1 text-xs text-red-600">{coursesError}</p>}
             </div>
@@ -329,14 +326,13 @@ const SignUp = () => {
               <select
                 id="yearOfStudy"
                 name="yearOfStudy"
-                required
-                disabled={!formData.academicLevel}
+              required
+              disabled={!formData.academicLevel || !formData.courseId}
                 className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
                 value={formData.yearOfStudy}
                 onChange={(event) => setFormData((current) => ({
                   ...current,
                   yearOfStudy: event.target.value,
-                  courseId: '',
                   semester: '',
                 }))}
               >
@@ -360,6 +356,8 @@ const SignUp = () => {
               onChange={(event) => setFormData((current) => ({
                 ...current,
                 courseId: event.target.value,
+                yearOfStudy: '',
+                semester: '',
               }))}
             >
               <option value="">
@@ -370,7 +368,7 @@ const SignUp = () => {
               ))}
             </select>
             {!coursesLoading && formData.academicLevel && studentCourses.length === 0 && !coursesError && (
-              <p className="mt-1 text-xs text-[#9AA9B8]">No courses are available for this academic level and year.</p>
+              <p className="mt-1 text-xs text-[#9AA9B8]">No courses are available for this academic level.</p>
             )}
           </div>
 
