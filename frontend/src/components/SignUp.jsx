@@ -95,6 +95,13 @@ const SignUp = () => {
     .filter((unit) => unit.academic_level?.trim() === formData.academicLevel)
     .map((unit) => String(unit.year_of_study))))].sort((a, b) => Number(a) - Number(b));
 
+  const studentSemesters = [...new Set(selectedStudentCourse?.units
+    .filter((unit) => unit.academic_level?.trim() === formData.academicLevel
+      && (!formData.yearOfStudy || String(unit.year_of_study) === formData.yearOfStudy))
+    .map((unit) => Number(unit.semester))
+    .filter((semester) => Number.isInteger(semester) && semester > 0)
+    .sort((a, b) => a - b))];
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -124,11 +131,6 @@ const SignUp = () => {
       unit.academic_level?.trim() === formData.academicLevel
       && String(unit.year_of_study) === studentYearOfStudy
     ));
-    const studentSemesters = [...new Set(studentLevelUnits
-      .map((unit) => Number(unit.semester))
-      .filter((semester) => Number.isInteger(semester) && semester > 0)
-      .sort((a, b) => a - b))];
-    const studentSemester = formData.semester || studentSemesters[0];
 
     if (!formData.academicLevel || !formData.courseId || !studentYearOfStudy || !formData.semester) {
       setSignupError('Select an academic level, course, year, and semester with available units.');
