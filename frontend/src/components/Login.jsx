@@ -5,6 +5,8 @@ import { X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, CheckCircle } from 'luc
 import logo from '../assets/images/GROUPHUBLOGO.png';
 import { API_BASE } from '../apiConfig';
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 const GoogleGIcon = ({ className = '' }) => (
   <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
     <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C34.73 32.657 30.83 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.962 3.037l5.657-5.657C34.046 6.053 29.268 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20c0-1.341-.138-2.65-.389-3.917z" />
@@ -303,11 +305,13 @@ const Login = () => {
             </div>
           </div>
 
-          <GoogleSignInButton
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            isLoading={googleLoading}
-          />
+          {googleClientId && (
+            <GoogleSignInButton
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              isLoading={googleLoading}
+            />
+          )}
 
           {googleError && (
             <p className="text-center text-xs text-red-600">{googleError}</p>
