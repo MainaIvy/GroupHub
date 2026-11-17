@@ -480,7 +480,7 @@ const SignUp = () => {
                 <button
                   type="button"
                   onClick={() => goToStep(1)}
-                  className="w-auto rounded-lg px-4 py-3 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
+                  className="w-auto rounded-lg border border-[#D7DEE6] px-4 py-3 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] hover:border-[#B7C3D2] transition-colors"
                 >
                   <X size={14} className="mr-2" /> Back
                 </button>
@@ -575,7 +575,7 @@ const SignUp = () => {
                 <button
                   type="button"
                   onClick={() => goToStep(2)}
-                  className="w-auto rounded-lg px-4 py-3 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
+                  className="w-auto rounded-lg border border-[#D7DEE6] px-4 py-3 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] hover:border-[#B7C3D2] transition-colors"
                 >
                   <X size={14} className="mr-2" /> Back
                 </button>
