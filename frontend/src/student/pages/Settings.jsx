@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Eye, EyeOff, Loader2, Bell, Mail, Shield, User, Calendar, BookOpen, MessageCircle } from 'lucide-react';
 import { btnPrimary, btnSecondary } from '../design';
 import axios from '../../api';
+import { API_BASE } from '../../apiConfig';
 
 const getStoredToken = () => localStorage.getItem('access_token');
 
