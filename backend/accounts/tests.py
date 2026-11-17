@@ -154,6 +154,7 @@ class LecturerClaimFlowTests(TestCase):
         self.assertIn('unread_count', archived_item)
 
 
+@override_settings(RATELIMIT_ENABLE=False)
 class StudentSignupEnrollmentTests(TestCase):
     def test_student_signup_creates_account_and_enrolls_in_matching_units(self):
         course = Course.objects.create(code='BCS', name='BSc Computer Science', department='Computer Science')
@@ -318,6 +319,158 @@ class StudentSignupEnrollmentTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json()['academic'])
         self.assertEqual(response.json()['units'], [])
+
+    @override_settings(RATELIMIT_ENABLE=False, ALLOWED_EMAIL_DOMAINS=['example.ac.ke'])
+    def test_student_signup_respects_admin_allowed_email_domain(self):
+        course = Course.objects.create(code='DOM', name='Domain Course', department='Computing')
+        Unit.objects.create(course=course, code='DOM 101', name='Foundations', academic_level="Bachelor's", year_of_study=1, semester=1)
+
+        AdminSetting.objects.create(key='allowed_email_domain', value={'allowed_email_domain': 'example.ac.ke'})
+
+        # zetech.ac.ke should now be rejected
+        bad_domain = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'student',
+            'fullName': 'Bad Domain',
+            'admissionNumber': 'DOM/001/2024',
+            'email': 'bad@zetech.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'course_id': course.id,
+            'academic_level': "Bachelor's",
+            'yearOfStudy': 1,
+            'semester': 1,
+            'registration_number': 'DOM-00-0001/2024',
+        }, format='json')
+        self.assertEqual(bad_domain.status_code, 400)
+        self.assertIn('@example.ac.ke', bad_domain.json()['error'])
+
+        # example.ac.ke should be accepted
+        good_domain = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'student',
+            'fullName': 'Good Domain',
+            'admissionNumber': 'DOM/002/2024',
+            'email': 'good@example.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'course_id': course.id,
+            'academic_level': "Bachelor's",
+            'yearOfStudy': 1,
+            'semester': 1,
+            'registration_number': 'DOM-00-0002/2024',
+        }, format='json')
+        self.assertEqual(good_domain.status_code, 201, good_domain.json())
+
+    def test_student_signup_reg_number_rejects_bad_format(self):
+        course = Course.objects.create(code='BCS', name='Format Course', department='Computing')
+        Unit.objects.create(course=course, code='BCS 101', name='Foundations', academic_level="Bachelor's", year_of_study=1, semester=1)
+
+        response = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'student',
+            'fullName': 'Format User',
+            'admissionNumber': 'ZEC/001/2024',
+            'email': 'format@zetech.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'course_id': course.id,
+            'academic_level': "Bachelor's",
+            'yearOfStudy': 1,
+            'semester': 1,
+            'registration_number': 'not-a-valid-reg',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('format', response.json()['error'].lower())
+
+    def test_student_signup_reg_number_prefix_matches_programme_code(self):
+        course = Course.objects.create(code='DCS', name='Diploma CS', department='Computing')
+        Unit.objects.create(course=course, code='DCS 101', name='Intro', academic_level='Diploma', year_of_study=1, semester=1)
+
+        # Prefix DCS matches course code DCS -> should succeed
+        matching = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'student',
+            'fullName': 'Match User',
+            'admissionNumber': 'ZEC/001/2024',
+            'email': 'match@zetech.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'course_id': course.id,
+            'academic_level': 'Diploma',
+            'yearOfStudy': 1,
+            'semester': 1,
+            'registration_number': 'DCS-00-0001/2024',
+        }, format='json')
+        self.assertEqual(matching.status_code, 201, matching.json())
+
+        # Prefix BCS does not match course code DCS -> should fail with field error
+        mismatched = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'student',
+            'fullName': 'Mismatch User',
+            'admissionNumber': 'ZEC/002/2024',
+            'email': 'mismatch@zetech.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'course_id': course.id,
+            'academic_level': 'Diploma',
+            'yearOfStudy': 1,
+            'semester': 1,
+            'registration_number': 'BCS-00-0001/2024',
+        }, format='json')
+        self.assertEqual(mismatched.status_code, 400)
+        self.assertIn('prefix', mismatched.json()['error'].lower())
+        self.assertEqual(mismatched.json().get('field'), 'reg_number')
+
+    def test_student_signup_reg_number_must_be_unique(self):
+        course = Course.objects.create(code='UNQ', name='Unique Course', department='Computing')
+        Unit.objects.create(course=course, code='UNQ 101', name='Intro', academic_level='Diploma', year_of_study=1, semester=1)
+
+        User.objects.create_user(
+            username='UNQ-00-0001/2024',
+            email='existing@zetech.ac.ke',
+            password='StrongPass123',
+            user_type='student',
+            course=course.name,
+            enrolled_course=course,
+            academic_level='Diploma',
+            year_of_study='1',
+            semester=1,
+            reg_number='UNQ-00-0001/2024',
+        )
+
+        response = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'student',
+            'fullName': 'Duplicate',
+            'admissionNumber': 'ZEC/002/2024',
+            'email': 'dup@zetech.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'course_id': course.id,
+            'academic_level': 'Diploma',
+            'yearOfStudy': 1,
+            'semester': 1,
+            'registration_number': 'UNQ-00-0001/2024',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('already exists', response.json()['error'].lower())
+
+    def test_student_signup_stores_reg_number_on_user(self):
+        course = Course.objects.create(code='STR', name='Store Course', department='Computing')
+        Unit.objects.create(course=course, code='STR 101', name='Store', academic_level='Diploma', year_of_study=1, semester=1)
+
+        response = APIClient().post('/api/accounts/signup/', {
+            'user_type': 'student',
+            'fullName': 'Store User',
+            'admissionNumber': 'ZEC/001/2024',
+            'email': 'store@zetech.ac.ke',
+            'password': 'StrongPass123',
+            'confirmPassword': 'StrongPass123',
+            'course_id': course.id,
+            'academic_level': 'Diploma',
+            'yearOfStudy': 1,
+            'semester': 1,
+            'registration_number': 'STR-00-0001/2024',
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.json())
+        user = User.objects.get(email='store@zetech.ac.ke')
+        self.assertEqual(user.reg_number, 'STR-00-0001/2024')
 
 
 class LecturerSignupPayloadTests(TestCase):

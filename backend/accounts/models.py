@@ -32,6 +32,7 @@ class User(AbstractUser):
         'Course', on_delete=models.SET_NULL, related_name='enrolled_students', null=True, blank=True
     )
     semester = models.PositiveSmallIntegerField(null=True, blank=True)
+    reg_number = models.CharField(max_length=30, blank=True, unique=True, null=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('active', 'Active'),

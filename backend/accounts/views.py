@@ -30,7 +30,7 @@ from django.db.models import Exists, OuterRef
 from django.core.files.storage import default_storage
 from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
-    ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster, AuditLog,
+    ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster, AuditLog, AdminSetting,
 )
 from .profile import compute_profile_complete, lecturer_setup_required
 from .access import can_view_group, can_manage_group
@@ -403,9 +403,20 @@ def signup_view(request):
         if data.get('confirmPassword') != password:
             return JsonResponse({'error': 'Passwords do not match'}, status=400)
 
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@zetech\.ac\.ke$', email):
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[^\s@]+\.[^\s@]+$', email):
             logger.warning(f"Signup attempt with invalid email: {email} from {request.META.get('REMOTE_ADDR')}")
-            return JsonResponse({'error': 'Invalid email format or domain. Only @zetech.ac.ke emails are allowed.'}, status=400)
+            return JsonResponse({'error': 'Invalid email format.'}, status=400)
+
+        setting = AdminSetting.objects.filter(key='allowed_email_domain').first()
+        allowed_domain = 'zetech.ac.ke'
+        if setting:
+            try:
+                allowed_domain = setting.value.get('allowed_email_domain', 'zetech.ac.ke')
+            except (AttributeError, TypeError):
+                allowed_domain = 'zetech.ac.ke'
+        if not email.endswith('@' + allowed_domain):
+            logger.warning(f"Signup attempt with disallowed domain: {email} from {request.META.get('REMOTE_ADDR')}")
+            return JsonResponse({'error': f'Only @{allowed_domain} email addresses are allowed for registration.'}, status=400)
 
         if len(password) < 8 or not re.search(r'[a-zA-Z]', password) or not re.search(r'\d', password):
             logger.warning(f"Signup attempt with weak password from {request.META.get('REMOTE_ADDR')}")
@@ -416,7 +427,12 @@ def signup_view(request):
             return JsonResponse({'error': 'User with this email already exists'}, status=400)
 
         if User.objects.filter(username__iexact=username).exists():
+            logger.warning(f"Signup attempt with existing username: {username} from {request.META.get('REMOTE_ADDR')}")
             return JsonResponse({'error': 'User with this admission number or username already exists'}, status=400)
+
+        if User.objects.filter(reg_number__iexact=data.get('registration_number')).exists():
+            logger.warning(f"Signup attempt with existing reg number: {data.get('registration_number')}")
+            return JsonResponse({'error': 'User with this registration number already exists'}, status=400)
 
         course = None
         year = None
@@ -424,6 +440,7 @@ def signup_view(request):
         matching_units = Unit.objects.none()
         if user_type == 'student':
             academic_level = str(data.get('academic_level') or '').strip()
+            registration_number = str(data.get('registration_number') or '').strip()
             try:
                 course = Course.objects.get(pk=int(data.get('course_id')))
                 year = int(data.get('yearOfStudy'))
@@ -433,16 +450,33 @@ def signup_view(request):
             if year < 1:
                 return JsonResponse({'error': 'Select a valid programme, academic level, and year.'}, status=400)
 
+            if registration_number:
+                if not re.match(r'^[a-zA-Z]{2,4}-\d{2}-\d{4}/\d{4}$', registration_number):
+                    return JsonResponse({'error': 'Registration number must use format CODE-XX-XXXX/YYYY (e.g., DCS-00-0001/2024).', 'field': 'reg_number'}, status=400)
+                reg_prefix = registration_number.split('-')[0].upper()
+                course_prefix = str(course.code).upper()
+                if reg_prefix and reg_prefix != course_prefix:
+                    return JsonResponse({'error': f'Registration prefix "{reg_prefix}" does not match programme code "{course_prefix}".', 'field': 'reg_number'}, status=400)
+
             matching_units = Unit.objects.filter(course=course, year_of_study=year)
             if academic_level:
                 matching_units = matching_units.filter(academic_level=academic_level).order_by('semester', 'code')
-            try:
-                semester_number = int(data.get('semester'))
-            except (TypeError, ValueError):
-                return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
-            if semester_number < 1:
-                return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
-            matching_units = matching_units.filter(semester=semester_number)
+            semester_number = None
+            semester_raw = data.get('semester')
+            if semester_raw is not None and str(semester_raw).strip() != '':
+                try:
+                    semester_number = int(semester_raw)
+                except (TypeError, ValueError):
+                    return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
+                if semester_number < 1:
+                    return JsonResponse({'error': 'Select a valid programme, year, and semester.'}, status=400)
+                matching_units = matching_units.filter(semester=semester_number)
+            else:
+                first_unit = matching_units.first()
+                if first_unit:
+                    semester_number = first_unit.semester
+                else:
+                    semester_number = 1
 
             if not matching_units.exists():
                 return JsonResponse({'error': 'No units are available for the selected programme, academic level, and year.'}, status=400)
@@ -469,6 +503,7 @@ def signup_view(request):
                 user.year_of_study = str(year)
                 user.enrolled_course = course
                 user.semester = semester_number
+                user.reg_number = registration_number.upper()
 
             user.email_verified = True
             user.is_active = True
