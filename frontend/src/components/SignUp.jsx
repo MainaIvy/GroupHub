@@ -331,7 +331,7 @@ const SignUp = () => {
                 id="yearOfStudy"
                 name="yearOfStudy"
               required
-              disabled={!formData.academicLevel || !formData.courseId}
+              disabled={!formData.academicLevel || !formData.courseId || coursesLoading}
                 className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
                 value={formData.yearOfStudy}
                 onChange={(event) => setFormData((current) => ({
@@ -354,7 +354,7 @@ const SignUp = () => {
               id="courseId"
               name="courseId"
               required
-              disabled={!formData.academicLevel || !formData.yearOfStudy || coursesLoading || studentCourses.length === 0}
+              disabled={!formData.academicLevel || coursesLoading || studentCourses.length === 0}
               className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
               value={formData.courseId}
               onChange={(event) => setFormData((current) => ({
@@ -384,7 +384,7 @@ const SignUp = () => {
               id="semester"
               name="semester"
               required
-              disabled={!formData.academicLevel || !formData.courseId || studentSemesters.length === 0}
+              disabled={!formData.academicLevel || !formData.courseId || !formData.yearOfStudy || studentSemesters.length === 0}
               className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
               value={formData.semester}
               onChange={(event) => setFormData((current) => ({
