@@ -1017,7 +1017,7 @@ function SettingsTab({
   const initials =
     `${profile.first_name?.[0] || ""}${profile.last_name?.[0] || ""}`.toUpperCase() ||
     "L";
-  const avatar = photoPreview || user?.avatar;
+  const avatar = photoPreview || (user?.avatar && user.avatar.startsWith('/') ? `${API_BASE}${user.avatar}` : user?.avatar);
 
   const choosePhoto = (e) => {
     const file = e.target.files?.[0];

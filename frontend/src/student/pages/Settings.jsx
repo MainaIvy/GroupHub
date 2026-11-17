@@ -108,7 +108,7 @@ const Settings = ({ ctx }) => {
         headers: { Authorization: `Bearer ${getStoredToken()}`, 'Content-Type': 'multipart/form-data' },
       });
       if (response.data?.avatar_url) {
-        const nextUser = { ...user, avatar: response.data.avatar_url };
+        const nextUser = { ...user, avatar: `${API_BASE}${response.data.avatar_url}` };
         setUser(nextUser);
         localStorage.setItem('user', JSON.stringify(nextUser));
       }

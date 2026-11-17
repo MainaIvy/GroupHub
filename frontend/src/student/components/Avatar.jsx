@@ -1,12 +1,14 @@
 import React from 'react';
+import { API_BASE } from '../../apiConfig';
 
 const Avatar = ({ name = '', avatar = '', size = 32, className = '' }) => {
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
   const initials = ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
+  const resolvedAvatar = avatar && avatar.startsWith('/') ? `${API_BASE}${avatar}` : avatar;
 
-  if (avatar) {
+  if (resolvedAvatar) {
     return (
-      <img src={avatar} alt={name} title={name} style={{ width: size, height: size, minWidth: size, flexShrink: 0 }} className={`rounded-full object-cover ring-2 ring-white ${className}`} />
+      <img src={resolvedAvatar} alt={name} title={name} style={{ width: size, height: size, minWidth: size, flexShrink: 0 }} className={`rounded-full object-cover ring-2 ring-white ${className}`} />
     );
   }
 
