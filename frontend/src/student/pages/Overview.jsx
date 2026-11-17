@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, Clock, History, PieChart, X } from 'lucide-react';
+import { BookOpen, CalendarDays, CheckCircle2, ChevronRight, Clock, History, PieChart } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import GroupActions from '../components/GroupActions';
 import GroupCard from '../components/GroupCard';
@@ -14,7 +14,6 @@ const PANEL = 'rounded-xl border border-[#D5DDE6] bg-white shadow-sm';
 const PANEL_HEAD = 'mb-3 flex items-center justify-between gap-2';
 const PANEL_TITLE = 'text-base font-bold text-[#1F2D3D]';
 const EMPTY_MIN_H = 'min-h-[160px]';
-const CHECKLIST_KEY = 'student_overview_checklist_dismissed_v1';
 
 const statusChip = (status) => {
   const s = String(status || '').toLowerCase();
@@ -26,9 +25,6 @@ const statusChip = (status) => {
 const Overview = ({ ctx }) => {
   const { greeting, groups, units, setActiveTab, openCreateModal, openJoinModal, openGroupTasks, openGroupDetails, insights, dashboardError, reloadDashboard, user, notif, access, groupMenuId, setGroupMenuId, setChatGroupId } = ctx;
   const navigate = useNavigate();
-  const [dismissedChecklist, setDismissedChecklist] = useState(() => localStorage.getItem(CHECKLIST_KEY) === '1');
-
-  useEffect(() => { if (dismissedChecklist) localStorage.setItem(CHECKLIST_KEY, '1'); }, [dismissedChecklist]);
 
   const openGroupTab = (groupId) => {
     const group = groups.find((item) => String(item.id) === String(groupId));
@@ -99,20 +95,6 @@ const Overview = ({ ctx }) => {
     return items.slice(0, 10);
   }, [insights.overdue, insights.dueSoon, insights.pollsToVote, notif?.invites, notif?.joinRequests, access, groups]);
 
-  const checklist = useMemo(() => {
-    const hasGroup = groups.length > 0;
-    const hasTask = insights.mine.length > 0 || groups.some((g) => (insights.byGroup[g.id]?.tasks || []).length > 0);
-    const hasMessage = groups.some((g) => (insights.byGroup[g.id]?.activity || []).some((a) => String(a.action || '').includes('message') || String(a.target_type || '') === 'message'));
-    const hasSubmission = groups.some((g) => (insights.byGroup[g.id]?.activity || []).some((a) => String(a.action || '').includes('submit') || String(a.target_type || '') === 'submission'));
-    const items = [
-      { label: 'Join or create a group', done: hasGroup },
-      { label: 'Add a first task', done: hasTask },
-      { label: 'Send a message', done: hasMessage },
-      { label: 'Submit work', done: hasSubmission },
-    ];
-    return { items, complete: items.every((i) => i.done) };
-  }, [groups, insights.mine, insights.byGroup]);
-
   const header = (
     <PageHeader
       title={greeting}
@@ -125,23 +107,6 @@ const Overview = ({ ctx }) => {
 
   const waiting = insights.loading && !Object.keys(insights.byGroup).length;
   const calendarTasks = insights.mine.filter((task) => task.due_date);
-
-  const noGroupsYet = !dismissedChecklist && !checklist.complete && !groups.length ? (
-    <section className={`${PANEL} p-4`}>
-      <div className={PANEL_HEAD}>
-        <h2 className={PANEL_TITLE}>Getting started</h2>
-        <button type="button" onClick={() => setDismissedChecklist(true)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#4F5F73] hover:bg-[#EEF1F4]" aria-label="Dismiss checklist"><X size={16} /></button>
-      </div>
-      <ul className="space-y-2">
-        {checklist.items.map((item) => (
-          <li key={item.label} className="flex items-center gap-2 text-sm text-[#33445A]">
-            <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${item.done ? 'border-[#35475C] bg-[#35475C] text-white' : 'border-[#D7DEE6] bg-white'}`}>{item.done ? <Check size={12} /> : null}</span>
-            <span className={item.done ? 'line-through text-[#4F5F73]' : ''}>{item.label}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  ) : null;
 
   return (
     <section className="space-y-6">
@@ -158,8 +123,6 @@ const Overview = ({ ctx }) => {
           <div className="flex flex-col gap-6 lg:flex-row">
             <div className="min-w-0 flex-1 space-y-5">
               {header}
-
-              {noGroupsYet}
 
               <section className={`${PANEL} p-4`}>
                 <div className={PANEL_HEAD}>
