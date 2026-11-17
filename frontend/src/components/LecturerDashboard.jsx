@@ -504,7 +504,7 @@ export default function LecturerDashboard() {
                 >
                   {user?.avatar ? (
                     <img
-                      src={user.avatar}
+                      src={user.avatar.startsWith('/') ? `${API_BASE}${user.avatar}` : user.avatar}
                       alt=""
                       className="h-full w-full object-cover"
                     />

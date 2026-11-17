@@ -160,7 +160,7 @@ const Settings = ({ ctx }) => {
                 <div className="relative flex-shrink-0">
                   <div className="h-20 w-20 rounded-full bg-[#EEF1F4] overflow-hidden flex items-center justify-center ring-2 ring-white shadow-sm">
                     {avatarPreview || user?.avatar ? (
-                      <img src={avatarPreview || user?.avatar} alt="Your avatar" className="h-full w-full object-cover" />
+                      <img src={avatarPreview || (user?.avatar && user.avatar.startsWith('/') ? `${API_BASE}${user.avatar}` : user?.avatar)} alt="Your avatar" className="h-full w-full object-cover" />
                     ) : (
                       <span className="text-2xl font-bold text-[#4A6079]">
                         {user?.first_name?.[0] || ''}{user?.last_name?.[0] || ''}
