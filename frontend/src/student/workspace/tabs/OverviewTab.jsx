@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProgressBar } from '../../components/ProgressBar';
+import Avatar from '../../components/Avatar';
 import { MIN_BALANCE_POINTS } from '../../health';
 import { timeAgo } from '../../utils';
 import { describeActivity, formatDue } from '../taskUtils';
@@ -57,11 +58,14 @@ const OverviewTab = ({ workspace, balance, activity, polls, pollsLoading, onOpen
           ) : (
             <div className="space-y-3">
               {members.map((member) => (
-                <div key={member.user_id}>
-                  <div className="mb-1 flex justify-between gap-2 text-sm"><span className="truncate font-medium text-[#1F2D3D]">{member.name}</span><span className="shrink-0 text-[#4F5F73]">{member.points_assigned} pts · {Math.round(member.share_percent)}%</span></div>
-                  <div className="relative h-2 rounded-full bg-[#DDE4EC]">
-                    <div className={`h-full rounded-full ${BAR[member.warning_level] || BAR.ok}`} style={{ width: `${Math.min(100, member.share_percent)}%` }} />
-                    <span aria-hidden="true" className="absolute -top-1 h-4 w-0.5 rounded bg-[#1F2D3D]" style={{ left: `${member.fair_share}%` }} />
+                <div key={member.user_id} className="flex items-center gap-3">
+                  <Avatar name={member.name} avatar={member.avatar} size={28} />
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex justify-between gap-2 text-sm"><span className="truncate font-medium text-[#1F2D3D]">{member.name}</span><span className="shrink-0 text-[#4F5F73]">{member.points_assigned} pts · {Math.round(member.share_percent)}%</span></div>
+                    <div className="relative h-2 rounded-full bg-[#DDE4EC]">
+                      <div className={`h-full rounded-full ${BAR[member.warning_level] || BAR.ok}`} style={{ width: `${Math.min(100, member.share_percent)}%` }} />
+                      <span aria-hidden="true" className="absolute -top-1 h-4 w-0.5 rounded bg-[#1F2D3D]" style={{ left: `${member.fair_share}%` }} />
+                    </div>
                   </div>
                 </div>
               ))}

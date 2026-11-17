@@ -2,6 +2,7 @@
 import axios from "axios";
 import { API_BASE } from "../apiConfig";
 import * as XLSX from "xlsx";
+import Avatar from "../student/components/Avatar";
 import {
   Bell,
   BookOpen,
@@ -1858,7 +1859,7 @@ function Messages({
           {room?.join_code && <div className="mt-3 rounded-md bg-[#EEF1F4] p-2"><span className="block text-xs font-semibold uppercase tracking-wide text-[#4F5F73]">Invite code</span><div className="mt-1 flex items-center justify-between"><code className="text-sm font-bold tracking-wider text-[#35475C]">{room.join_code}</code><button type="button" onClick={() => navigator.clipboard?.writeText(room.join_code)} title="Copy invite code" className="text-[#4F5F73]"><Copy size={13} /></button></div></div>}
           {room?.description && <p className="mt-2 text-xs leading-4 text-[#4F5F73]">{room.description}</p>}
         </div>
-        <div className="border-b border-[#D7DEE6] px-4 py-4"><div className="flex items-center justify-between"><h4 className="text-xs font-semibold uppercase tracking-wide text-[#4F5F73]">Members</h4><span className="text-xs text-[#4F5F73]">{members.length}</span></div><div className="mt-3 space-y-2.5">{members.slice(0, 8).map((member) => <div key={member.id} className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D7DEE6] text-xs font-semibold text-[#35475C]">{`${member.student?.first_name?.[0] || ""}${member.student?.last_name?.[0] || ""}`.toUpperCase() || "U"}</span><span className="truncate text-xs font-medium text-[#1F2D3D]">{displayName(member.student)}</span></div>)}</div></div>
+        <div className="border-b border-[#D7DEE6] px-4 py-4"><div className="flex items-center justify-between"><h4 className="text-xs font-semibold uppercase tracking-wide text-[#4F5F73]">Members</h4><span className="text-xs text-[#4F5F73]">{members.length}</span></div><div className="mt-3 space-y-2.5">{members.slice(0, 8).map((member) => <div key={member.id} className="flex items-center gap-2"><Avatar name={displayName(member.student)} avatar={member.student?.avatar} size={28} /><span className="truncate text-xs font-medium text-[#1F2D3D]">{displayName(member.student)}</span></div>)}</div></div>
         <div className="flex-1 px-4 py-4"><div className="flex items-center justify-between"><h4 className="text-xs font-semibold uppercase tracking-wide text-[#4F5F73]">Shared files</h4><span className="text-xs text-[#4F5F73]">{messages.filter((message) => message.attachment_url).length}</span></div><p className="mt-3 text-xs leading-4 text-[#94A8A1]">Documents shared in chat will be kept here.</p></div>
       </aside>
     </section>

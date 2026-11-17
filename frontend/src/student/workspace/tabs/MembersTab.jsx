@@ -36,7 +36,7 @@ const MembersTab = ({ group, members, isLeader, joinRequests, access, onLeft, on
         <ul className="space-y-2">
           {members.map((member) => (
             <li key={member.id} className="flex items-center justify-between gap-3 rounded-lg bg-[#EEF1F4] px-3 py-2">
-              <span className="flex min-w-0 items-center gap-2"><Avatar name={member.name} /><span className="truncate text-[15px] font-medium text-[#1F2D3D]">{member.name}</span></span>
+              <span className="flex min-w-0 items-center gap-2"><Avatar name={member.name} avatar={member.avatar} /><span className="truncate text-[15px] font-medium text-[#1F2D3D]">{member.name}</span></span>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[13px] font-semibold ${member.is_leader ? 'bg-[#E3EAF2] text-[#2F4A66]' : 'bg-white text-[#33445A]'}`}>{roleLabel(member)}</span>
             </li>
           ))}

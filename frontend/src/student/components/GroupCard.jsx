@@ -85,7 +85,7 @@ const GroupCard = ({ group, insight, menuOpen, onToggleMenu, onCloseMenu, onOpen
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center -space-x-2" aria-label={`${group.members_count || members.length} members`}>
-          {members.slice(0, MAX_AVATARS).map((member) => <Avatar key={member.id} name={member.name} />)}
+          {members.slice(0, MAX_AVATARS).map((member) => <Avatar key={member.id} name={member.name} avatar={member.avatar} />)}
           {members.length > MAX_AVATARS && <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-xs font-bold text-[#4F5F73] ring-2 ring-white">+{members.length - MAX_AVATARS}</span>}
           {!members.length && <span className="pl-2 text-sm text-[#4F5F73]">{group.members_count || 0} members</span>}
         </div>

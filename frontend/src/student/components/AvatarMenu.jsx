@@ -22,7 +22,11 @@ const AvatarMenu = ({ user, academic, initials, open, onToggle, onClose, onSetti
   return (
     <div className="relative" data-popover-root>
       <button type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} onClick={onToggle} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#35475C] text-sm font-bold text-white hover:bg-[#435B76]">
-        {initials}
+        {user?.avatar ? (
+          <img src={user.avatar} alt={name} className="h-full w-full rounded-full object-cover" />
+        ) : (
+          initials
+        )}
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-40 mt-2 w-64 rounded-xl border border-[#D7DEE6] bg-white p-2 shadow-lg">
