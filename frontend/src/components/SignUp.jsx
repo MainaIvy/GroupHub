@@ -316,6 +316,10 @@ const SignUp = () => {
                   semester: '',
                 }))}
               >
+                <option value="">
+                  {coursesLoading ? 'Loading academic levels...' : academicLevels.length ? 'Select Academic Level' : 'No academic levels available'}
+                </option>
+                {academicLevels.map((level) => <option key={level} value={level}>{level}</option>)}
               </select>
               {coursesError && <p id="course-load-error" className="mt-1 text-xs text-red-600">{coursesError}</p>}
             </div>
