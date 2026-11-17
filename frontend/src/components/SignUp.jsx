@@ -397,33 +397,6 @@ const SignUp = () => {
 
         <StepIndicator step={step} />
 
-        {/* Google signup + divider */}
-        {step === 1 && (
-          <div className="flex items-center gap-3 mb-6">
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => {
-                window.location.href = `${API_BASE}/api/accounts/google/login/`;
-              }}
-              className="w-full flex items-center justify-center gap-2 rounded-lg border border-[#D7DEE6] bg-white px-4 py-3 text-sm font-medium text-[#1F2D3D] hover:bg-[#EEF1F4] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" className="shrink-0">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.19v2.85C3.58 23.47 8.13 25 12 25c5.16 0 9.42-3.86 9.96-8.75H12z"/>
-                <path fill="#FBBC05" d="M12 5.38c1.61 0 3.09.59 4.23 1.56l3.15-3.15C17.08 1.48 14.37.3 12 .3 6.69.3 2.19 3.25 2.19 7.19h2.85c.44-1.73 1.97-3 3.96-3.5V5.38z"/>
-                <path fill="#EA4335" d="M12 7.19c2.48 0 4.5 1.81 4.79 4.25h-2.95c-.21-1.08-.6-2-1.29-2.72v-1.53h3.57c.86 1.32 1.34 2.88 1.34 4.56 0 2.43-1.17 4.6-3.08 6.04v-2.09c-.2-.04-.41-.07-.61-.07H7.63v2.25h3.69c-1.16 1.94-2.92 3.16-4.97 3.16-2.57 0-4.81-1.6-5.59-3.81H2.19V7.19z"/>
-              </svg>
-              Continue with Google
-            </button>
-            <div className="flex items-center gap-1.5 text-xs text-[#4F5F73]">
-              <span className="flex h-[1px] flex-1 bg-[#D7DEE6]"></span>
-              <span>or sign up with email</span>
-              <span className="flex h-[1px] flex-1 bg-[#D7DEE6]"></span>
-            </div>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Step 1: Personal Details */}
           {step === 1 && (
