@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import logo from '../assets/images/GROUPHUBLOGO.png';
+import { API_BASE } from '../apiConfig';
 
 const GoogleGIcon = ({ className = '' }) => (
   <svg className={className} viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
@@ -51,7 +52,7 @@ const Login = () => {
       const googleToken = tokenResponse?.credential || tokenResponse?.id_token || tokenResponse?.access_token || tokenResponse?.token;
       if (!googleToken) throw new Error('Missing Google token.');
 
-      const response = await fetch('/api/accounts/google/login/', {
+      const response = await fetch(`${API_BASE}/api/accounts/google/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: googleToken }),
@@ -123,7 +124,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch('/api/login/', {
+      const response = await fetch(`${API_BASE}/api/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password: passwordTrimmed }),

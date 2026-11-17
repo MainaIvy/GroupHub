@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Mail, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import logo from '../assets/images/GROUPHUBLOGO.png';
+import { API_BASE } from '../apiConfig';
 
 export default function StaffActivateEmail() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function StaffActivateEmail() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/accounts/staff/signin-email/', {
+      const response = await fetch(`${API_BASE}/api/accounts/staff/signin-email/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailTrimmed }),

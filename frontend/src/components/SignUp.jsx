@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { GraduationCap, X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { getAcademicCourses } from '../api';
+import { API_BASE } from '../apiConfig';
 import logo from '../assets/images/GROUPHUBLOGO.png';
 
 const PasswordInput = ({ id, name, placeholder, value, onChange, required, autoComplete, showPassword, toggleShowPassword }) => (
@@ -158,7 +159,7 @@ const SignUp = () => {
     signupData.studentId = studentRegistrationNumber;
 
     try {
-      const response = await fetch('/api/accounts/signup/', {
+      const response = await fetch(`${API_BASE}/api/accounts/signup/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupData)

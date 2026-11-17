@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { API_BASE } from "../apiConfig";
 import * as XLSX from "xlsx";
 import {
   Bell,
@@ -44,7 +45,7 @@ import {
   UserRound,
 } from "lucide-react";
 
-const API = "/api/accounts";
+const API = API_BASE;
 const auth = () => ({
   Authorization: "Bearer " + window.localStorage.getItem("access_token"),
 });

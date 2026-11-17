@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
+import { API_BASE } from '../apiConfig';
 
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
 
@@ -11,7 +12,7 @@ export default function LecturerSetup() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/accounts/lecturer/setup/', { headers: headers() })
+    fetch(`${API_BASE}/api/accounts/lecturer/setup/`, { headers: headers() })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Unable to load assignments.')))
       .then((data) => {
         setAssignments(data.assignments || []);

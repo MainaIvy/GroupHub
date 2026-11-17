@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, Mail, AlertCircle, CheckCircle, X } from 'lucide-react';
 import logo from '../assets/images/GROUPHUBLOGO.png';
+import { API_BASE } from '../apiConfig';
 
 export default function StaffForgotPassword() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function StaffForgotPassword() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/accounts/staff/forgot-password/', {
+      const response = await fetch(`${API_BASE}/api/accounts/staff/forgot-password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailTrimmed }),

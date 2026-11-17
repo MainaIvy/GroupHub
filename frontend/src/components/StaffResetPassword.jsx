@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Loader2, CheckCircle, AlertCircle, ShieldCheck, Eye, EyeOff, X } from 'lucide-react';
 import logo from '../assets/images/GROUPHUBLOGO.png';
+import { API_BASE } from '../apiConfig';
 
 export default function StaffResetPassword() {
   const { token } = useParams();
@@ -46,7 +47,7 @@ export default function StaffResetPassword() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/accounts/staff/reset-password/', {
+      const response = await fetch(`${API_BASE}/api/accounts/staff/reset-password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),

@@ -24,6 +24,7 @@ import {
   UserAddOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { API_BASE } from '../apiConfig';
 
 /*
   Palette (cream / black / yellow):
@@ -69,17 +70,17 @@ const tabIcons = {
 };
 
 const endpoints = {
-  Overview: '/api/accounts/admin/overview/',
-  Users: '/api/accounts/admin/users/',
-  Lecturers: '/api/accounts/admin/rosters/',
-  Import: '/api/accounts/admin/roster/template/',
-  'Import History': '/api/accounts/admin/import/history/',
-  'Units and lecturers': '/api/accounts/admin/assignments/',
-  Groups: '/api/accounts/admin/groups/',
-  Catalog: '/api/accounts/admin/catalog/',
-  Settings: '/api/accounts/admin/settings/',
-  Announcements: '/api/accounts/admin/announcements/',
-  'Audit log': '/api/accounts/admin/audit/',
+  Overview: `${API_BASE}/api/accounts/admin/overview/`,
+  Users: `${API_BASE}/api/accounts/admin/users/`,
+  Lecturers: `${API_BASE}/api/accounts/admin/rosters/`,
+  Import: `${API_BASE}/api/accounts/admin/roster/template/`,
+  'Import History': `${API_BASE}/api/accounts/admin/import/history/`,
+  'Units and lecturers': `${API_BASE}/api/accounts/admin/assignments/`,
+  Groups: `${API_BASE}/api/accounts/admin/groups/`,
+  Catalog: `${API_BASE}/api/accounts/admin/catalog/`,
+  Settings: `${API_BASE}/api/accounts/admin/settings/`,
+  Announcements: `${API_BASE}/api/accounts/admin/announcements/`,
+  'Audit log': `${API_BASE}/api/accounts/admin/audit/`,
 };
 
 const ui = {
@@ -167,16 +168,16 @@ export default function AdminDashboard() {
       let payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || payload.detail || 'Unable to load administrator data.');
       if (activeTab === 'Overview') {
-        const unassignedResponse = await fetch('/api/accounts/admin/assignments/unassigned/', { headers: tokenHeaders() });
+        const unassignedResponse = await fetch(`${API_BASE}/api/accounts/admin/assignments/unassigned/`, { headers: tokenHeaders() });
         payload.unassigned = await unassignedResponse.json().catch(() => []);
       }
       if (activeTab === 'Units and lecturers') {
         const [catalogResponse, usersResponse, pendingResponse, unassignedResponse, termsResponse] = await Promise.all([
-          fetch('/api/accounts/admin/catalog/', { headers: tokenHeaders() }),
-          fetch('/api/accounts/admin/users/?user_type=lecturer', { headers: tokenHeaders() }),
-          fetch('/api/accounts/admin/assignments/pending/', { headers: tokenHeaders() }),
-          fetch('/api/accounts/admin/assignments/unassigned/', { headers: tokenHeaders() }),
-          fetch('/api/accounts/admin/terms/', { headers: tokenHeaders() }),
+          fetch(`${API_BASE}/api/accounts/admin/catalog/`, { headers: tokenHeaders() }),
+          fetch(`${API_BASE}/api/accounts/admin/users/?user_type=lecturer`, { headers: tokenHeaders() }),
+          fetch(`${API_BASE}/api/accounts/admin/assignments/pending/`, { headers: tokenHeaders() }),
+          fetch(`${API_BASE}/api/accounts/admin/assignments/unassigned/`, { headers: tokenHeaders() }),
+          fetch(`${API_BASE}/api/accounts/admin/terms/`, { headers: tokenHeaders() }),
         ]);
         payload = {
           assignments: payload,
@@ -188,15 +189,15 @@ export default function AdminDashboard() {
         };
       }
       if (activeTab === 'Lecturers') {
-        const rostersResponse = await fetch('/api/accounts/admin/rosters/', { headers: tokenHeaders() });
+        const rostersResponse = await fetch(`${API_BASE}/api/accounts/admin/rosters/`, { headers: tokenHeaders() });
         payload = await rostersResponse.json().catch(() => []);
       }
       if (activeTab === 'Import History') {
-        const historyResponse = await fetch('/api/accounts/admin/import/history/', { headers: tokenHeaders() });
+        const historyResponse = await fetch(`${API_BASE}/api/accounts/admin/import/history/`, { headers: tokenHeaders() });
         payload = await historyResponse.json().catch(() => []);
       }
       if (activeTab === 'Units') {
-        const unassignedResponse = await fetch('/api/accounts/admin/assignments/unassigned/', { headers: tokenHeaders() });
+        const unassignedResponse = await fetch(`${API_BASE}/api/accounts/admin/assignments/unassigned/`, { headers: tokenHeaders() });
         payload = await unassignedResponse.json().catch(() => []);
       }
       setData(payload);
@@ -238,7 +239,7 @@ export default function AdminDashboard() {
   };
 
   const downloadExport = async (type) => {
-    const response = await fetch(`/api/accounts/admin/export/${type}/`, { headers: tokenHeaders() });
+    const response = await fetch(`${API_BASE}/api/accounts/admin/export/${type}/`, { headers: tokenHeaders() });
     if (!response.ok) {
       setState({ loading: false, error: 'Export failed.' });
       return;
@@ -373,7 +374,7 @@ export default function AdminDashboard() {
         <button
           type="button"
           onClick={() =>
-            action('/api/accounts/admin/catalog/import/', { method: 'POST', confirm: 'Import the Excel catalogue now?' })
+            action(`${API_BASE}/api/accounts/admin/catalog/import/`, { method: 'POST', confirm: 'Import the Excel catalogue now?' })
           }
           className={ui.primary}
         >
@@ -434,7 +435,7 @@ export default function AdminDashboard() {
                 {row.status === 'pending' && (
                   <button
                     type="button"
-                    onClick={() => action(`/api/accounts/admin/users/${row.id}/approve/`, { method: 'POST' })}
+                    onClick={() => action(`${API_BASE}/api/accounts/admin/users/${row.id}/approve/`, { method: 'POST' })}
                     className="rounded-lg bg-[#FBF0C9] px-3 py-1.5 text-xs font-semibold text-[#1C1C1C] hover:bg-[#F5E3A5]"
                   >
                     Approve
@@ -443,7 +444,7 @@ export default function AdminDashboard() {
                 {row.status === 'suspended' ? (
                   <button
                     type="button"
-                    onClick={() => action(`/api/accounts/admin/users/${row.id}/reactivate/`, { method: 'POST' })}
+                    onClick={() => action(`${API_BASE}/api/accounts/admin/users/${row.id}/reactivate/`, { method: 'POST' })}
                     className="rounded-lg bg-[#E3F1E8] px-3 py-1.5 text-xs font-semibold text-[#2F7A4B] hover:bg-[#D2E8DA]"
                   >
                     Reactivate
@@ -452,7 +453,7 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() =>
-                      action(`/api/accounts/admin/users/${row.id}/suspend/`, { method: 'POST', confirm: 'Suspend this user?' })
+                      action(`${API_BASE}/api/accounts/admin/users/${row.id}/suspend/`, { method: 'POST', confirm: 'Suspend this user?' })
                     }
                     className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
                   >
@@ -649,7 +650,7 @@ function AssignmentManager({ data, onAction, onReload }) {
   const units = data.catalog?.units || [];
   const addAssignment = (event) => {
     event.preventDefault();
-    onAction('/api/accounts/admin/assignments/', {
+    onAction(`${API_BASE}/api/accounts/admin/assignments/`, {
       method: 'POST',
       body: JSON.stringify(form),
     });
@@ -721,14 +722,14 @@ function AssignmentManager({ data, onAction, onReload }) {
             <div key={term.id} className="flex items-center justify-between gap-2 rounded-xl border border-[#EFEAE3] px-3 py-2 text-sm">
               <span className="font-semibold text-[#1C1C1C]">{term.name} {term.is_current && <span className="ml-2 rounded-full bg-[#3F9B67] px-2 py-0.5 text-[10px] text-white">Current</span>}</span>
               {!term.is_current && (
-                <button type="button" onClick={() => onAction(`/api/accounts/admin/terms/${term.id}/make_current/`, { method: 'POST' })} className="rounded-lg border border-[#DDD6CC] px-3 py-1 text-xs font-semibold">Make current</button>
+                <button type="button" onClick={() => onAction(`${API_BASE}/api/accounts/admin/terms/${term.id}/make_current/`, { method: 'POST' })} className="rounded-lg border border-[#DDD6CC] px-3 py-1 text-xs font-semibold">Make current</button>
               )}
             </div>
           ))}
         </div>
         <button
           type="button"
-          onClick={() => onAction('/api/accounts/admin/rollover/', { method: 'POST', body: JSON.stringify({ confirm: true }), confirm: 'Roll over the current term? Students advance a semester, groups are archived, and approved assignments are copied as pending.' })}
+          onClick={() => onAction(`${API_BASE}/api/accounts/admin/rollover/`, { method: 'POST', body: JSON.stringify({ confirm: true }), confirm: 'Roll over the current term? Students advance a semester, groups are archived, and approved assignments are copied as pending.' })}
           className={`mt-4 ${ui.primary}`}
         >
           Roll over current term
@@ -762,7 +763,7 @@ function AssignmentManager({ data, onAction, onReload }) {
                   <button
                     type="button"
                     onClick={() =>
-                      onAction(`/api/accounts/admin/assignments/${row.id}/`, {
+                      onAction(`${API_BASE}/api/accounts/admin/assignments/${row.id}/`, {
                         method: 'DELETE',
                         confirm: 'Remove this unit assignment?',
                       })
@@ -824,7 +825,7 @@ function UserCreateForm({ onCreated }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch('/api/accounts/admin/catalog/', { headers: tokenHeaders() })
+    fetch(`${API_BASE}/api/accounts/admin/catalog/`, { headers: tokenHeaders() })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Unable to load the academic catalogue.'))))
       .then(setCatalog)
       .catch((requestError) => setError(requestError.message));
@@ -865,7 +866,7 @@ function UserCreateForm({ onCreated }) {
     setSaving(true);
     setError('');
     const payload = { ...form, user_type: role, assignments };
-    const response = await fetch('/api/accounts/admin/users/create/', {
+    const response = await fetch(`${API_BASE}/api/accounts/admin/users/create/`, {
       method: 'POST',
       headers: { ...tokenHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -1056,7 +1057,7 @@ function LecturersManager({ onReload }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch('/api/accounts/admin/rosters/', { headers: tokenHeaders() })
+    fetch(`${API_BASE}/api/accounts/admin/rosters/`, { headers: tokenHeaders() })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load roster'))))
       .then(setRoster)
       .catch((e) => setError(e.message));
@@ -1066,7 +1067,7 @@ function LecturersManager({ onReload }) {
     e.preventDefault();
     setError('');
     setSaving(true);
-    const url = editingId ? `/api/accounts/admin/rosters/${editingId}/` : '/api/accounts/admin/rosters/create/';
+    const url = editingId ? `${API_BASE}/api/accounts/admin/rosters/${editingId}/` : `${API_BASE}/api/accounts/admin/rosters/create/`;
     const method = editingId ? 'PATCH' : 'POST';
     try {
       const response = await fetch(url, {
@@ -1096,7 +1097,7 @@ function LecturersManager({ onReload }) {
   const resendInstructions = async (item) => {
     if (!window.confirm(`Resend sign-in instructions to ${item.email}?`)) return;
     try {
-      await fetch('/api/accounts/admin/rosters/resend/', {
+      await fetch(`${API_BASE}/api/accounts/admin/rosters/resend/`, {
         method: 'POST',
         headers: { ...tokenHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: item.email }),
@@ -1110,7 +1111,7 @@ function LecturersManager({ onReload }) {
   const deactivate = async (item) => {
     if (!window.confirm(`Deactivate ${item.full_name}?`)) return;
     try {
-      await fetch(`/api/accounts/admin/rosters/${item.id}/`, {
+      await fetch(`${API_BASE}/api/accounts/admin/rosters/${item.id}/`, {
         method: 'PATCH',
         headers: { ...tokenHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'deactivated' }),
@@ -1238,7 +1239,7 @@ function GroupsManager({ data, onAction }) {
         </div>
         <button
           type="button"
-          onClick={() => onAction('/api/accounts/admin/groups/create/', { method: 'POST', body: JSON.stringify({ name: 'New Group' }) })}
+          onClick={() => onAction(`${API_BASE}/api/accounts/admin/groups/create/`, { method: 'POST', body: JSON.stringify({ name: 'New Group' }) })}
           className={ui.primary}
         >
           ＋ Create group
@@ -1311,7 +1312,7 @@ function GroupsManager({ data, onAction }) {
                     {!row.locked && (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); onAction(`/api/accounts/admin/groups/${row.id}/lock/`, { method: 'POST', confirm: 'Lock this group?' }) }}
+                        onClick={(e) => { e.stopPropagation(); onAction(`${API_BASE}/api/accounts/admin/groups/${row.id}/lock/`, { method: 'POST', confirm: 'Lock this group?' }) }}
                         className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
                       >
                         Lock
@@ -1320,7 +1321,7 @@ function GroupsManager({ data, onAction }) {
                     {row.locked && (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); onAction(`/api/accounts/admin/groups/${row.id}/lock/`, { method: 'DELETE', confirm: 'Unlock this group?' }) }}
+                        onClick={(e) => { e.stopPropagation(); onAction(`${API_BASE}/api/accounts/admin/groups/${row.id}/lock/`, { method: 'DELETE', confirm: 'Unlock this group?' }) }}
                         className="rounded-lg bg-[#E3F1E8] px-3 py-1.5 text-xs font-semibold text-[#2F7A4B] hover:bg-[#D2E8DA]"
                       >
                         Unlock
@@ -1328,7 +1329,7 @@ function GroupsManager({ data, onAction }) {
                     )}
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onAction(`/api/accounts/admin/groups/${row.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' }) }}
+                      onClick={(e) => { e.stopPropagation(); onAction(`${API_BASE}/api/accounts/admin/groups/${row.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' }) }}
                       className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
                     >
                       Archive
@@ -1385,7 +1386,7 @@ function GroupsManager({ data, onAction }) {
                 <span className="font-mono text-[#1C1C1C]">{openGroup.join_code}</span>
                 <button
                   type="button"
-                  onClick={() => onAction(`/api/accounts/admin/groups/${openGroup.id}/regenerate-code/`, { method: 'POST' })}
+                  onClick={() => onAction(`${API_BASE}/api/accounts/admin/groups/${openGroup.id}/regenerate-code/`, { method: 'POST' })}
                   className="rounded-lg bg-[#1C1C1C] px-3 py-1 text-xs font-semibold text-white"
                 >
                   Regenerate
@@ -1396,7 +1397,7 @@ function GroupsManager({ data, onAction }) {
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                onClick={() => onAction(`/api/accounts/admin/groups/${openGroup.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' })}
+                onClick={() => onAction(`${API_BASE}/api/accounts/admin/groups/${openGroup.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' })}
                 className="rounded-lg bg-[#FBE4E6] px-4 py-2 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
               >
                 Archive group
@@ -1440,7 +1441,7 @@ function ImportManager({ onReload }) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', mode);
-      const response = await fetch('/api/accounts/admin/roster/import/preview/', { method: 'POST', headers: tokenHeaders(), body: formData });
+      const response = await fetch(`${API_BASE}/api/accounts/admin/roster/import/preview/`, { method: 'POST', headers: tokenHeaders(), body: formData });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Preview failed');
       setPreview(data);
@@ -1460,7 +1461,7 @@ function ImportManager({ onReload }) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', mode);
-      const response = await fetch('/api/accounts/admin/roster/import/commit/', { method: 'POST', headers: tokenHeaders(), body: formData });
+      const response = await fetch(`${API_BASE}/api/accounts/admin/roster/import/commit/`, { method: 'POST', headers: tokenHeaders(), body: formData });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Commit failed');
       setSuccess('Import committed successfully.');
@@ -1479,7 +1480,7 @@ function ImportManager({ onReload }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h3 className="font-semibold text-[#1C1C1C]">Import Lecturer Roster</h3>
-        <a href="/api/accounts/admin/roster/template/" className={ui.ghost} download>Download CSV template</a>
+        <a href={`${API_BASE}/api/accounts/admin/roster/template/`} className={ui.ghost} download>Download CSV template</a>
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm">
@@ -1571,7 +1572,7 @@ function ImportHistoryManager({ onReload }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/accounts/admin/import/history/', { headers: tokenHeaders() })
+    fetch(`${API_BASE}/api/accounts/admin/import/history/`, { headers: tokenHeaders() })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load history'))))
       .then(setHistory)
       .catch((e) => console.error(e))
@@ -1581,7 +1582,7 @@ function ImportHistoryManager({ onReload }) {
   const handleUndo = async (batch) => {
     if (!window.confirm(`Undo import "${batch.file_name}"? This will end-date the assignments from this batch.`)) return;
     try {
-      await fetch(`/api/accounts/admin/import/${batch.id}/undo/`, { method: 'POST', headers: tokenHeaders() });
+      await fetch(`${API_BASE}/api/accounts/admin/import/${batch.id}/undo/`, { method: 'POST', headers: tokenHeaders() });
       onReload();
     } catch {
       alert('Failed to undo import.');
@@ -1643,7 +1644,7 @@ function UnitsManager() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/accounts/admin/assignments/unassigned/', { headers: tokenHeaders() })
+    fetch(`${API_BASE}/api/accounts/admin/assignments/unassigned/`, { headers: tokenHeaders() })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load units'))))
       .then(setUnassigned)
       .catch((e) => console.error(e))

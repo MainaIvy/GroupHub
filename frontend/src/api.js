@@ -17,7 +17,7 @@ async function refreshAccessToken() {
   if (!refresh) throw new Error('No refresh token is available.');
 
   if (!refreshRequest) {
-    refreshRequest = axios.post('/api/accounts/jwt/refresh/', { refresh })
+    refreshRequest = api.post('/api/accounts/jwt/refresh/', { refresh })
       .then(({ data }) => {
         if (!data?.access) throw new Error('Token refresh returned no access token.');
         localStorage.setItem('access_token', data.access);
