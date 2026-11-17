@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, GraduationCap, X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, ArrowLeft, CheckCircle2, Clock } from 'lucide-react';
+import { ChevronRight, ChevronLeft, GraduationCap, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, ArrowLeft, CheckCircle2, Clock } from 'lucide-react';
 import { getAcademicCourses } from '../api';
 import { API_BASE } from '../apiConfig';
 import logo from '../assets/images/GROUPHUBLOGO.png';
@@ -361,7 +361,10 @@ const SignUp = () => {
                     step1Complete ? 'bg-[#35475C] text-white hover:bg-[#435B76]' : 'bg-[#EEF1F4] text-[#4F5F73] cursor-not-allowed'
                   }`}
                 >
-                  Next <ChevronRight size={14} className="ml-2" />
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Next</span>
+                    <ChevronRight size={14} />
+                  </div>
                 </button>
               </div>
             </>
@@ -482,7 +485,10 @@ const SignUp = () => {
                   onClick={() => goToStep(1)}
                   className="w-auto rounded-lg border border-[#D7DEE6] px-4 py-3 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] hover:border-[#B7C3D2] transition-colors"
                 >
-                  <X size={14} className="mr-2" /> Back
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Back</span>
+                    <ChevronLeft size={14} />
+                  </div>
                 </button>
                 <button
                   type="button"
@@ -492,7 +498,10 @@ const SignUp = () => {
                     step2Complete ? 'bg-[#35475C] text-white hover:bg-[#435B76]' : 'bg-[#EEF1F4] text-[#4F5F73] cursor-not-allowed'
                   }`}
                 >
-                  Next <ChevronRight size={14} className="ml-2" />
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Next</span>
+                    <ChevronRight size={14} />
+                  </div>
                 </button>
               </div>
             </>
@@ -577,7 +586,10 @@ const SignUp = () => {
                   onClick={() => goToStep(2)}
                   className="w-auto rounded-lg border border-[#D7DEE6] px-4 py-3 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] hover:border-[#B7C3D2] transition-colors"
                 >
-                  <X size={14} className="mr-2" /> Back
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Back</span>
+                    <ChevronLeft size={14} />
+                  </div>
                 </button>
                 <button
                   type="submit"
