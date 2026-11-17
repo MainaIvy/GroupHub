@@ -204,7 +204,13 @@ const SignUp = () => {
 
   const uniqueUniversities = useMemo(() => [...new Set(academicCourses.map((c) => c.university).filter(Boolean))], [academicCourses]);
 
-  const setField = (name, value) => {
+  useEffect(() => {
+    if (uniqueUniversities.length === 1 && !formData.university) {
+      setField('university', uniqueUniversities[0]);
+    }
+  }, [uniqueUniversities, formData.university, setField]);
+
+  const setField = useCallback((name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => {
       const next = { ...prev };
@@ -212,7 +218,7 @@ const SignUp = () => {
       return next;
     });
     setSignupError('');
-  };
+  }, []);
 
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
@@ -454,25 +460,24 @@ const SignUp = () => {
                   />
                   {fieldErrors.regNumber && <FieldError id="error-regNumber" message={fieldErrors.regNumber} />}
                 </div>
-                {uniqueUniversities.length > 1 && (
-                  <div>
-                    <label htmlFor="university" className="block text-xs font-medium text-[#1F2D3D] mb-1">
-                      University/Institution <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      id="university"
-                      name="university"
-                      required
-                      className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
-                      value={formData.university}
-                      onChange={handleChange}
-                    >
-                      <option value="">Select University/Institution</option>
-                      {uniqueUniversities.map((u) => <option key={u} value={u}>{u}</option>)}
-                    </select>
-                    {fieldErrors.university && <FieldError id="error-university" message={fieldErrors.university} />}
-                  </div>
-                )}
+                <div>
+                  <label htmlFor="university" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                    University/Institution <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="university"
+                    name="university"
+                    required
+                    disabled={uniqueUniversities.length <= 1}
+                    className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+                    value={formData.university}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select University/Institution</option>
+                    {uniqueUniversities.map((u) => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                  {fieldErrors.university && <FieldError id="error-university" message={fieldErrors.university} />}
+                </div>
               </div>
               <div className="space-y-1">
                 <PasswordInput
