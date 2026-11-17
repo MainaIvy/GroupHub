@@ -38,6 +38,7 @@ const SignUp = () => {
     academicLevel: '',
     courseId: '',
     yearOfStudy: '',
+    semester: '',
     password: '',
     confirmPassword: '',
     studentId: '',
@@ -123,13 +124,14 @@ const SignUp = () => {
       unit.academic_level?.trim() === formData.academicLevel
       && String(unit.year_of_study) === studentYearOfStudy
     ));
-    const studentSemester = studentLevelUnits
+    const studentSemesters = [...new Set(studentLevelUnits
       .map((unit) => Number(unit.semester))
       .filter((semester) => Number.isInteger(semester) && semester > 0)
-      .sort((a, b) => a - b)[0];
+      .sort((a, b) => a - b))];
+    const studentSemester = formData.semester || studentSemesters[0];
 
-    if (!formData.academicLevel || !formData.courseId || !studentYearOfStudy || !studentSemester) {
-      setSignupError('Select an academic level, course, and year with available units.');
+    if (!formData.academicLevel || !formData.courseId || !studentYearOfStudy || !formData.semester) {
+      setSignupError('Select an academic level, course, year, and semester with available units.');
       return;
     }
 
@@ -152,7 +154,7 @@ const SignUp = () => {
     signupData.academic_level = formData.academicLevel;
     signupData.yearOfStudy = studentYearOfStudy;
     signupData.year_of_study = studentYearOfStudy;
-    signupData.semester = studentSemester;
+    signupData.semester = Number(formData.semester);
     signupData.registration_number = studentRegistrationNumber;
     signupData.registrationNumber = studentRegistrationNumber;
     signupData.regNumber = studentRegistrationNumber;
@@ -308,6 +310,7 @@ const SignUp = () => {
                   academicLevel: event.target.value,
                   courseId: '',
                   yearOfStudy: '',
+                  semester: '',
                 }))}
               >
                 <option value="">
@@ -332,6 +335,7 @@ const SignUp = () => {
                   ...current,
                   yearOfStudy: event.target.value,
                   courseId: '',
+                  semester: '',
                 }))}
               >
                 <option value="">Select Year of Study</option>
@@ -366,6 +370,31 @@ const SignUp = () => {
             {!coursesLoading && formData.academicLevel && studentCourses.length === 0 && !coursesError && (
               <p className="mt-1 text-xs text-[#9AA9B8]">No courses are available for this academic level and year.</p>
             )}
+          </div>
+
+          <div>
+            <label htmlFor="semester" className="block text-xs font-medium text-[#1F2D3D] mb-1">
+              Semester <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="semester"
+              name="semester"
+              required
+              disabled={!formData.academicLevel || !formData.courseId || studentSemesters.length === 0}
+              className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              value={formData.semester}
+              onChange={(event) => setFormData((current) => ({
+                ...current,
+                semester: event.target.value,
+              }))}
+            >
+              <option value="">
+                {studentSemesters.length ? 'Select Semester' : 'No semesters available'}
+              </option>
+              {studentSemesters.map((semester) => (
+                <option key={semester} value={semester}>Semester {semester}</option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
