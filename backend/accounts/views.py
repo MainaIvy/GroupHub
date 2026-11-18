@@ -3156,13 +3156,28 @@ def create_group_view(request):
     course = data.get('course')
     year_of_study = data.get('year_of_study')
     description = data.get('description', '')
-    unit = None
+    unit_id = data.get('unit_id')
     invited_usernames = data.get('invite_usernames') or []
     if isinstance(invited_usernames, str):
         invited_usernames = invited_usernames.split(',')
     invited_usernames = list(dict.fromkeys(
         str(value).strip().upper() for value in invited_usernames if str(value).strip()
     ))
+    if not unit_id:
+        return Response({'error': 'Select a unit for this group.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        unit = Unit.objects.select_related('course').get(pk=unit_id)
+    except (Unit.DoesNotExist, TypeError, ValueError):
+        return Response({'error': 'Select a valid unit'}, status=status.HTTP_400_BAD_REQUEST)
+    if user.user_type == 'student' and user.enrolled_course_id and unit.course_id != user.enrolled_course_id:
+        return Response({'error': 'Select a unit from your enrolled programme'}, status=status.HTTP_403_FORBIDDEN)
+    if user.user_type == 'lecturer' and not approved_units_for_lecturer(
+        user, current_term()
+    ).filter(pk=unit.pk).exists():
+        return Response({'error': 'Select one of your assigned units'}, status=status.HTTP_403_FORBIDDEN)
+    course = unit.course.name
+    year_of_study = unit.year_of_study
 
     try:
         max_members = int(data.get('max_members'))
@@ -3170,20 +3185,6 @@ def create_group_view(request):
             raise ValueError
     except (TypeError, ValueError):
         return Response({'error': 'Choose a group size of at least 2 members.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if data.get('unit_id'):
-        try:
-            unit = Unit.objects.select_related('course').get(pk=data.get('unit_id'))
-        except (Unit.DoesNotExist, TypeError, ValueError):
-            return Response({'error': 'Select a valid unit'}, status=status.HTTP_400_BAD_REQUEST)
-        if user.user_type == 'student' and user.enrolled_course_id and unit.course_id != user.enrolled_course_id:
-            return Response({'error': 'Select a unit from your enrolled programme'}, status=status.HTTP_400_BAD_REQUEST)
-        if user.user_type == 'lecturer' and not approved_units_for_lecturer(
-            user, current_term()
-        ).filter(pk=unit.pk).exists():
-            return Response({'error': 'Select one of your assigned units'}, status=status.HTTP_403_FORBIDDEN)
-        course = unit.course.name
-        year_of_study = unit.year_of_study
 
     if not name or not course or not year_of_study:
         return Response({'error': 'Name, course, and year of study are required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -3195,9 +3196,7 @@ def create_group_view(request):
     except (TypeError, ValueError):
         return Response({'error': 'Year of study must be between 1 and 4'}, status=status.HTTP_400_BAD_REQUEST)
 
-    course_record = unit.course if unit else Course.objects.filter(
-        models.Q(code__iexact=str(course).strip()) | models.Q(name__iexact=str(course).strip())
-    ).first()
+    course_record = unit.course
     invitees = []
     for username in invited_usernames:
         invitee = User.objects.filter(username__iexact=username, user_type='student').first()
