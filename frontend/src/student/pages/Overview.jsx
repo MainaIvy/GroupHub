@@ -10,6 +10,7 @@ import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
 import { describeActivity, weightText } from '../workspace/taskUtils';
 import { timeAgo } from '../utils';
+import { MIN_BALANCE_POINTS } from '../health';
 const PANEL = 'rounded-xl border border-[#D5DDE6] bg-white shadow-sm';
 const PANEL_HEAD = 'mb-3 flex items-center justify-between gap-2';
 const PANEL_TITLE = 'text-base font-bold text-[#1F2D3D]';
