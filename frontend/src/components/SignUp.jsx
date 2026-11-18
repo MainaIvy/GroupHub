@@ -204,12 +204,6 @@ const SignUp = () => {
 
   const uniqueUniversities = useMemo(() => [...new Set(academicCourses.map((c) => c.university).filter(Boolean))], [academicCourses]);
 
-  useEffect(() => {
-    if (uniqueUniversities.length === 1 && !formData.university) {
-      setField('university', uniqueUniversities[0]);
-    }
-  }, [uniqueUniversities, formData.university, setField]);
-
   const setField = useCallback((name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => {
@@ -219,6 +213,12 @@ const SignUp = () => {
     });
     setSignupError('');
   }, []);
+
+  useEffect(() => {
+    if (uniqueUniversities.length === 1 && !formData.university) {
+      setField('university', uniqueUniversities[0]);
+    }
+  }, [uniqueUniversities, formData.university, setField]);
 
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
