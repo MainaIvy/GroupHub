@@ -1334,11 +1334,29 @@ def student_dashboard(request):
 
         academic = None
         units_data = []
+        term = current_term()
         enrolled_course = user.enrolled_course
+
+        # Determine the student's course consistently: prefer the enrolled_course FK,
+        # then derive it from current-term enrolments, then fall back to free-text.
+        if enrolled_course is None and term is not None:
+            enrollment = (
+                StudentEnrollment.objects.filter(student=user, semester=term)
+                .select_related('unit__course')
+                .first()
+            )
+            if enrollment:
+                enrolled_course = enrollment.unit.course
+
         if enrolled_course is None and user.course:
-            enrolled_course = Course.objects.filter(
-                models.Q(code__iexact=user.course) | models.Q(name__iexact=user.course)
-            ).first()
+            enrolled_course = (
+                Course.objects.filter(
+                    models.Q(code__iexact=user.course) | models.Q(name__iexact=user.course)
+                )
+                .order_by('id')
+                .first()
+            )
+
         if enrolled_course:
             academic = {
                 'course_code': enrolled_course.code,
@@ -1351,7 +1369,6 @@ def student_dashboard(request):
             except (TypeError, ValueError):
                 year_of_study = None
             if year_of_study and user.semester:
-                term = current_term()
                 unit_rows = list(Unit.objects.filter(
                     course=enrolled_course,
                     year_of_study=year_of_study,
