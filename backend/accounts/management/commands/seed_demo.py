@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 from accounts.balance import calculate_group_balance
@@ -99,8 +99,19 @@ TASK_TITLES = (
 class Command(BaseCommand):
     help = 'Create or refresh the GroupHub demonstration groups and activity.'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='Remove all demo data created by seed_demo (demo users, courses, units, groups, and related records).',
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
+        if options.get('clear'):
+            self._clear_demo_data()
+            return
+
         # Ensure courses exist
         self._ensure_courses()
 
@@ -146,6 +157,43 @@ class Command(BaseCommand):
                 code=code,
                 defaults={'name': name, 'department': dept},
             )
+
+    def _clear_demo_data(self):
+        """Remove all demo data created by seed_demo.
+
+        Deletes demo groups (by description), demo users (username starts
+        with 'demo_'), demo courses (CS, SE), demo units (CS201, SE201),
+        in dependency order to respect foreign-key constraints. The demo
+        term is left in place if real users are enrolled in it.
+        """
+        deleted_groups = Group.objects.filter(description=DEMO_GROUP_DESCRIPTION).count()
+        Group.objects.filter(description=DEMO_GROUP_DESCRIPTION).delete()
+
+        deleted_users = User.objects.filter(username__startswith='demo_').count()
+        User.objects.filter(username__startswith='demo_').delete()
+
+        deleted_units = Unit.objects.filter(code__in=('CS201', 'SE201')).count()
+        Unit.objects.filter(code__in=('CS201', 'SE201')).delete()
+
+        deleted_courses = Course.objects.filter(code__in=('CS', 'SE')).count()
+        Course.objects.filter(code__in=('CS', 'SE')).delete()
+
+        # Try to remove the demo term only if nothing real references it.
+        try:
+            deleted_terms = Semester.objects.filter(
+                models.Q(name='Y2S1') | models.Q(year=2, semester=1),
+            ).count()
+            Semester.objects.filter(
+                models.Q(name='Y2S1') | models.Q(year=2, semester=1),
+            ).delete()
+        except models.ProtectedError:
+            deleted_terms = 0
+
+        self.stdout.write(self.style.SUCCESS(
+            f'Demo data cleared: {deleted_groups} groups, '
+            f'{deleted_users} users, {deleted_courses} courses, '
+            f'{deleted_units} units, {deleted_terms} terms removed.'
+        ))
 
     def _ensure_current_term(self):
         # Find existing semester with year=2, semester=1
