@@ -346,12 +346,21 @@ def create_join_request(request, group_id):
         if group.join_requests.filter(student=user, status='pending').exists():
             return _error('You have already asked to join this group.')
         join_request = JoinRequest.objects.create(group=group, student=user)
-        for supervisor in supervising_lecturers(group):
+        notified = set()
+        if group.leader_id and group.leader_id != user.id:
             _notify(
-                supervisor, 'join_request', 'Join request',
+                group.leader, 'join_request', 'Join request',
                 f'{_display_name(user)} asked to join {group.name}.',
                 related_group=group, related_join_request=join_request,
             )
+            notified.add(group.leader_id)
+        for supervisor in supervising_lecturers(group):
+            if supervisor.id not in notified:
+                _notify(
+                    supervisor, 'join_request', 'Join request',
+                    f'{_display_name(user)} asked to join {group.name}.',
+                    related_group=group, related_join_request=join_request,
+                )
     return Response({'id': join_request.id, 'status': join_request.status}, status=status.HTTP_201_CREATED)
 
 
