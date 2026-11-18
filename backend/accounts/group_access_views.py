@@ -190,7 +190,7 @@ def unit_open_groups(request, unit_id):
     my_memberships = dict(GroupMembership.objects.filter(
         student=request.user, group__unit=unit
     ).values_list('group_id', 'id'))
-    groups = Group.objects.filter(unit=unit, is_archived=False).select_related('lecturer').order_by('name')
+    groups = Group.objects.filter(unit=unit, is_archived=False).select_related('lecturer', 'leader').order_by('name')
     data = []
     for group in groups:
         count = group.members_count
@@ -203,7 +203,7 @@ def unit_open_groups(request, unit_id):
             'name': group.name,
             'members_count': count,
             'max_members': group.max_members,
-            'leader_name': _display_name(group.lecturer),
+            'leader_name': _display_name(group.leader or group.lecturer),
             'is_member': is_member,
             'is_full': is_full,
             'is_locked': is_locked,

@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ import re
 
 from .academic import approved_units_for_lecturer, current_term
 from .services.insights import compute_group_insights
-from .models import Group, GroupMembership, StudentEnrollment, Unit, User
+from .models import Group, GroupMembership, StudentEnrollment, Unit, UnitAssignment, User
 
 
 @api_view(['GET'])
@@ -36,6 +37,17 @@ def get_current_semester_units(request):
 
         qs = Unit.objects.select_related('course')
         term = current_term()
+        lecturer_map = {}
+        if term is not None:
+            today = timezone.now().date()
+            assignments = UnitAssignment.objects.filter(
+                term=term, status='approved',
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=today)
+            ).select_related('lecturer', 'unit')
+            for a in assignments:
+                name = f'{a.lecturer.first_name} {a.lecturer.last_name}'.strip() or a.lecturer.username
+                lecturer_map.setdefault(a.unit_id, []).append(name)
         if term is not None and StudentEnrollment.objects.filter(student=user, semester=term).exists():
             qs = qs.filter(student_enrollments__student=user, student_enrollments__semester=term)
         else:
@@ -58,6 +70,7 @@ def get_current_semester_units(request):
                 'course_name': unit.course.name,
                 'year_of_study': unit.year_of_study,
                 'semester': unit.semester,
+                'lecturer': lecturer_map.get(unit.id, []),
             }
             for unit in qs.order_by('course__code', 'code')
         ]

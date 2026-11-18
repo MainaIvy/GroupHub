@@ -29,6 +29,31 @@ from accounts.models import (
 )
 
 
+SMALL_WORDS = {'and', 'of', 'the', 'in', 'to', 'for', 'with'}
+ACRONYMS = {'ICT', 'IT', 'HIV', 'AIDS', 'CCNA', 'SQL', 'UI', 'UX', 'HR', 'GIS', 'OOP', 'CAD'}
+
+
+def normalise_unit_name(name):
+    """Normalise a unit display name.
+
+    - Acronyms are always uppercase (ICT, IT, SQL, etc.)
+    - Small words (and, of, the, in, to, for, with) are lowercase
+      unless they are the first word.
+    - All other words are title-cased.
+    """
+    words = str(name).split()
+    out = []
+    for i, word in enumerate(words):
+        upper = word.upper()
+        if upper in ACRONYMS:
+            out.append(upper)
+        elif i == 0 or word.lower() not in SMALL_WORDS:
+            out.append(word[:1].upper() + word[1:].lower())
+        else:
+            out.append(word.lower())
+    return ' '.join(out)
+
+
 DEMO_STUDENTS = (
     # Programme 1: BSc Computer Science
     ('demo_student_amina', 'Amina', 'Otieno', 'BSc Computer Science', '2', '1'),
@@ -155,7 +180,7 @@ class Command(BaseCommand):
             code='CS201',
             course=cs_course,
             defaults={
-                'name': 'Software Engineering Fundamentals',
+                'name': normalise_unit_name('Software Engineering Fundamentals'),
                 'year_of_study': 2,
                 'semester': 1,
                 'academic_level': 'undergraduate',
@@ -169,7 +194,7 @@ class Command(BaseCommand):
             code='SE201',
             course=se_course,
             defaults={
-                'name': 'Advanced Software Architecture',
+                'name': normalise_unit_name('Advanced Software Architecture'),
                 'year_of_study': 2,
                 'semester': 1,
                 'academic_level': 'undergraduate',

@@ -37,7 +37,7 @@ from .access import can_view_group, can_manage_group
 from .group_access_views import _is_enrolled_in_unit, _join_block, _unit_group_block
 from .services.insights import compute_group_insights, get_group_insights_for_user
 from .balance import calculate_group_balance
-from .planning_rules import board_status, weight_change_block, weight_confirm_block
+from .planning_rules import avatar_url, board_status, weight_change_block, weight_confirm_block
 from .academic import (
     approved_units_for_lecturer, current_term,
     sync_student_enrollments, supervising_lecturer_ids, supervising_lecturers,
@@ -1351,11 +1351,32 @@ def student_dashboard(request):
             except (TypeError, ValueError):
                 year_of_study = None
             if year_of_study and user.semester:
-                units_data = list(Unit.objects.filter(
+                term = current_term()
+                unit_rows = list(Unit.objects.filter(
                     course=enrolled_course,
                     year_of_study=year_of_study,
                     semester=user.semester,
-                ).values('id', 'code', 'name'))
+                ).order_by('code'))
+                lecturer_map = {}
+                if term is not None:
+                    today = timezone.now().date()
+                    assignments = UnitAssignment.objects.filter(
+                        term=term, status='approved',
+                    ).filter(
+                        models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
+                    ).select_related('lecturer', 'unit')
+                    for a in assignments:
+                        name = f'{a.lecturer.first_name} {a.lecturer.last_name}'.strip() or a.lecturer.username
+                        lecturer_map.setdefault(a.unit_id, []).append(name)
+                units_data = [
+                    {
+                        'id': u.id,
+                        'code': u.code,
+                        'name': u.name,
+                        'lecturer': lecturer_map.get(u.id, []),
+                    }
+                    for u in unit_rows
+                ]
 
         data = {
             'user': {
