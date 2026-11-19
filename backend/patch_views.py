@@ -3,7 +3,7 @@ import os
 base = r'C:\Users\Administrator\Desktop\GroupHub\backend\accounts'
 target = os.path.join(base, 'views.py')
 
-with open(target, 'r') as f:
+with open(target, 'r', encoding='utf-8') as f:
     content = f.read()
 
 old = '''        if task.subtasks.exists():
@@ -25,6 +25,6 @@ new = '''        if task.subtasks.exists():
 count = content.count(old)
 print(f'Found {count} occurrences')
 content = content.replace(old, new)
-with open(target, 'w') as f:
+with open(target, 'w', encoding='utf-8') as f:
     f.write(content)
 print('Done')

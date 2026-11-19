@@ -92,6 +92,23 @@ def _parse_deadline(value):
     return parsed, None
 
 
+def _available_templates():
+    from .models import ProjectTemplate
+    templates = ProjectTemplate.objects.all()
+    if not templates.exists():
+        # Seed defaults
+        defaults = [
+            ('Business plan', ['Executive summary', 'Problem and idea', 'Market research', 'Competitor analysis', 'Marketing plan', 'Operations plan', 'Financial projections', 'Why we will succeed', 'Risks', 'Compile and edit']),
+            ('Software project', ['Requirements', 'Architecture', 'Design', 'Implementation', 'Testing', 'Deployment', 'Documentation', 'Compile and edit']),
+            ('Research report', ['Introduction', 'Literature review', 'Methodology', 'Results', 'Analysis', 'Conclusion', 'References', 'Compile and edit']),
+            ('Blank', []),
+        ]
+        for name, sections in defaults:
+            ProjectTemplate.objects.get_or_create(name=name, defaults={'sections': sections})
+        templates = ProjectTemplate.objects.all()
+    return [{'id': t.id, 'name': t.name, 'description': t.description, 'sections': t.sections} for t in templates]
+
+
 def _project_payload(project):
     return {
         'id': project.id,

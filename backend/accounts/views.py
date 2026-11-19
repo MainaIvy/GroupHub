@@ -2540,6 +2540,12 @@ def update_task_progress(request, task_id):
         if task.subtasks.exists():
             return Response({'error': 'Parent task progress is determined by its micro-tasks.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if task.title.strip().lower() == 'compile and edit':
+            from .planning_views import _compile_task_lock
+            locked, reason = _compile_task_lock(task.project.group)
+            if locked and not request.data.get('override_reason'):
+                return Response({'error': reason or 'Compile and edit is locked until all other sections are complete.'}, status=status.HTTP_403_FORBIDDEN)
+
         progress_percentage = request.data.get('progress_percentage')
         if progress_percentage is None:
             return Response({'error': 'Progress percentage is required'}, status=status.HTTP_400_BAD_REQUEST)

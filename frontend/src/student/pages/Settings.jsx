@@ -301,7 +301,7 @@ const Settings = ({ ctx }) => {
                         className={`relative h-5 w-10 shrink-0 rounded-full transition-colors ${notificationSettings[key] ? 'bg-[#35475C]' : 'bg-[#D7DEE6]'}`}
                         aria-label={`Toggle ${label}`}
                       >
-                        <span className={`absolute top-0 h-4 w-4 rounded-full bg-white shadow-md transition-transform ${notificationSettings[key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                        <span className={`absolute top-0.5 left-0 h-4 w-4 rounded-full bg-white shadow-md transition-transform ${notificationSettings[key] ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     </label>
                   ))}

@@ -440,7 +440,7 @@ def update_group_settings(request, group_id):
         except (TypeError, ValueError):
             return _error('Choose a valid group size.')
         if max_members < max(2, group.members_count) or max_members > 15:
-            return _error('Group size must be between the current number of members and 15.')
+            return _error('The group size must be between 2 and 15.')
         group.max_members = max_members
         fields.append('max_members')
     if fields:
