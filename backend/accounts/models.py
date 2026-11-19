@@ -42,6 +42,8 @@ class User(AbstractUser):
     notification_preferences = models.JSONField(default=dict, blank=True)
     email_digest = models.CharField(max_length=20, default='instant')
     grading_defaults = models.JSONField(default=dict, blank=True)
+    reset_token = models.CharField(max_length=255, blank=True, null=True)
+    reset_token_expires = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return self.username

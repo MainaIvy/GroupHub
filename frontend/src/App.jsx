@@ -18,6 +18,8 @@ import StaffActivateEmail from './components/StaffActivateEmail';
 import StaffActivate from './components/StaffActivate';
 import StaffForgotPassword from './components/StaffForgotPassword';
 import StaffResetPassword from './components/StaffResetPassword';
+import StudentForgotPassword from './components/StudentForgotPassword';
+import StudentResetPassword from './components/StudentResetPassword';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const ProtectedStudentRoute = ({ children }) => {
@@ -75,6 +77,8 @@ function App() {
         <Route path="/staff/activate/:token" element={<StaffActivate />} />
         <Route path="/staff/forgot-password" element={<StaffForgotPassword />} />
         <Route path="/staff/reset-password/:token" element={<StaffResetPassword />} />
+        <Route path="/student/forgot-password" element={<StudentForgotPassword />} />
+        <Route path="/student/reset-password/:token" element={<StudentResetPassword />} />
 
         <Route
           path="/student/dashboard"

@@ -59,6 +59,10 @@ urlpatterns = [
     path('staff/forgot-password/', views.staff_forgot_password, name='staff_forgot_password'),
     path('staff/reset-password/', views.staff_reset_password, name='staff_reset_password'),
 
+    # Student sign-in password reset
+    path('student/forgot-password/', views.student_forgot_password, name='student_forgot_password'),
+    path('student/reset-password/', views.student_reset_password, name='student_reset_password'),
+
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
     path('jwt/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

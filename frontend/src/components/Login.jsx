@@ -294,6 +294,15 @@ const Login = () => {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
 
+          <div className="flex justify-end mt-2">
+            <Link
+              to="/student/forgot-password"
+              className="text-xs font-semibold text-[#35475C] underline hover:text-[#1F2D3D]"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           {googleClientId && (
             <>
               <div className="relative py-1">

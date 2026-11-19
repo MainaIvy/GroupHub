@@ -399,6 +399,72 @@ def staff_reset_password(request):
     return Response({'message': 'Password reset successfully. You can now sign in.'})
 
 
+@api_view(['POST'])
+@permission_classes([])
+def student_forgot_password(request):
+    """Send password reset link to student email."""
+    email = str(request.data.get('email', '')).strip().lower()
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email__iexact=email, user_type='student').first()
+    if not user:
+        return Response({'error': 'No active student found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+    import secrets
+    from django.utils import timezone
+    from datetime import timedelta
+
+    token = secrets.token_urlsafe(32)
+    user.reset_token = token
+    user.reset_token_expires = timezone.now() + timedelta(hours=2)
+    user.save(update_fields=['reset_token', 'reset_token_expires'])
+
+    reset_url = f"{getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')}/student/reset-password/{token}/"
+    print(f"\n=== STUDENT PASSWORD RESET LINK ===")
+    print(f"Student: {user.first_name} {user.last_name} ({user.email})")
+    print(f"Reset link: {reset_url}")
+    print(f"Expires: {user.reset_token_expires}")
+    print(f"============================\n")
+
+    return Response({'message': 'Password reset link sent. Check backend console for the link in development.'})
+
+
+@api_view(['POST'])
+@permission_classes([])
+def student_reset_password(request):
+    """Reset student password using one-time token."""
+    token = str(request.data.get('token', '')).strip()
+    password = request.data.get('password')
+    if not token:
+        return Response({'error': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not password:
+        return Response({'error': 'Password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    from django.utils import timezone
+    from django.core.validators import validate_password
+    from django.core.exceptions import ValidationError
+
+    user = User.objects.filter(reset_token=token, user_type='student').first()
+    if not user:
+        return Response({'error': 'Invalid or expired reset link.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if user.reset_token_expires and user.reset_token_expires < timezone.now():
+        return Response({'error': 'Reset link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(password, user=user)
+    except ValidationError as error:
+        return Response({'error': ' '.join(error.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    user.save(update_fields=['password', 'reset_token', 'reset_token_expires', 'email_verified'])
+
+    return Response({'message': 'Password reset successfully. You can now sign in.'})
+
+
 @csrf_exempt
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def signup_view(request):
