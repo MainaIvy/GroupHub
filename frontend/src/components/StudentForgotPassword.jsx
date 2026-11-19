@@ -10,13 +10,15 @@ export default function StudentForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [message, setMessage] = useState('');
+  const [resetUrl, setResetUrl] = useState('');
+  const [token, setToken] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
-    setMessage('');
+    setResetUrl('');
+    setToken('');
 
     const emailTrimmed = email.trim().toLowerCase();
     if (!emailTrimmed) {
@@ -37,12 +39,18 @@ export default function StudentForgotPassword() {
         return;
       }
       setSuccess(true);
-      setMessage(data.message || 'Password reset link sent. Check the backend console for the link in development.');
+      setResetUrl(data.reset_url || '');
+      setToken(data.token || '');
     } catch {
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const copyLink = () => {
+    if (!resetUrl) return;
+    navigator.clipboard.writeText(resetUrl);
   };
 
   return (
@@ -82,12 +90,30 @@ export default function StudentForgotPassword() {
               <div className="flex items-start gap-3">
                 <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-600 shrink-0" />
                 <div className="text-sm text-emerald-800">
-                  <p className="font-semibold">Reset link sent</p>
-                  <p className="mt-1">{message}</p>
-                  <p className="mt-2 text-xs text-emerald-700">
-                    In development, the reset link is printed to the backend console.
-                    Check the terminal running the Django server.
+                  <p className="font-semibold">Reset link ready</p>
+                  <p className="mt-1 text-xs text-emerald-700">
+                    Copy the link below and open it in your browser to set a new password. The link expires in 2 hours.
                   </p>
+                  {resetUrl && (
+                    <div className="mt-2.5 rounded-lg border border-emerald-200 bg-white px-3 py-2 flex items-center gap-2">
+                      <code className="flex-1 text-[10px] break-all text-emerald-900">{resetUrl}</code>
+                      <button
+                        type="button"
+                        onClick={copyLink}
+                        aria-label="Copy reset link"
+                        className="rounded-lg border border-emerald-200 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-50 transition"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/student/reset-password/${token}/`)}
+                    className="mt-2.5 w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition"
+                  >
+                    Go to reset password
+                  </button>
                 </div>
               </div>
             </div>

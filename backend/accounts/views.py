@@ -363,7 +363,12 @@ def staff_forgot_password(request):
     print(f"Expires: {roster_entry.reset_token_expires}")
     print(f"============================\n")
 
-    return Response({'message': 'Password reset link sent. Check backend console for the link in development.'})
+    return Response({
+        'message': 'Password reset link generated.',
+        'reset_url': reset_url,
+        'token': token,
+        'expires_at': roster_entry.reset_token_expires.isoformat(),
+    })
 
 
 @api_view(['POST'])
@@ -427,7 +432,12 @@ def student_forgot_password(request):
     print(f"Expires: {user.reset_token_expires}")
     print(f"============================\n")
 
-    return Response({'message': 'Password reset link sent. Check backend console for the link in development.'})
+    return Response({
+        'message': 'Password reset link generated.',
+        'reset_url': reset_url,
+        'token': token,
+        'expires_at': user.reset_token_expires.isoformat(),
+    })
 
 
 @api_view(['POST'])
