@@ -1298,13 +1298,13 @@ function GroupsManager({ data, onAction }) {
                 </td>
                 <td className="px-5 py-3.5">{row.leader || '—'}</td>
                 <td className="px-5 py-3.5">{row.members}</td>
-                <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    row.health === 'at_risk' ? 'bg-[#FBE4E6] text-[#B3263A]' :
-                    row.health === 'quiet' ? 'bg-[#FBF0C9] text-[#D99A4E]' :
+                    row.health?.status === 'at_risk' ? 'bg-[#FBE4E6] text-[#B3263A]' :
+                    row.health?.status === 'quiet' ? 'bg-[#FBF0C9] text-[#D99A4E]' :
                     'bg-[#E3F1E8] text-[#2F7A4B]'
                   }`}>
-                    {row.health.replace('_', ' ')}
+                    {String(row.health?.status || '').replace('_', ' ')}
                   </span>
                 </td>
                 <td className="px-5 py-3.5">
@@ -1374,7 +1374,7 @@ function GroupsManager({ data, onAction }) {
               </div>
               <div className="rounded-2xl border border-[#EFEAE3] p-4">
                 <h4 className="font-semibold text-[#1C1C1C] mb-3">Health & activity</h4>
-                <p className="text-sm text-[#8B8680] mb-2">Health: <span className="font-medium text-[#1C1C1C]">{openGroup.health.replace('_', ' ')}</span></p>
+                <p className="text-sm text-[#8B8680] mb-2">Health: <span className="font-medium text-[#1C1C1C]">{String(openGroup.health?.status || '').replace('_', ' ')}</span></p>
                 <p className="text-sm text-[#8B8680] mb-2">At risk: {openGroup.at_risk ? 'Yes' : 'No'}</p>
                 <p className="text-sm text-[#8B8680]">Members: {openGroup.members}</p>
               </div>
