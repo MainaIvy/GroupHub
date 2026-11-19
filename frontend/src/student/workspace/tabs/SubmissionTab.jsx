@@ -1,4 +1,6 @@
 import React from 'react';
+import { safeArray } from '../../utils';
+import { Clock, AlertTriangle, CheckCircle2, Copy } from 'lucide-react';
 
 const SubmissionTab = ({ ctx }) => {
   const { workspaceCompile, workspace, user } = ctx;
@@ -54,7 +56,7 @@ const SubmissionTab = ({ ctx }) => {
         <h3 className="text-sm font-semibold text-[#1F2D3D] mb-3">Contribution</h3>
         <p className="text-xs text-[#4F5F73] mb-2">Each member’s work appears under their subtask. The lecturer sees the final plan beside individual contributions.</p>
         <div className="flex flex-wrap items-center gap-2">
-          {Array.isArray(workspace?.members).map((member) => (
+          {safeArray(workspace?.members).map((member) => (
             <div key={member.id} className="flex items-center gap-2 rounded-lg bg-[#EEF1F4] px-2 py-1 text-[11px] font-medium text-[#33445A]">
               <span className="truncate max-w-[120px]">{member.name}</span>
             </div>

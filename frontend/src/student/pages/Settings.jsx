@@ -46,6 +46,12 @@ const Settings = ({ ctx }) => {
     inviteResponse: true,
   });
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [securityQuestions, setSecurityQuestions] = useState([]);
+  const [securityQuestionsLoading, setSecurityQuestionsLoading] = useState(true);
+  const [editingSecurityQuestions, setEditingSecurityQuestions] = useState(false);
+  const [securityQuestionsForm, setSecurityQuestionsForm] = useState([]);
+  const [securityQuestionsError, setSecurityQuestionsError] = useState('');
+  const [securityQuestionsMessage, setSecurityQuestionsMessage] = useState('');
 
   // Load notification settings
   useEffect(() => {
@@ -64,6 +70,7 @@ const Settings = ({ ctx }) => {
       }
     };
     loadNotificationSettings();
+    loadSecurityQuestions();
   }, []);
 
   const saveNotificationSettings = async () => {
@@ -74,6 +81,51 @@ const Settings = ({ ctx }) => {
     } catch (err) {
       console.error('Failed to save notification settings:', err);
     }
+  };
+
+  const loadSecurityQuestions = async () => {
+    try {
+      const response = await axios.get('/api/accounts/profile/security-questions/', {
+        headers: { Authorization: `Bearer ${getStoredToken()}` },
+      });
+      setSecurityQuestions(response.data.security_questions || []);
+    } catch (err) {
+      console.error('Failed to load security questions:', err);
+    } finally {
+      setSecurityQuestionsLoading(false);
+    }
+  };
+
+  const saveSecurityQuestions = async () => {
+    setSecurityQuestionsError('');
+    setSecurityQuestionsMessage('');
+    try {
+      const response = await axios.patch('/api/accounts/profile/security-questions/', {
+        security_questions: securityQuestionsForm,
+      }, {
+        headers: { Authorization: `Bearer ${getStoredToken()}` },
+      });
+      setSecurityQuestions(response.data.security_questions || []);
+      setEditingSecurityQuestions(false);
+      setSecurityQuestionsMessage('Security questions updated successfully.');
+    } catch (err) {
+      setSecurityQuestionsError(err.response?.data?.error || 'Failed to update security questions.');
+    }
+  };
+
+  const startEditingSecurityQuestions = () => {
+    setSecurityQuestionsForm(securityQuestions.map((q) => ({
+      question: q.question,
+      answer: '',
+    })));
+    setEditingSecurityQuestions(true);
+  };
+
+  const cancelEditingSecurityQuestions = () => {
+    setEditingSecurityQuestions(false);
+    setSecurityQuestionsForm([]);
+    setSecurityQuestionsError('');
+    setSecurityQuestionsMessage('');
   };
 
   const handleNotificationToggle = (key) => {
@@ -235,6 +287,130 @@ const Settings = ({ ctx }) => {
                   <button type="submit" disabled={settingsBusy} className={btnPrimary}>{settingsBusy ? 'Saving…' : 'Save settings'}</button>
                 </div>
               </form>
+            </section>
+
+            {/* Security Questions */}
+            <section className="rounded-lg border border-[#D7DEE6] bg-white p-4">
+              <h3 className="text-sm font-semibold text-[#35475C] flex items-center gap-2"><Shield size={16} aria-hidden="true" /> Security questions</h3>
+              <p className="mt-0.5 text-xs text-[#4F5F73]">Security questions are used to verify your identity when resetting your password.</p>
+
+              {securityQuestionsLoading ? (
+                <p className="mt-3 text-sm text-[#4F5F73]">Loading…</p>
+              ) : editingSecurityQuestions ? (
+                <div className="mt-3 space-y-3">
+                  {securityQuestionsError && (
+                    <p role="alert" className="text-xs font-medium text-red-700">{securityQuestionsError}</p>
+                  )}
+                  {securityQuestionsMessage && (
+                    <p role="status" className="text-xs font-medium text-[#435B76]">{securityQuestionsMessage}</p>
+                  )}
+                  <div className="space-y-2">
+                    {securityQuestionsForm.map((q, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <label className="block text-xs font-medium text-[#1F2D3D]">
+                          Security question {idx + 1} <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={q.question}
+                          onChange={(e) => {
+                            const next = [...securityQuestionsForm];
+                            next[idx] = { ...next[idx], question: e.target.value };
+                            setSecurityQuestionsForm(next);
+                          }}
+                          className="w-full rounded-lg border border-[#CBD5E1] bg-white px-2.5 py-2 text-sm text-[#29384A] outline-none focus:border-[#7189A3]"
+                        >
+                          <option value="">Select a question</option>
+                          <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                          <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                          <option value="What is the name of your primary school?">What is the name of your primary school?</option>
+                          <option value="What city were you born in?">What city were you born in?</option>
+                          <option value="What is your favorite book?">What is your favorite book?</option>
+                        </select>
+                        <label className="block text-xs font-medium text-[#1F2D3D] mt-2">
+                          Your answer <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={q.answer}
+                          onChange={(e) => {
+                            const next = [...securityQuestionsForm];
+                            next[idx] = { ...next[idx], answer: e.target.value };
+                            setSecurityQuestionsForm(next);
+                          }}
+                          className="w-full rounded-lg border border-[#CBD5E1] bg-white px-2.5 py-2 text-sm text-[#29384A] outline-none focus:border-[#7189A3]"
+                          placeholder="Your answer"
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = [...securityQuestionsForm];
+                        next.push({ question: '', answer: '' });
+                        setSecurityQuestionsForm(next);
+                      }}
+                      className="w-auto flex items-center gap-2 rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
+                    >
+                      <span>+ Add another question</span>
+                    </button>
+                  </div>
+                  <div className="flex items-start gap-3 border-t border-[#E4E9EF] pt-3">
+                    <button
+                      type="button"
+                      onClick={cancelEditingSecurityQuestions}
+                      className="rounded-lg border border-[#D7DEE6] px-4 py-2 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveSecurityQuestions}
+                      disabled={securityQuestionsForm.some((q) => !q.question || !q.answer)}
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#35475C] hover:bg-[#435B76] transition-colors disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  {securityQuestions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-center">
+                      <span className="text-xs text-[#4F5F73]">No security questions set up yet.</span>
+                      <button
+                        type="button"
+                        onClick={startEditingSecurityQuestions}
+                        className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-[#35475C] hover:bg-[#435B76] transition-colors"
+                      >
+                        Set up security questions
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {securityQuestions.map((q, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-3 py-1.5 hover:bg-[#F8FAFC] rounded-lg px-2">
+                          <span className="text-sm font-medium text-[#1F2D3D]">{q.question}</span>
+                          <span className="text-xs text-[#4F5F73]">
+                            {q.has_answer ? 'Answer set' : 'No answer'}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="mt-3 flex items-start gap-3 border-t border-[#E4E9EF] pt-3">
+                        <button
+                          type="button"
+                          onClick={startEditingSecurityQuestions}
+                          className="rounded-lg border border-[#D7DEE6] px-4 py-2 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {securityQuestionsMessage && (
+                    <p role="status" className="mt-2 text-xs font-medium text-[#435B76]">{securityQuestionsMessage}</p>
+                  )}
+                </div>
+              )}
             </section>
           </div>
 

@@ -48,6 +48,11 @@ def get_current_semester_units(request):
             for a in assignments:
                 name = f'{a.lecturer.first_name} {a.lecturer.last_name}'.strip() or a.lecturer.username
                 lecturer_map.setdefault(a.unit_id, []).append(name)
+        # Fallback: direct assigned_lecturer on the Unit model (no approval workflow needed)
+        for unit in qs:
+            if unit.assigned_lecturer and unit.id not in lecturer_map:
+                name = f'{unit.assigned_lecturer.first_name} {unit.assigned_lecturer.last_name}'.strip() or unit.assigned_lecturer.username
+                lecturer_map.setdefault(unit.id, []).append(name)
         if term is not None and StudentEnrollment.objects.filter(student=user, semester=term).exists():
             qs = qs.filter(student_enrollments__student=user, student_enrollments__semester=term)
         else:

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from '../api';
 import { API_BASE, wsUrl } from '../apiConfig';
-import { ArrowLeft, Copy, FileText, Image, Loader2, MessageCircle, MoreHorizontal, Paperclip, Search, Send, UserRound, UserRoundPlus, UsersRound, Hash, ChevronDown, ChevronUp, Download, Mic, MicOff, Smile, Play, Pause, Music } from 'lucide-react';
+import { ArrowLeft, Copy, FileText, Image, Loader2, MessageCircle, MoreHorizontal, Paperclip, Search, Send, UserRound, UserRoundPlus, UsersRound, Hash, ChevronDown, ChevronUp, Download, Mic, MicOff, Smile, Play, Pause, Music, MoreVertical, Reply, Trash2, Pencil } from 'lucide-react';
 
 const API_ROOT = `${API_BASE}/api/accounts`;
 
@@ -236,7 +236,7 @@ function VoiceRecorder({ onRecordComplete, onClose }) {
   
   const sendRecording = () => {
     if (audioBlob) {
-      onRecordComplete(audioBlob);
+      onRecordComplete(audioBlob, duration);
       onClose();
     }
   };
@@ -302,12 +302,34 @@ function VoiceRecorder({ onRecordComplete, onClose }) {
 }
 
 // Voice Note Player Component
-function VoiceNotePlayer({ audioUrl, duration, messageTime }) {
+function VoiceNotePlayer({ audioUrl, duration, own }) {
+  const [blobUrl, setBlobUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(true);
   const audioRef = useRef(null);
   const animationRef = useRef(null);
+
+  useEffect(() => {
+    setIsLoadingAudio(true);
+    let cancelled = false;
+    const token = localStorage.getItem('access_token') || '';
+    fetch(`${API_BASE}${audioUrl}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((res) => res.blob())
+      .then((blob) => {
+        if (!cancelled) {
+          const url = URL.createObjectURL(blob);
+          setBlobUrl(url);
+          if (audioRef.current) audioRef.current.src = url;
+          setIsLoadingAudio(false);
+        }
+      })
+      .catch(() => setIsLoadingAudio(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [audioUrl]);
 
   // Generate fixed waveform data (40 bars, consistent heights)
   const waveformData = useMemo(() => {
@@ -333,11 +355,13 @@ function VoiceNotePlayer({ audioUrl, duration, messageTime }) {
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
+    if (isLoadingAudio) return;
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
       audioRef.current.currentTime = currentTime;
-      audioRef.current.play().catch(() => setIsPlaying(false));
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
   };
 
@@ -356,6 +380,12 @@ function VoiceNotePlayer({ audioUrl, duration, messageTime }) {
   };
 
   useEffect(() => {
+    if (blobUrl && audioRef.current) {
+      audioRef.current.src = blobUrl;
+    }
+  }, [blobUrl]);
+
+  useEffect(() => {
     if (isPlaying) {
       animationRef.current = requestAnimationFrame(handleTimeUpdate);
     }
@@ -363,20 +393,21 @@ function VoiceNotePlayer({ audioUrl, duration, messageTime }) {
   }, [isPlaying]);
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-[#D7DEE6] min-w-[280px] max-w-[400px]" style={{ backgroundColor: '#E6EFF8' }}>
+    <div className="flex items-center gap-2 py-1">
       {/* Play/Pause Button */}
       <button
         type="button"
+        disabled={isLoadingAudio}
         onClick={handlePlayPause}
-        className="flex-shrink-0 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#35475C] bg-white text-[#35475C] hover:bg-[#F0F4F8] focus:outline-none focus:ring-2 focus:ring-[#35475C] focus:ring-offset-2"
+        className={`flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-full border ${isPlaying ? 'bg-[#35475C] text-white border-[#35475C] animate-pulse' : own ? 'bg-[#E2E8F0] text-[#35475C] border-[#94A3B8]' : 'bg-white text-[#35475C] border-[#D7DEE6]'} ${isLoadingAudio ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#F0F4F8]'} focus:outline-none focus:ring-2 focus:ring-[#35475C] focus:ring-offset-2`}
         aria-label={isPlaying ? 'Pause voice note' : 'Play voice note'}
       >
-        {isPlaying ? <Pause size={20} aria-hidden="true" /> : <Play size={20} aria-hidden="true" />}
+        {isLoadingAudio ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : isPlaying ? <Pause size={17} aria-hidden="true" /> : <Play size={17} aria-hidden="true" />}
       </button>
 
       {/* Waveform & Duration */}
-      <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1">
-        <div className="flex items-end h-10 gap-1" role="img" aria-label="Voice note waveform">
+      <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5">
+        <div className="flex items-end h-8 gap-0.5" role="img" aria-label="Voice note waveform">
           {waveformData.map((height, index) => {
             const barProgress = (index + 1) / waveformData.length;
             const isActive = progress > barProgress;
@@ -386,40 +417,26 @@ function VoiceNotePlayer({ audioUrl, duration, messageTime }) {
                 className="w-[3px] rounded-full transition-colors duration-75"
                 style={{
                   height: `${height * 100}%`,
-                  backgroundColor: isActive ? '#35475C' : '#9AA8B8',
+                  backgroundColor: isPlaying && isActive ? '#35475C' : own ? '#475569' : '#C9D3DE',
                 }}
               />
             );
           })}
         </div>
-        <span className="text-[11px] font-medium text-[#35475C]">
+        <span className={`text-[11px] font-medium ${own ? 'text-[#E2E8F0]' : 'text-[#35475C]'}`}>
           {formatTime(isPlaying ? currentTime : duration)}
         </span>
-      </div>
-
-      {/* Transcription button (hidden) & Message time */}
-      <div className="flex-shrink-0 flex flex-col items-end gap-1 w-16">
-        {/* Transcription button - hidden per spec */}
-        <div className="w-full" style={{ visibility: 'hidden' }}>
-          <button
-            type="button"
-            className="w-full rounded-full bg-[#D7DEE6] text-[#35475C] text-[10px] font-medium py-1"
-            disabled
-          >
-            Aa
-          </button>
-        </div>
-        <span className="text-[10px] text-[#4F5F73] text-right">{messageTime}</span>
       </div>
 
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
-        src={audioUrl}
+        src={blobUrl || undefined}
         preload="metadata"
+        onLoadedMetadata={() => setIsLoadingAudio(false)}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
-        onError={() => { setIsPlaying(false); }}
+        onError={() => { setIsPlaying(false); setIsLoadingAudio(false); }}
       />
     </div>
   );
@@ -431,7 +448,6 @@ const Chat = ({
   groupRefreshKey = 0, 
   groupId = null, 
   onTaskReference, 
-  onAssignTask, 
   groupTasks = [],
   initialRoomId = null
 }) => {
@@ -461,6 +477,11 @@ const Chat = ({
   const [allUsers, setAllUsers] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [messageActionsOpen, setMessageActionsOpen] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [deleteMessageId, setDeleteMessageId] = useState(null);
+  const [deleteScope, setDeleteScope] = useState(null); // 'myself' | 'everyone'
   const fileInputRef = useRef(null);
   const socketRef = useRef(null);
   const draftRef = useRef(null);
@@ -486,13 +507,14 @@ const Chat = ({
   }, [initialRoomId, rooms, activeRoomId]);
 
   useEffect(() => {
-    if (roomMenuId === null && !taskPickerOpen && !showEmojiPicker && !showVoiceRecorder) return undefined;
+    if (roomMenuId === null && !taskPickerOpen && !showEmojiPicker && !showVoiceRecorder && messageActionsOpen === null) return undefined;
     const handlePointerDown = (event) => {
-      if (event.target.closest?.('[data-popover-root]') || event.target === draftRef.current) return;
+      if (event.target.closest?.('[data-popover-root]') || event.target === draftRef.current || event.target.closest(`[data-msg-actions="${messageActionsOpen}"]`)) return;
       setRoomMenuId(null);
       setTaskPickerOpen(false);
       setShowEmojiPicker(false);
       setShowVoiceRecorder(false);
+      setMessageActionsOpen(null);
       setImagePreview(null);
     };
     const handleKeyDown = (event) => { 
@@ -501,6 +523,7 @@ const Chat = ({
         setTaskPickerOpen(false); 
         setShowEmojiPicker(false);
         setShowVoiceRecorder(false);
+        setMessageActionsOpen(null);
         setImagePreview(null); 
       } 
     };
@@ -510,7 +533,7 @@ const Chat = ({
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [roomMenuId, taskPickerOpen, showEmojiPicker, showVoiceRecorder]);
+  }, [roomMenuId, taskPickerOpen, showEmojiPicker, showVoiceRecorder, messageActionsOpen]);
 
   const activeRoom = rooms.find((room) => String(room.id) === String(activeRoomId));
   const filteredRooms = useMemo(() => {
@@ -631,11 +654,7 @@ const Chat = ({
         if (cancelled) return;
         
         const newMessages = Array.isArray(messageResponse.data) ? messageResponse.data : [];
-        setMessages((current) => {
-          const merged = new Map(current.map((message) => [message.id, message]));
-          for (const message of newMessages) merged.set(message.id, message);
-          return Array.from(merged.values()).sort((left, right) => new Date(left.timestamp) - new Date(right.timestamp));
-        });
+        setMessages(newMessages.sort((left, right) => new Date(left.timestamp) - new Date(right.timestamp)));
         
         // Extract unique users for color assignment
         const users = [...new Map(newMessages.map(m => [m.sender.id, m.sender])).values()];
@@ -742,6 +761,82 @@ const Chat = ({
     }
   };
 
+  const handleDeleteMessage = (messageId) => {
+    setMessageActionsOpen(null);
+    setDeleteMessageId(messageId);
+    setDeleteScope(null);
+  };
+
+  const handleConfirmDelete = async (scope) => {
+    if (!deleteMessageId || !scope) return;
+    setDeleteMessageId(null);
+    setDeleteScope(null);
+    try {
+      const response = await authorizedRequest({
+        method: 'DELETE',
+        url: `${API_ROOT}/chat/messages/${deleteMessageId}/delete/?scope=${scope}`,
+      });
+      if (response.data.message) {
+        setMessages((current) => current.filter((m) => m.id !== deleteMessageId));
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Message could not be deleted.');
+    } finally {
+      setDeleteMessageId(null);
+      setDeleteScope(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteMessageId(null);
+    setDeleteScope(null);
+  };
+
+  const handleEditMessage = (message) => {
+    setMessageActionsOpen(null);
+    setEditingMessageId(message.id);
+    setEditDraft(message.content || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId || !editDraft.trim()) return;
+    try {
+      const response = await authorizedRequest({
+        method: 'PATCH',
+        url: `${API_ROOT}/chat/messages/${editingMessageId}/edit/`,
+        data: { content: editDraft.trim() },
+      });
+      setMessages((current) => current.map((m) => m.id === editingMessageId ? { ...m, content: response.data.content, edited_at: response.data.edited_at } : m));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Message could not be edited.');
+    } finally {
+      setEditingMessageId(null);
+      setEditDraft('');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditDraft('');
+  };
+
+  const handleReplyMessage = (message) => {
+    setMessageActionsOpen(null);
+    const senderName = message.sender?.first_name || 'Someone';
+    const quoted = message.content || '[voice note]';
+    setDraft(`@${senderName}: "${quoted}"\n`);
+    setTimeout(() => {
+      const textarea = draftRef.current;
+      if (textarea) textarea.focus();
+    }, 50);
+  };
+
+  const handleReactMessage = (messageId, emoji) => {
+    setMessageActionsOpen(null);
+    setError('Reactions coming soon.');
+    setTimeout(() => setError(''), 3000);
+  };
+
   const pickerTasks = safeArray(groupTasks).length ? safeArray(groupTasks) : roomTasks;
   const taskPickerItems = pickerTasks.filter((task) => (
     `${task.title} ${task.project_name || task.project_title || ''} ${task.id}`.toLowerCase().includes(taskPickerQuery.toLowerCase())
@@ -775,10 +870,11 @@ const Chat = ({
     });
   };
 
-  const handleVoiceRecordComplete = (blob) => {
+  const handleVoiceRecordComplete = (blob, durationSec = 0) => {
     const payload = new FormData();
     payload.append('voice_note', blob, `voice-note-${Date.now()}.webm`);
     payload.append('content', '');
+    payload.append('voice_duration', Math.max(1, Math.round(durationSec)));
     authorizedRequest({ method: 'POST', url: `${API_ROOT}/chat/send/${activeRoomId}/`, data: payload })
       .then((response) => {
         setMessages((current) => current.some((item) => item.id === response.data.id) ? current : [...current, response.data]);
@@ -789,7 +885,7 @@ const Chat = ({
   const downloadAttachment = async (message) => {
     setDownloadBusy(message.id);
     try {
-      const response = await fetch(message.attachment_url, {
+      const response = await fetch(`${API_BASE}${message.attachment_url}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token') || ''}` },
       });
       if (!response.ok) throw new Error('This document could not be downloaded.');
@@ -891,24 +987,9 @@ const Chat = ({
                 <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-[#1F2D3D]">{activeRoom.name}</h3><p className="text-xs text-[#4F5F73]">{activeRoom.type === 'direct' ? 'Private conversation' : `${members.length || 1} members · Group chat`}</p></div>
               </div>
               <div className="flex items-center gap-3">
-                {activeRoom.type === 'group' && <button type="button" onClick={() => onAssignTask?.(activeRoom.group_id)} className="rounded-md border border-[#D7DEE6] px-2.5 py-1.5 text-xs font-semibold text-[#35475C] hover:bg-[#EEF1F4]">Assign a task</button>}
                 <span className="flex items-center gap-1.5 text-xs text-[#4F5F73]"><span className={`h-1.5 w-1.5 rounded-full ${connectionState === 'connected' ? 'bg-[#35475C]' : 'bg-[#B45309]'}`} />{connectionState === 'connected' ? 'Live' : 'Reconnecting'}</span>
               </div>
             </header>
-            
-            {/* Message search */}
-            <div className="border-b border-[#D7DEE6] px-4 py-2">
-              <label className="relative max-w-md">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#4F5F73]" aria-hidden="true" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search in this conversation…"
-                  className="h-8 w-full rounded-md border border-[#D7DEE6] bg-white pl-8 pr-2 text-sm outline-none focus:border-[#35475C]"
-                />
-              </label>
-            </div>
 
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[#F8FAFC] px-4 py-5 sm:px-6">
               {loadingMessages && <p className="text-center text-sm text-[#4F5F73]">Loading conversation…</p>}
@@ -926,7 +1007,7 @@ const Chat = ({
                     const userColor = getUserColor(message.sender?.id, allUsers);
                     return (
                       <article key={message.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] ${own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]'}`}>
+                        <div className={`relative max-w-[80%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] ${own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]'}`}>
                           {!own && (
                             <div className="mb-1.5 flex items-center gap-2">
                               <span className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{ backgroundColor: userColor }}>
@@ -943,14 +1024,38 @@ const Chat = ({
                               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white"><UserRound size={14} aria-hidden="true" /></span>
                             </div>
                           )}
-                          {message.content && <p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed">{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>}
+                          {message.content && (
+                            <>
+                              <p className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${editingMessageId === message.id ? 'hidden' : ''}`}>{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>
+                              {message.edited_at && editingMessageId !== message.id && (
+                                <span className="text-[10px] text-[#4F5F73] mt-0.5">Edited</span>
+                              )}
+                              {editingMessageId === message.id && (
+                                <div className="mt-2">
+                                  <textarea
+                                    ref={draftRef}
+                                    value={editDraft}
+                                    onChange={(e) => setEditDraft(e.target.value)}
+                                    rows={2}
+                                    className="w-full min-h-[60px] rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] outline-none focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20"
+                                    placeholder="Edit your message…"
+                                    autoFocus
+                                  />
+                                  <div className="flex justify-end gap-2 mt-1.5">
+                                    <button type="button" onClick={handleCancelEdit} className="text-xs text-[#4F5F73] hover:text-[#35475C]">Cancel</button>
+                                    <button type="button" onClick={handleSaveEdit} disabled={!editDraft.trim()} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-[#35475C] hover:bg-[#435B76] disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
                           {message.poll && renderPollCard(message.poll, activeRoom?.group_id)}
                           {/* Voice note playback - custom player */}
                           {message.voice_note_url && (
                             <VoiceNotePlayer
                               audioUrl={message.voice_note_url}
-                              duration={message.duration || 30}
-                              messageTime={new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              duration={message.voice_duration || 30}
+                              own={own}
                             />
                           )}
                           {/* Regular file attachment */}
@@ -961,6 +1066,56 @@ const Chat = ({
                               <span className="text-xs">{isImage(message.attachment_name) ? 'View' : downloadBusy === message.id ? '…' : 'Download'}</span>
                             </button>
                           )}
+
+                          {/* Message actions */}
+                          <div className="mt-2 flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setMessageActionsOpen(messageActionsOpen === message.id ? null : message.id)}
+                              aria-label="More options"
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs ${own ? 'text-[#35475C] bg-[#E2E8F0]' : 'text-[#6B7A8C]'} hover:bg-[#EEF1F4]`}
+                            >
+                              <MoreVertical size={14} aria-hidden="true" />
+                            </button>
+                            {messageActionsOpen === message.id && (
+                              <div data-msg-actions={messageActionsOpen} className="absolute mt-1 right-0 z-50 w-48 rounded-lg border border-[#D7DEE6] bg-white shadow-lg py-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleReplyMessage(message)}
+                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                >
+                                  <Reply size={14} aria-hidden="true" /> Reply
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleReactMessage(message.id, '👍')}
+                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                >
+                                  <span className="text-lg">👍</span> React
+                                </button>
+                                {own && (
+                                  <>
+                                    <div className="h-px bg-[#EEF1F4] my-1" />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditMessage(message)}
+                                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                    >
+                                      <Pencil size={14} aria-hidden="true" /> Edit
+                                    </button>
+                                    <div className="h-px bg-[#EEF1F4] my-1" />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteMessage(message.id)}
+                                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    >
+                                      <Trash2 size={14} aria-hidden="true" /> Delete
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </article>
                     );
@@ -971,6 +1126,37 @@ const Chat = ({
             </div>
             
             {error && <p role="alert" className="mx-4 mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+            {deleteMessageId && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                <div className="bg-white rounded-xl p-5 shadow-lg max-w-sm w-full">
+                  <h3 className="text-sm font-semibold text-[#1F2D3D] mb-3">Delete message</h3>
+                  <p className="text-sm text-[#4F5F73] mb-4">Delete this message for:</p>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmDelete('myself')}
+                      className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium border ${deleteScope === 'myself' ? 'bg-[#35475C] text-white border-[#35475C]' : 'bg-white text-[#35475C] border-[#D7DEE6]'} hover:bg-[#EEF1F4]`}
+                    >
+                      Myself only
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmDelete('everyone')}
+                      className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium border ${deleteScope === 'everyone' ? 'bg-[#35475C] text-white border-[#35475C]' : 'bg-white text-[#35475C] border-[#D7DEE6]'} hover:bg-[#EEF1F4]`}
+                    >
+                      Everyone
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCancelDelete}
+                    className="w-full rounded-lg px-3 py-2 text-sm text-[#4F5F73] hover:bg-[#EEF1F4]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
             {selectedFile && <div className="mx-4 mt-2 flex items-center justify-between rounded-md bg-[#EEF1F4] px-3 py-2 text-sm text-[#35475C]"><span className="truncate">Attached: {selectedFile.name}</span><button type="button" onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} aria-label="Remove attachment">✕</button></div>}
             
             <form onSubmit={handleSend} className="border-t border-[#D7DEE6] bg-white p-3 sm:px-4 sm:py-3.5">

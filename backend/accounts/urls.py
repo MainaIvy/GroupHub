@@ -61,6 +61,7 @@ urlpatterns = [
 
     # Student sign-in password reset
     path('student/forgot-password/', views.student_forgot_password, name='student_forgot_password'),
+    path('student/verify-security-answers/', views.student_verify_security_answers, name='student_verify_security_answers'),
     path('student/reset-password/', views.student_reset_password, name='student_reset_password'),
 
     path('logout/', views.logout_view, name='logout'),
@@ -69,6 +70,7 @@ urlpatterns = [
 
     # Student account settings
     path('profile/settings/', views.student_settings, name='student_settings'),
+    path('profile/security-questions/', views.student_security_questions, name='student_security_questions'),
     path('lecturer/settings/', views.lecturer_settings, name='lecturer_settings'),
     path('lecturer/units/', units_views.lecturer_my_units, name='lecturer_my_units'),
     path('lecturer/units/<int:unit_id>/students/<int:student_id>/', views.lecturer_manage_student, name='lecturer_manage_student'),
@@ -91,6 +93,8 @@ urlpatterns = [
     path('chat/messages/<int:room_id>/', views.get_messages, name='get_messages'),
     path('chat/messages/<int:message_id>/attachment/', views.download_message_attachment, name='download_message_attachment'),
     path('chat/messages/<int:message_id>/voice-note/', views.download_message_voice_note, name='download_message_voice_note'),
+    path('chat/messages/<int:message_id>/delete/', views.delete_message, name='delete_message'),
+    path('chat/messages/<int:message_id>/edit/', views.edit_message, name='edit_message'),
     path('chat/send/<int:room_id>/', views.send_message, name='send_message'),
     path('chat/direct/', views.get_or_create_direct_chat, name='get_or_create_direct_chat'),
     path('chat/rooms/<int:room_id>/', views.delete_chat_room, name='delete_chat_room'),
@@ -134,6 +138,7 @@ urlpatterns = [
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('notifications/<int:notification_id>/', views.update_notification, name='update_notification'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
+    path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
     path('groups/<int:group_id>/members/', views.get_group_members, name='get_group_members'),
     path('students/', views.get_students_for_lecturer, name='get_students_for_lecturer'),
     path('groups/create/', views.create_group_view, name='create_group'),

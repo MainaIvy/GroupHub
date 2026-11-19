@@ -1,24 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Loader2, Mail, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Loader2, Mail, AlertCircle, CheckCircle, ShieldCheck, X, Copy, Check } from 'lucide-react';
 import logo from '../assets/images/GROUPHUBLOGO.png';
 import { API_BASE } from '../apiConfig';
 
 export default function StudentForgotPassword() {
   const navigate = useNavigate();
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [resetUrl, setResetUrl] = useState('');
   const [token, setToken] = useState('');
+  const [copied, setCopied] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleStep1Submit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
-    setResetUrl('');
-    setToken('');
 
     const emailTrimmed = email.trim().toLowerCase();
     if (!emailTrimmed) {
@@ -36,14 +38,51 @@ export default function StudentForgotPassword() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(data.error || 'Failed to send reset link.');
+        setIsLoading(false);
         return;
       }
-      setSuccess(true);
-      setResetUrl(data.reset_url || '');
-      setToken(data.token || '');
+      setQuestions(data.questions || []);
+      setIsLoading(false);
+      setStep(2);
     } catch {
       setError('Network error. Please check your connection and try again.');
-    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStep2Submit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    const answerList = questions.map((q) => ({
+      question: q.question,
+      answer: (answers[q.question] || '').trim(),
+    }));
+
+    if (answerList.some((a) => !a.answer)) {
+      setError('Please answer all security questions.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/accounts/student/verify-security-answers/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), answers: answerList }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(data.error || 'Incorrect security answers. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+      setResetUrl(data.reset_url || '');
+      setToken(data.token || '');
+      setIsLoading(false);
+      setSuccess(true);
+    } catch {
+      setError('Network error. Please check your connection and try again.');
       setIsLoading(false);
     }
   };
@@ -51,92 +90,54 @@ export default function StudentForgotPassword() {
   const copyLink = () => {
     if (!resetUrl) return;
     navigator.clipboard.writeText(resetUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-slate-950/45 p-3 text-slate-900 backdrop-blur-sm sm:p-6">
-      <main
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="forgot-title"
-        className="relative my-auto w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.3)] sm:p-8"
-      >
-        <header className="mb-5 flex items-center justify-between">
-          <img src={logo} alt="GroupHub" className="h-10 w-auto" />
-          <Link
-            to="/login"
-            aria-label="Close"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
-          >
-            <X className="h-5 w-5" />
-          </Link>
-        </header>
-
-        <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-            <Mail className="h-7 w-7" />
-          </div>
-          <h1 id="forgot-title" className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-            Reset password
-          </h1>
-          <p className="mt-1 text-sm leading-5 text-slate-500">
-            Enter your student email to receive a password reset link.
-          </p>
-        </div>
-
-        {success ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="mt-0.5 h-5 w-5 text-blue-600 shrink-0" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-semibold">Reset link ready</p>
-                  <p className="mt-1 text-xs text-blue-700">
-                    Copy the link below and open it in your browser to set a new password. The link expires in 2 hours.
-                  </p>
-                  {resetUrl && (
-                    <div className="mt-2.5 rounded-lg border border-blue-200 bg-white px-3 py-2 flex items-center gap-2">
-                      <code className="flex-1 text-[10px] break-all text-blue-900">{resetUrl}</code>
-                      <button
-                        type="button"
-                        onClick={copyLink}
-                        aria-label="Copy reset link"
-                        className="rounded-lg border border-emerald-200 px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-emerald-50 transition"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/student/reset-password/${token}/`)}
-                    className="mt-2.5 w-full rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition"
-                  >
-                    Go to reset password
-                  </button>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/login')}
-              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
+  if (step === 1) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-slate-950/45 p-3 text-slate-900 backdrop-blur-sm sm:p-6">
+        <main
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="forgot-title"
+          className="relative my-auto w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.3)] sm:p-8"
+        >
+          <header className="mb-5 flex items-center justify-between">
+            <img src={logo} alt="GroupHub" className="h-10 w-auto" />
+            <Link
+              to="/login"
+              aria-label="Close"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
             >
-              Back to sign in
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {(error || !success) && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {error || 'Enter your student email to receive a reset link.'}
-              </div>
-            )}
+              <X className="h-5 w-5" />
+            </Link>
+          </header>
 
+          <div className="mb-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#E8F3FB] text-[#35475C]">
+              <Mail className="h-7 w-7" />
+            </div>
+            <h1 id="forgot-title" className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+              Reset password
+            </h1>
+            <p className="mt-1 text-sm leading-5 text-slate-500">
+              Enter your student email to begin the password reset process.
+            </p>
+          </div>
+
+          {(error || !success) && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error || 'Enter your student email to receive a reset link.'}
+            </div>
+          )}
+
+          <form onSubmit={handleStep1Submit} className="space-y-4">
             <div>
               <label htmlFor="email" className="mb-2 block text-sm font-semibold text-slate-700">
                 Student email
               </label>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-violet-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-violet-500/10">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-[#35475C] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#35475C]/20">
                 <Mail className="h-5 w-5 shrink-0 text-slate-400" />
                 <input
                   id="email"
@@ -156,7 +157,7 @@ export default function StudentForgotPassword() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-70"
+              className="w-full rounded-xl bg-[#35475C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#435B76] disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -164,17 +165,181 @@ export default function StudentForgotPassword() {
                   Sending...
                 </span>
               ) : (
-                'Send reset link'
+                'Next'
               )}
             </button>
 
             <p className="pt-1 text-center text-sm text-slate-500">
-              <Link to="/login" className="font-semibold text-blue-700 hover:text-blue-900">
+              <Link to="/login" className="font-semibold text-[#35475C] underline hover:text-[#1F2D3D]">
                 ← Back to sign in
               </Link>
             </p>
           </form>
-        )}
+        </main>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-slate-950/45 p-3 text-slate-900 backdrop-blur-sm sm:p-6">
+        <main
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="security-title"
+          className="relative my-auto w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.3)] sm:p-8"
+        >
+          <header className="mb-5 flex items-center justify-between">
+            <img src={logo} alt="GroupHub" className="h-10 w-auto" />
+            <Link
+              to="/login"
+              aria-label="Close"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+            >
+              <X className="h-5 w-5" />
+            </Link>
+          </header>
+
+          <div className="mb-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#E8F3FB] text-[#35475C]">
+              <ShieldCheck className="h-7 w-7" />
+            </div>
+            <h1 id="security-title" className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+              Answer security questions
+            </h1>
+            <p className="mt-1 text-sm leading-5 text-slate-500">
+              Please answer your security questions to verify your identity.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleStep2Submit} className="space-y-4">
+            {questions.map((q, idx) => (
+              <div key={idx} className="space-y-1">
+                <label
+                  htmlFor={`answer_${idx}`}
+                  className="block text-xs font-medium text-[#1F2D3D] mb-1"
+                >
+                  {q.question} <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id={`answer_${idx}`}
+                    type="text"
+                    autoComplete="off"
+                    required
+                    className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2.5 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+                    placeholder="Your answer"
+                    value={answers[q.question] || ''}
+                    onChange={(e) => setAnswers({ ...answers, [q.question]: e.target.value })}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-xl bg-[#35475C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#435B76] disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Verifying...
+                </span>
+              ) : (
+                'Verify answers'
+              )}
+            </button>
+
+            <p className="pt-1 text-center text-sm text-slate-500">
+              <Link to="/login" className="font-semibold text-[#35475C] underline hover:text-[#1F2D3D]">
+                ← Back to sign in
+              </Link>
+            </p>
+          </form>
+        </main>
+      </div>
+    );
+  }
+
+  // Step 3: Success
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-slate-950/45 p-3 text-slate-900 backdrop-blur-sm sm:p-6">
+      <main
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reset-title"
+        className="relative my-auto w-full max-w-lg rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.3)] sm:p-8"
+      >
+        <header className="mb-5 flex items-center justify-between">
+          <img src={logo} alt="GroupHub" className="h-10 w-auto" />
+          <Link
+            to="/login"
+            aria-label="Close"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+          >
+            <X className="h-5 w-5" />
+          </Link>
+        </header>
+
+        <div className="mb-6 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#E8F3FB] text-[#35475C]">
+            <CheckCircle className="h-7 w-7" />
+          </div>
+          <h1 id="reset-title" className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+            Security verified
+          </h1>
+          <p className="mt-1 text-sm leading-5 text-slate-500">
+            Your identity has been verified. Copy the reset link below and open it in your browser to set a new password. The link expires in 2 hours.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[#D7DEE6] bg-white p-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="mt-0.5 h-5 w-5 text-[#35475C] shrink-0" />
+            <div className="flex-1 text-sm text-[#35475C]">
+              <p className="font-semibold">Reset link ready</p>
+              <p className="mt-1 text-xs text-[#35475C]">
+                Copy the link below and open it in your browser to set a new password.
+              </p>
+              {resetUrl && (
+                <div className="mt-2.5 rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] px-3 py-2 flex items-center gap-2">
+                  <code className="flex-1 text-[10px] break-all text-[#35475C]">{resetUrl}</code>
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    aria-label="Copy reset link"
+                    className={`rounded-lg border border-[#D7DEE6] px-2 py-1 text-[10px] font-semibold transition ${copied ? 'bg-[#35475C] text-white' : 'text-[#35475C] hover:bg-[#EEF1F4]'}`}
+                  >
+                    {copied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate(`/student/reset-password/${token}/`)}
+                className="mt-2.5 w-full rounded-lg bg-[#35475C] px-4 py-2 text-xs font-semibold text-white hover:bg-[#435B76] transition"
+              >
+                Go to reset password
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => navigate('/login')}
+          className="mt-4 w-full rounded-xl bg-[#35475C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#435B76] disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+        >
+          Back to sign in
+        </button>
       </main>
     </div>
   );

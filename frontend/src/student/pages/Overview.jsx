@@ -134,8 +134,8 @@ const Overview = ({ ctx }) => {
                 ) : (
                   <ul className="divide-y divide-[#EEF1F4]">
                     {yourMoveItems.map((item) => (
-                      <li key={item.key} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                        <p className="min-w-0 flex-1 text-sm font-medium text-[#1F2D3D]">{item.text}</p>
+                      <li key={item.key} className="flex flex-col items-start gap-2 py-2 sm:flex sm:flex-row sm:items-center sm:justify-between">
+                        <p className="min-w-0 w-full text-sm font-medium text-[#1F2D3D] whitespace-normal">{item.text}</p>
                         <div className="flex shrink-0 gap-2">
                           {item.secondary ? <button type="button" onClick={item.secondary.onClick} className="h-9 rounded-lg border border-[#D7DEE6] px-3 text-sm font-semibold text-[#33445A] hover:bg-[#EEF1F4]">{item.secondary.label}</button> : null}
                           <button type="button" onClick={item.onClick} className="h-9 rounded-lg bg-[#35475C] px-3 text-sm font-semibold text-white hover:bg-[#435B76]">{item.action}</button>
@@ -146,7 +146,7 @@ const Overview = ({ ctx }) => {
                 )}
               </section>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard icon={CalendarDays} label="Next deadline" value={nextDeadline ? new Date(nextDeadline.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '—'} hint={nextDeadline ? nextDeadline.group_name : 'No upcoming deadlines'} />
                 <StatCard icon={CalendarDays} label="Due this week" value={insights.dueWeek.length} hint="Open tasks, next 7 days" />
                 <StatCard icon={PieChart} label="My share of the work" value={myShare.label} hint={myShare.hint} />

@@ -80,19 +80,20 @@ const NotificationBell = ({ notif, open, onToggle, onClose }) => {
     }
   }, [markRead]);
 
-  const handleMarkUnread = useCallback(async (id) => {
+  const handleDeleteNotification = useCallback(async (id) => {
     try {
-      // Assuming there's an endpoint for marking as unread, or we can just update locally
-      // For now, update locally and sync with backend
-      await axios.patch(`/api/accounts/notifications/${id}/`, { is_read: false }, {
+      await axios.delete(`/api/accounts/notifications/${id}/delete/`, {
         headers: { Authorization: `Bearer ${getStoredToken()}` },
       });
-      setLocalBellItems(prev => prev.map(item => 
-        item.id === id ? { ...item, is_read: false } : item
-      ));
-      setLocalUnreadCount(prev => prev + 1);
+      setLocalBellItems(prev => prev.filter(item => item.id !== id));
+      // Decrement unread count if the deleted notification was unread
+      const deleted = localBellItems.find(item => item.id === id);
+      if (deleted && !deleted.is_read) {
+        setLocalUnreadCount(prev => Math.max(0, prev - 1));
+      }
     } catch (err) {
-      console.error('Failed to mark as unread:', err);
+      console.error('Failed to delete notification:', err);
+      setError('Unable to delete notification.');
     }
   }, []);
 
@@ -179,12 +180,12 @@ const NotificationBell = ({ notif, open, onToggle, onClose }) => {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          item.is_read ? handleMarkUnread(item.id) : handleMarkRead(item.id);
+                          handleDeleteNotification(item.id);
                         }}
-                        className="p-1 text-[#4F5F73] hover:text-[#1F2D3D] hover:bg-[#D7DEE6] rounded"
-                        aria-label={item.is_read ? 'Mark as unread' : 'Mark as read'}
+                        className="p-1 text-[#4F5F73] hover:text-red-600 hover:bg-[#FEE2E2] rounded"
+                        aria-label="Delete notification"
                       >
-                        {item.is_read ? <X size={14} /> : <Check size={14} />}
+                        <X size={14} />
                       </button>
                     </div>
                   </div>

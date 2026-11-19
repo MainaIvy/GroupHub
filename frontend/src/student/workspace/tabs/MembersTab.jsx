@@ -11,7 +11,7 @@ const card = 'rounded-xl border border-[#D7DEE6] bg-white p-4';
 
 const roleLabel = (member) => (member.is_leader ? 'Leader' : member.role === 'admin' ? 'Admin' : 'Member');
 
-const MembersTab = ({ group, members, isLeader, joinRequests, access, onLeft, onLeaveError, setGroups, onReload }) => {
+const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLeft, onLeaveError, setGroups, onReload }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);

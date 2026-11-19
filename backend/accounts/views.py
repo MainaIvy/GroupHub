@@ -407,7 +407,7 @@ def staff_reset_password(request):
 @api_view(['POST'])
 @permission_classes([])
 def student_forgot_password(request):
-    """Send password reset link to student email."""
+    """Step 1: Verify email and return security questions (without answers)."""
     email = str(request.data.get('email', '')).strip().lower()
     if not email:
         return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -415,6 +415,57 @@ def student_forgot_password(request):
     user = User.objects.filter(email__iexact=email, user_type='student').first()
     if not user:
         return Response({'error': 'No active student found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+    questions = []
+    if user.security_questions:
+        for sq in user.security_questions:
+            questions.append({
+                'question': sq.get('question', ''),
+            })
+
+    return Response({
+        'message': 'Please answer your security questions.',
+        'questions': questions,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([])
+def student_verify_security_answers(request):
+    """Step 2: Verify security answers and issue a password reset token."""
+    email = str(request.data.get('email', '')).strip().lower()
+    answers = request.data.get('answers')
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(answers, list) or len(answers) == 0:
+        return Response({'error': 'Security answers are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email__iexact=email, user_type='student').first()
+    if not user:
+        return Response({'error': 'No active student found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+    stored_questions = user.security_questions or []
+    if not stored_questions:
+        return Response({'error': 'No security questions found for this account.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Build lookup of stored question -> answer (case-insensitive question match)
+    stored_map = {}
+    for sq in stored_questions:
+        q = str(sq.get('question', '')).strip().lower()
+        stored_map[q] = str(sq.get('answer', '')).strip().lower()
+
+    matched = 0
+    for ans in answers:
+        question = str(ans.get('question', '')).strip().lower()
+        answer = str(ans.get('answer', '')).strip().lower()
+        if not question or not answer:
+            continue
+        if question in stored_map and stored_map[question] == answer:
+            matched += 1
+
+    # Require all security questions to be answered correctly
+    if matched < len(stored_questions):
+        return Response({'error': 'Incorrect security answers. Please try again.'}, status=status.HTTP_400_BAD_REQUEST)
 
     import secrets
     from django.utils import timezone
@@ -433,7 +484,7 @@ def student_forgot_password(request):
     print(f"============================\n")
 
     return Response({
-        'message': 'Password reset link generated.',
+        'message': 'Security answers verified. Password reset link generated.',
         'reset_url': reset_url,
         'token': token,
         'expires_at': user.reset_token_expires.isoformat(),
@@ -580,6 +631,26 @@ def signup_view(request):
             if not matching_units.exists():
                 return JsonResponse({'error': 'No units are available for the selected programme, academic level, and year.'}, status=400)
 
+        # Validate security questions
+        security_questions = data.get('security_questions')
+        if not isinstance(security_questions, list) or len(security_questions) < 2:
+            return JsonResponse({'error': 'Please select at least 2 security questions.'}, status=400)
+        if len(security_questions) > 5:
+            return JsonResponse({'error': 'You can select at most 5 security questions.'}, status=400)
+        seen_questions = set()
+        for idx, sq in enumerate(security_questions):
+            question = str(sq.get('question', '')).strip()
+            answer = str(sq.get('answer', '')).strip()
+            if not question:
+                return JsonResponse({'error': f'Security question {idx + 1} is required.'}, status=400)
+            if not answer:
+                return JsonResponse({'error': f'Answer for security question {idx + 1} is required.'}, status=400)
+            if question.lower() in seen_questions:
+                return JsonResponse({'error': f'Duplicate security question: "{question}".'}, status=400)
+            seen_questions.add(question.lower())
+            sq['question'] = question
+            sq['answer'] = answer
+
         name_parts = full_name.split(' ', 1)
         first_name = name_parts[0]
         last_name = name_parts[1] if len(name_parts) > 1 else ''
@@ -603,6 +674,8 @@ def signup_view(request):
                 user.enrolled_course = course
                 user.semester = semester_number
                 user.reg_number = registration_number.upper()
+
+            user.security_questions = security_questions
 
             user.email_verified = True
             user.is_active = True
@@ -801,6 +874,65 @@ def notification_settings(request):
         'messageReceived': settings.message_received,
         'joinRequest': settings.join_request,
         'inviteResponse': settings.invite_response,
+    })
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def student_security_questions(request):
+    """Get or update the student's security questions for password recovery."""
+    user = request.user
+    if user.user_type != 'student':
+        return Response({'error': 'Security questions are only available to student accounts.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'PATCH':
+        security_questions = request.data.get('security_questions')
+        if not isinstance(security_questions, list) or len(security_questions) < 2:
+            return Response({'error': 'Please select at least 2 security questions.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(security_questions) > 5:
+            return Response({'error': 'You can select at most 5 security questions.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        seen_questions = set()
+        cleaned = []
+        for idx, sq in enumerate(security_questions):
+            question = str(sq.get('question', '')).strip()
+            answer = str(sq.get('answer', '')).strip()
+            if not question:
+                return Response({'error': f'Security question {idx + 1} is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not answer:
+                return Response({'error': f'Answer for security question {idx + 1} is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if question.lower() in seen_questions:
+                return Response({'error': f'Duplicate security question: "{question}".'}, status=status.HTTP_400_BAD_REQUEST)
+            seen_questions.add(question.lower())
+            cleaned.append({'question': question, 'answer': answer})
+
+        was_empty = not bool(user.security_questions)
+        user.security_questions = cleaned
+        try:
+            user.save()
+        except ValidationError as error:
+            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Notify the user when security questions are first configured.
+        if was_empty:
+            from .models import Notification
+            Notification.objects.create(
+                user=user,
+                notification_type='announcement',
+                title='Security questions set up',
+                message='You have set up security questions for your account. You will need to answer them to reset your password if you forget it.',
+            )
+
+    questions_only = []
+    if user.security_questions:
+        for sq in user.security_questions:
+            questions_only.append({
+                'question': sq.get('question', ''),
+                'has_answer': bool(sq.get('answer')),
+            })
+
+    return Response({
+        'security_questions': questions_only,
     })
 
 
@@ -1461,6 +1593,11 @@ def student_dashboard(request):
                     for a in assignments:
                         name = f'{a.lecturer.first_name} {a.lecturer.last_name}'.strip() or a.lecturer.username
                         lecturer_map.setdefault(a.unit_id, []).append(name)
+                    # Fallback: direct assigned_lecturer on the Unit model
+                    for u in unit_rows:
+                        if u.assigned_lecturer and u.id not in lecturer_map:
+                            name = f'{u.assigned_lecturer.first_name} {u.assigned_lecturer.last_name}'.strip() or u.assigned_lecturer.username
+                            lecturer_map.setdefault(u.id, []).append(name)
                 units_data = [
                     {
                         'id': u.id,
@@ -2776,6 +2913,21 @@ def update_notification(request, notification_id):
         return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, notification_id):
+    try:
+        user = request.user
+        notification = Notification.objects.get(id=notification_id, user=user)
+        notification.delete()
+        return Response({'message': 'Notification deleted.', 'id': notification_id})
+    except Notification.DoesNotExist:
+        return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error deleting notification: {str(e)}")
+        return Response({'error': 'Unable to delete notification'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_group_members(request, group_id):
@@ -2965,6 +3117,8 @@ def get_messages(request, room_id):
                 'timestamp': msg.timestamp.isoformat(),
                 'attachment_name': msg.attachment.name.rsplit('/', 1)[-1] if msg.attachment else None,
                 'attachment_url': f'/api/accounts/chat/messages/{msg.id}/attachment/' if msg.attachment else None,
+                'voice_note_url': f'/api/accounts/chat/messages/{msg.id}/voice-note/' if msg.voice_note else None,
+                'voice_duration': msg.voice_duration,
             })
 
         Notification.objects.filter(
@@ -2989,6 +3143,10 @@ def send_message(request, room_id):
         content = str(request.data.get('content') or '').strip()
         uploaded_file = request.FILES.get('file')
         voice_note = request.FILES.get('voice_note')
+        try:
+            voice_duration = int(request.data.get('voice_duration') or 0)
+        except (TypeError, ValueError):
+            voice_duration = 0
         if not content and not uploaded_file and not voice_note:
             return Response({'error': 'Write a message, attach a document, or record a voice note.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -3022,6 +3180,7 @@ def send_message(request, room_id):
             content=content,
             attachment=uploaded_file,
             voice_note=voice_note,
+            voice_duration=voice_duration,
         )
 
         recipients = []
@@ -3077,6 +3236,7 @@ def send_message(request, room_id):
             'attachment_name': message.attachment.name.rsplit('/', 1)[-1] if message.attachment else None,
             'attachment_url': f'/api/accounts/chat/messages/{message.id}/attachment/' if message.attachment else None,
             'voice_note_url': f'/api/accounts/chat/messages/{message.id}/voice-note/' if message.voice_note else None,
+            'voice_duration': message.voice_duration,
         }
         try:
             from asgiref.sync import async_to_sync
@@ -3150,6 +3310,73 @@ def download_message_voice_note(request, message_id):
     except Exception as e:
         logger.error(f"Error downloading voice note: {str(e)}")
         return Response({'error': 'Unable to download voice note'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_message(request, message_id):
+    try:
+        message = Message.objects.select_related('chat_room__group', 'sender').get(pk=message_id)
+        user = request.user
+        if message.sender_id != user.id:
+            return Response({'error': 'You can only delete your own messages.'}, status=status.HTTP_403_FORBIDDEN)
+        chat_room = message.chat_room
+        if chat_room.chat_type == 'group':
+            if not can_view_group(user, chat_room.group):
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            if not (chat_room.user1_id == user.id or chat_room.user2_id == user.id):
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        scope = request.query_params.get('scope', 'everyone')
+        if scope == 'everyone':
+            if message.attachment:
+                message.attachment.delete(save=False)
+            if message.voice_note:
+                message.voice_note.delete(save=False)
+            message.delete()
+        return Response({'message': f'Message deleted for {scope}.', 'id': message_id})
+    except Message.DoesNotExist:
+        return Response({'error': 'Message not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error deleting message: {str(e)}")
+        return Response({'error': 'Unable to delete message'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def edit_message(request, message_id):
+    try:
+        message = Message.objects.select_related('chat_room__group', 'sender').get(pk=message_id)
+        user = request.user
+        if message.sender_id != user.id:
+            return Response({'error': 'You can only edit your own messages.'}, status=status.HTTP_403_FORBIDDEN)
+        chat_room = message.chat_room
+        if chat_room.chat_type == 'group':
+            if not can_view_group(user, chat_room.group):
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            if not (chat_room.user1_id == user.id or chat_room.user2_id == user.id):
+                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        new_content = str(request.data.get('content') or '').strip()
+        if not new_content:
+            return Response({'error': 'Content is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        message.content = new_content
+        message.edited_at = timezone.now()
+        message.save(update_fields=['content', 'edited_at'])
+
+        return Response({
+            'id': message.id,
+            'content': message.content,
+            'edited_at': message.edited_at.isoformat(),
+        })
+    except Message.DoesNotExist:
+        return Response({'error': 'Message not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error editing message: {str(e)}")
+        return Response({'error': 'Unable to edit message'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['DELETE'])

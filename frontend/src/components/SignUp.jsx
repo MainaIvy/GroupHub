@@ -71,10 +71,10 @@ const FieldError = ({ id, message }) => (
 );
 
 const StepIndicator = ({ step }) => {
-  const steps = ['Personal details', 'Academic details', 'Review & create'];
+  const steps = ['Personal details', 'Academic details', 'Security questions', 'Review & create'];
   return (
     <div className="flex items-center gap-4 mb-6">
-      {[1, 2, 3].map((n) => (
+      {[1, 2, 3, 4].map((n) => (
         <div key={n} className="flex flex-col items-center gap-2">
           <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
             n < step ? 'bg-[#35475C] text-white' : n === step ? 'bg-[#35475C] text-white' : 'bg-[#EEF1F4] text-[#4F5F73] border border-[#D7DEE6]'
@@ -127,6 +127,7 @@ const SignUp = () => {
     studentId: '',
     course: '',
     agreeToTerms: false,
+    securityQuestions: [],
   });
 
   const [formData, setFormData] = useState(emptyForm);
@@ -172,6 +173,13 @@ const SignUp = () => {
   }, []);
 
   const levelOrder = { certificate: 0, diploma: 1, bachelors: 2 };
+  const securityQuestionsList = [
+    'What is your mother\'s maiden name?',
+    'What was the name of your first pet?',
+    'What is the name of your primary school?',
+    'What city were you born in?',
+    'What is your favorite book?',
+  ];
   const academicLevels = useMemo(() => [...new Set(academicCourses.flatMap((course) => (course.units || [])
     .map((unit) => unit.academic_level?.trim())
     .filter(Boolean)))].sort((a, b) => {
@@ -261,14 +269,34 @@ const SignUp = () => {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
+  const validateStep3 = useCallback(() => {
+    const errors = {};
+    const sq = formData.securityQuestions || [];
+    if (sq.length < 2) {
+      errors.securityQuestions = 'Select at least 2 security questions.';
+    } else {
+      sq.forEach((q, i) => {
+        if (!q.question) errors[`securityQuestion_${i}`] = 'Select a security question.';
+        if (!q.answer) errors[`securityAnswer_${i}`] = 'Provide an answer.';
+      });
+      const questions = sq.map((q) => q.question).filter(Boolean);
+      if (new Set(questions).size !== questions.length) {
+        errors.securityQuestions = 'Duplicate security questions are not allowed.';
+      }
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [formData.securityQuestions]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSignupError('');
 
     const step1Ok = validateStep1();
     const step2Ok = validateStep2();
+    const step3Ok = validateStep3();
 
-    if (!step1Ok || !step2Ok) {
+    if (!step1Ok || !step2Ok || !step3Ok) {
       setStep(1);
       return;
     }
@@ -305,6 +333,7 @@ const SignUp = () => {
     signupData.registrationNumber = studentRegistrationNumber;
     signupData.regNumber = studentRegistrationNumber;
     signupData.studentId = studentRegistrationNumber;
+    signupData.security_questions = formData.securityQuestions || [];
 
     setSubmitting(true);
     try {
@@ -357,6 +386,7 @@ const SignUp = () => {
 
   const step1Complete = Boolean(formData.fullName && formData.email && formData.regNumber && formData.password && formData.confirmPassword);
   const step2Complete = Boolean(formData.academicLevel && formData.courseId && formData.yearOfStudy && formData.semester);
+  const step3Complete = Array.isArray(formData.securityQuestions) && formData.securityQuestions.length >= 2 && formData.securityQuestions.every((q) => q.question && q.answer);
 
   const regPrefix = String(formData.regNumber || '').split('-')[0]?.toUpperCase();
   const programmeCode = selectedStudentCourse?.code?.toUpperCase();
@@ -668,8 +698,102 @@ const SignUp = () => {
             </>
           )}
 
-          {/* Step 3: Review & Create */}
+          {/* Step 3: Security Questions */}
           {step === 3 && (
+            <>
+              <h2 className="text-base font-semibold text-[#1F2D3D] mb-4">Security questions</h2>
+              <p className="text-sm text-[#4F5F73] mb-6">
+                Choose security questions and answers. You will need to answer these to reset your password if you forget it.
+              </p>
+              <div className="space-y-3">
+                {(formData.securityQuestions || []).map((sq, idx) => (
+                  <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor={`securityQuestion_${idx}`} className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                        Security question {idx + 1} <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id={`securityQuestion_${idx}`}
+                        className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
+                        value={sq.question || ''}
+                        onChange={(e) => {
+                          const next = [...(formData.securityQuestions || [])];
+                          next[idx] = { ...next[idx], question: e.target.value };
+                          setField('securityQuestions', next);
+                        }}
+                      >
+                        <option value="">Select a question</option>
+                        {securityQuestionsList.map((q) => (
+                          <option key={q} value={q}>{q}</option>
+                        ))}
+                      </select>
+                      {fieldErrors[`securityQuestion_${idx}`] && <FieldError id={`error-securityQuestion_${idx}`} message={fieldErrors[`securityQuestion_${idx}`]} />}
+                    </div>
+                    <div>
+                      <label htmlFor={`securityAnswer_${idx}`} className="block text-xs font-medium text-[#1F2D3D] mb-1">
+                        Your answer <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id={`securityAnswer_${idx}`}
+                        type="text"
+                        className={`w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none ${fieldErrors[`securityAnswer_${idx}`] ? 'border-red-600 focus:border-red-600 focus:ring-red-600/20' : 'border-[#D7DEE6]'}`}
+                        placeholder="Your answer"
+                        value={sq.answer || ''}
+                        onChange={(e) => {
+                          const next = [...(formData.securityQuestions || [])];
+                          next[idx] = { ...next[idx], answer: e.target.value };
+                          setField('securityQuestions', next);
+                        }}
+                      />
+                      {fieldErrors[`securityAnswer_${idx}`] && <FieldError id={`error-securityAnswer_${idx}`} message={fieldErrors[`securityAnswer_${idx}`]} />}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = [...(formData.securityQuestions || [])];
+                    next.push({ question: '', answer: '' });
+                    setField('securityQuestions', next);
+                  }}
+                  className="w-auto flex items-center gap-2 rounded-lg border border-[#D7DEE6] bg-white px-4 py-2.5 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] transition-colors"
+                >
+                  <span>+ Add another question</span>
+                </button>
+                {fieldErrors.securityQuestions && (
+                  <p className="text-[10px] text-red-600">{fieldErrors.securityQuestions}</p>
+                )}
+              </div>
+              <div className="flex items-start gap-4">
+                <button
+                  type="button"
+                  onClick={() => goToStep(2)}
+                  className="w-auto rounded-lg border border-[#D7DEE6] px-4 py-3 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4] hover:border-[#B7C3D2] transition-colors"
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Back</span>
+                    <ChevronLeft size={14} />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  disabled={!step3Complete || submitting}
+                  onClick={() => { if (validateStep3()) goToStep(4); }}
+                  className={`w-auto rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                    step3Complete ? 'bg-[#35475C] text-white hover:bg-[#435B76]' : 'bg-[#EEF1F4] text-[#4F5F73] cursor-not-allowed'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Next</span>
+                    <ChevronRight size={14} />
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Step 4: Review & Create */}
+          {step === 4 && (
             <>
               <h2 className="text-base font-semibold text-[#1F2D3D] mb-4">Review your details</h2>
               <div className="space-y-4">

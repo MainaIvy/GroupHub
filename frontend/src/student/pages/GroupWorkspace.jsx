@@ -159,7 +159,7 @@ const GroupWorkspace = ({ ctx }) => {
           />
         );
       case 'chat':
-        return <ChatTab groupId={group.id} tasks={tasks} onOpenTask={openTask} onAssignTask={() => setProposeFor(null)} onGoGroups={toGroups} />;
+        return <ChatTab groupId={group.id} tasks={tasks} onOpenTask={openTask} onGoGroups={toGroups} />;
       case 'polls':
         return <PollsTab groupId={group.id} />;
       case 'files':
@@ -167,7 +167,7 @@ const GroupWorkspace = ({ ctx }) => {
       case 'submission':
         return <SubmissionTab ctx={{ ...ctx, workspaceCompile: workspace.compile, workspace, isWorkspaceLeader: isLeader }} />;
       case 'members':
-        return <MembersTab group={{ ...workspace.group, ...group }} members={members} isLeader={isLeader} joinRequests={joinRequests} access={access} setGroups={setGroups} onLeft={toGroups} onLeaveError={setError} onReload={data.reload} />;
+        return <MembersTab user={user} group={{ ...workspace.group, ...group }} members={members} isLeader={isLeader} joinRequests={joinRequests} access={access} setGroups={setGroups} onLeft={toGroups} onLeaveError={setError} onReload={data.reload} />;
       case 'activity':
         return <ActivityTab activity={data.activity} comments={data.comments} onGoTasks={() => goTab('tasks')} />;
       default:

@@ -44,6 +44,7 @@ class User(AbstractUser):
     grading_defaults = models.JSONField(default=dict, blank=True)
     reset_token = models.CharField(max_length=255, blank=True, null=True)
     reset_token_expires = models.DateTimeField(blank=True, null=True)
+    security_questions = models.JSONField(default=list, blank=True, help_text='Security question/answer pairs for password recovery')
 
     def __str__(self):
         return self.username
@@ -381,7 +382,9 @@ class Message(models.Model):
     content = models.TextField()
     attachment = models.FileField(upload_to='chat_documents/%Y/%m/', null=True, blank=True)
     voice_note = models.FileField(upload_to='chat_voice_notes/%Y/%m/', null=True, blank=True)
+    voice_duration = models.PositiveSmallIntegerField(default=0, help_text='Voice note duration in seconds')
     timestamp = models.DateTimeField(auto_now_add=True)
+    edited_at = models.DateTimeField(null=True, blank=True, help_text='When the message was last edited')
 
     def __str__(self):
         return f"{self.sender.username}: {self.content[:50]}"
