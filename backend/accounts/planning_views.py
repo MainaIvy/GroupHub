@@ -27,6 +27,55 @@ def _load_group(group_id):
     return Group.objects.select_related('lecturer', 'unit').filter(pk=group_id).first()
 
 
+def _is_compile_task(task):
+    return task.title.strip().lower() == 'compile and edit'
+
+
+def _compile_task_lock(group):
+    """Return (is_locked, reason) for the compile task in this group's project."""
+    project = Project.objects.filter(group=group).order_by('created_at').first()
+    if project is None:
+        return False, None
+    compile_task = Task.objects.filter(
+        project=project, title__iexact='Compile and edit', parent_task__isnull=True
+    ).first()
+    if compile_task is None:
+        return False, None
+    other_sections = list(Task.objects.filter(
+        project=project, parent_task__isnull=True
+    ).exclude(pk=compile_task.pk).prefetch_related('subtasks'))
+    if not other_sections.exists() if hasattr(other_sections, 'exists') else not other_sections:
+        return False, None
+    children_by_parent = {}
+    for task in Task.objects.filter(project=project).prefetch_related('subtasks'):
+        children_by_parent.setdefault(task.parent_task_id, []).append(task)
+    rollup_cache = {}
+    all_complete = all(
+        _section_rollup(section, children_by_parent, rollup_cache)['progress'] >= 100
+        for section in other_sections
+    )
+    if all_complete:
+        return False, None
+    return True, 'Compile and edit is locked until all other sections are complete.'
+
+
+def _section_rollup(task, children_by_parent, rollup_cache):
+    if task.id in rollup_cache:
+        return rollup_cache[task.id]
+    children = children_by_parent.get(task.id, [])
+    if children:
+        child_rollups = [(child, _section_rollup(child, children_by_parent, rollup_cache)) for child in children]
+        total_weight = sum(max(1, child.weight) for child, _ in child_rollups)
+        progress = round(sum(result['progress'] * max(1, child.weight) for child, result in child_rollups) / total_weight) if total_weight else 0
+        status_value = 'completed' if all(result['progress'] >= 100 for _, result in child_rollups) else 'in_progress' if progress else 'pending'
+    else:
+        progress = 100 if task.status == 'completed' else task.progress_percentage
+        status_value = 'completed' if progress >= 100 else 'in_progress' if progress > 0 or task.status == 'in_progress' else 'pending'
+    result = {'progress': progress, 'status': status_value}
+    rollup_cache[task.id] = result
+    return result
+
+
 def _parse_deadline(value):
     if not value:
         return None, None
@@ -55,6 +104,20 @@ def _project_payload(project):
     }
 
 
+def _available_templates():
+    from .models import ProjectTemplate
+    defaults = [
+        ('Business plan', ['Executive summary', 'Problem and idea', 'Market research', 'Competitor analysis', 'Marketing plan', 'Operations plan', 'Financial projections', 'Why we will succeed', 'Risks', 'Compile and edit']),
+        ('Software project', ['Requirements', 'Architecture', 'Design', 'Implementation', 'Testing', 'Deployment', 'Documentation', 'Compile and edit']),
+        ('Research report', ['Introduction', 'Literature review', 'Methodology', 'Results', 'Analysis', 'Conclusion', 'References', 'Compile and edit']),
+        ('Blank', []),
+    ]
+    for name, sections in defaults:
+        ProjectTemplate.objects.get_or_create(name=name, defaults={'sections': sections})
+    templates = ProjectTemplate.objects.all().order_by('id')
+    return [{'id': t.id, 'name': t.name, 'description': t.description, 'sections': t.sections} for t in templates]
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def group_projects(request, group_id):
@@ -77,9 +140,28 @@ def group_projects(request, group_id):
     deadline, message = _parse_deadline(request.data.get('deadline'))
     if message:
         return _error(message)
+    template_id = request.data.get('template_id')
     project = Project.objects.create(
         group=group, title=title, description=str(request.data.get('description') or '').strip(), deadline=deadline,
     )
+    if template_id:
+        template = ProjectTemplate.objects.filter(pk=template_id).first()
+        if template:
+            default_due = project.deadline or (timezone.now() + timezone.timedelta(days=7))
+            for index, section_title in enumerate(template.sections, start=1):
+                Task.objects.create(
+                    project=project,
+                    title=section_title,
+                    weight=1,
+                    due_date=default_due,
+                    section=section_title,
+                    assignment_mode='assigned',
+                    proposal_status='proposed',
+                    proposed_by=user,
+                    weight_confirmed=False,
+                    status='pending',
+                    description='',
+                )
     return Response(_project_payload(project), status=status.HTTP_201_CREATED)
 
 
@@ -91,6 +173,12 @@ def _resolve_project(group, project_id):
         return project, None
     project = Project.objects.filter(group=group).order_by('created_at').first()
     return project or Project.objects.create(group=group, title=group.name, description='Group task workspace'), None
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_templates(request):
+    return Response(_available_templates())
 
 
 @api_view(['POST'])

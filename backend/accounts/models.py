@@ -258,6 +258,7 @@ class Task(models.Model):
     parent_task = models.ForeignKey(
         'self', on_delete=models.CASCADE, related_name='subtasks', null=True, blank=True
     )
+    section = models.CharField(max_length=120, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     due_date = models.DateTimeField(null=False, blank=False)
@@ -476,6 +477,8 @@ class Unit(models.Model):
         null=True,
         blank=True,
     )
+    # Default maximum group size per unit; groups may set a lower max_members.
+    default_max_members = models.PositiveSmallIntegerField(default=5, null=True, blank=True)
 
     def __str__(self):
         return f'{self.code} - {self.name}'
@@ -674,3 +677,15 @@ class TaskSubmission(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class ProjectTemplate(models.Model):
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    sections = models.JSONField(default=list, help_text='List of proposed section titles')
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name

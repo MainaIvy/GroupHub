@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { btnPrimary, btnSecondary } from '../design';
 import { WEIGHT_SCALE } from '../../taskWeights';
 import { timeAgo } from '../utils';
 import Avatar from '../components/Avatar';
+import { ProgressBar } from '../components/ProgressBar';
 import { StatusChip } from './TaskCard';
 import { childrenOf, describeActivity, formatDue, weightText } from './taskUtils';
 
@@ -16,7 +17,7 @@ const Section = ({ title, children }) => (
 
 const selectClass = 'h-10 w-full rounded-lg border border-[#CBD5E1] bg-white px-3 text-[15px] text-[#1F2D3D]';
 
-const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, onClose, onSelectTask, onAddSubtask }) => {
+const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, compile, onClose, onSelectTask, onAddSubtask, onGoSubmission }) => {
   const [warning, setWarning] = useState(null);
   const [approveMode, setApproveMode] = useState('open_to_claim');
   const [approveAssignee, setApproveAssignee] = useState('');
@@ -24,12 +25,18 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
   const [weight, setWeight] = useState(task.weight);
   const [comment, setComment] = useState('');
   const [section, setSection] = useState('');
+  const [proofText, setProofText] = useState('');
+  const [proofUrl, setProofUrl] = useState('');
+  const [proofFile, setProofFile] = useState(null);
 
   useEffect(() => {
     setWarning(null);
     setSection('');
     setWeight(task.weight);
     setComment('');
+    setProofText('');
+    setProofUrl('');
+    setProofFile(null);
     actions.clearError();
     // Reset local form state only when a different task is opened.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,19 +55,23 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
   const history = activity.filter((item) => item.task_id === task.id);
   const weightHistory = history.filter((item) => item.new_weight != null);
   const comments = task.comments || [];
-
-  const canApprove = isLeader && task.board_status === 'proposed';
-  const canClaim = task.board_status === 'open_to_claim' && !task.has_subtasks;
-  const canReassign = task.board_status !== 'proposed' && task.board_status !== 'done' && !task.has_subtasks && members.length > 1;
-  const canStart = isAssignee && task.board_status === 'assigned' && !task.has_subtasks;
-  const canFinish = isAssignee && ['assigned', 'in_progress'].includes(task.board_status) && !task.has_subtasks;
-  const leaderOwnsTask = isLeader && (task.proposed_by_id === leaderId || task.assigned_to_id === leaderId);
+  const workItems = task.work_items || [];
+  const isCompile = task.is_compile_task || task.title.trim().toLowerCase() === 'compile and edit';
+  const compileLocked = compile?.is_locked || false;
+  const canFinish = isAssignee && ['assigned', 'in_progress'].includes(task.board_status) && !task.has_subtasks && !(isCompile && compileLocked);
+  const canStart = isAssignee && task.board_status === 'todo' && !task.has_subtasks && !(isCompile && compileLocked);
 
   const exec = async (call) => {
     const result = await call(false);
     if (result.warning) setWarning({ text: result.warning, retry: async () => { const again = await call(true); if (!again.warning) setWarning(null); return again; } });
     else { setWarning(null); if (result.ok) setSection(''); }
     return result;
+  };
+
+  const finishTask = async () => {
+    if (!task.has_subtasks) {
+      await onGoSubmission();
+    }
   };
 
   const submitComment = async (event) => {
@@ -71,12 +82,27 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
     if (result.ok) setComment('');
   };
 
+  const addWork = async (event) => {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.append('note', proofText.trim());
+    formData.append('url', proofUrl.trim());
+    if (proofFile) formData.append('file', proofFile);
+    const result = await actions.addWork(task, formData);
+    if (result?.ok) {
+      setProofText('');
+      setProofUrl('');
+      setProofFile(null);
+      await exec(() => actions.setStatus(task, 'completed'));
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-[#1F2D3D]/40" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <aside role="dialog" aria-modal="true" aria-label={`Task: ${task.title}`} className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white p-5 shadow-xl">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            {parent ? <button type="button" onClick={() => onSelectTask(parent.id)} className="mb-1 text-sm font-semibold text-[#4A6079] underline">← {parent.title}</button> : null}
+            {parent ? <button type="button" onClick={() => onSelectTask(parent.id)} className="mb-1 text-sm font-semibold text-[#4A6079] underline">â† {parent.title}</button> : null}
             <h3 className="text-lg font-bold text-[#1F2D3D]">{task.title}</h3>
             <div className="mt-2 flex flex-wrap items-center gap-2"><StatusChip status={task.board_status} />{task.is_overdue ? <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[13px] font-semibold text-red-700">Overdue</span> : null}</div>
           </div>
@@ -103,12 +129,27 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
             <div><dt className="text-[13px] text-[#4F5F73]">Progress</dt><dd className="mt-1 font-medium">{task.progress_percentage || 0}%</dd></div>
           </dl>
 
+          {workItems.length ? (
+            <Section title="Proof of work">
+              <div className="space-y-2 text-xs text-[#4F5F73]">
+                {workItems.map((item) => (
+                  <article key={item.id} className="rounded-lg border border-[#E3EAF2] p-2.5">
+                    <div className="mb-1 flex items-center gap-2 text-sm font-medium text-[#33445A]">{item.author_name} • {timeAgo(item.created_at)}</div>
+                    {item.note && <p className="mt-1 whitespace-pre-wrap">{item.note}</p>}
+                    {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-[#435B76] underline">Open link</a>}
+                    {item.file_url && <a href={item.file_url} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-[#435B76] underline">Open {item.file_name}</a>}
+                  </article>
+                ))}
+              </div>
+            </Section>
+          ) : null}
+
           <Section title="Actions">
             <div className="flex flex-wrap gap-2">
               {canClaim ? <button type="button" disabled={actions.busy} onClick={() => exec((confirm) => actions.claim(task, confirm))} className={btnPrimary}>Claim task</button> : null}
               {canApprove ? <button type="button" onClick={() => setSection(section === 'approve' ? '' : 'approve')} className={btnPrimary}>Approve</button> : null}
               {canStart ? <button type="button" disabled={actions.busy} onClick={() => exec(() => actions.setStatus(task, 'in_progress'))} className={btnSecondary}>Start work</button> : null}
-              {canFinish ? <button type="button" disabled={actions.busy} onClick={() => exec(() => actions.setStatus(task, 'completed'))} className={btnPrimary}>Mark done</button> : null}
+              {canFinish ? <button type="button" disabled={actions.busy} onClick={() => finishTask()} className={btnPrimary}>Mark done</button> : null}
               {canReassign ? <button type="button" onClick={() => setSection(section === 'reassign' ? '' : 'reassign')} className={btnSecondary}>Reassign</button> : null}
               {!task.parent_task_id ? <button type="button" onClick={() => onAddSubtask(task)} className={btnSecondary}>Add subtask</button> : null}
             </div>
@@ -139,21 +180,36 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
             ) : null}
           </Section>
 
+          {task.board_status === 'completed' || task.board_status === 'in_progress' ? (
+            <Section title="Proof of work (optional)">
+              <p className="text-sm text-[#4F5F73]">Attach a link, file, or note to show what you did.</p>
+              <div className="mt-2 space-y-2">
+                <textarea value={proofText} onChange={(event) => setProofText(event.target.value)} placeholder="Note or link…" rows={2} className="w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[14px]" />
+                <input value={proofUrl} onChange={(event) => setProofUrl(event.target.value)} placeholder="https://docs.google.com/document/…" className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[14px]" />
+                <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onChange={(event) => setProofFile(event.target.files?.[0] || null)} className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-xs" />
+              </div>
+              {workItems.length ? (
+                <div className="mt-3 flex items-center gap-2 text-xs text-[#4F5F73]">{workItems.length} file(s)/link(s) attached</div>
+              ) : null}
+              <button type="button" disabled={actions.busy || (!proofText.trim() && !proofUrl.trim() && !proofFile)} onClick={addWork} className={btnSecondary}>Attach proof</button>
+            </Section>
+          ) : null}
+
           <Section title="Weight">
-            <p className="text-sm"><span className="font-semibold">{weightText(task.weight)}</span> · {task.weight_confirmed ? 'Confirmed' : 'Not confirmed yet'}</p>
+            <p className="text-sm"><span className="font-semibold">{weightText(task.weight)}</span> Â· {task.weight_confirmed ? 'Confirmed' : 'Not confirmed yet'}</p>
             {task.can_change_weight ? (
               <div className="mt-2 flex gap-2">
                 <select aria-label="Change weight" value={weight} onChange={(event) => setWeight(Number(event.target.value))} className={selectClass}>
-                  {WEIGHT_SCALE.map((item) => <option key={item.value} value={item.value}>{item.value} · {item.label}</option>)}
+                  {WEIGHT_SCALE.map((item) => <option key={item.value} value={item.value}>{item.value} Â· {item.label}</option>)}
                 </select>
                 <button type="button" disabled={actions.busy || Number(weight) === Number(task.weight)} onClick={() => exec(() => actions.changeWeight(task, weight))} className={btnSecondary}>Change</button>
               </div>
             ) : null}
             {!task.weight_confirmed && task.can_confirm_weight ? <button type="button" disabled={actions.busy} onClick={() => exec(() => actions.confirmWeight(task))} className={`${btnPrimary} mt-2`}>Confirm weight</button> : null}
-            {!task.weight_confirmed && !task.can_confirm_weight && leaderOwnsTask ? <p className="mt-2 text-sm text-[#4F5F73]">You can’t confirm the weight of your own task. Another member needs to confirm it.</p> : null}
+            {!task.weight_confirmed && !task.can_confirm_weight && leaderOwnsTask ? <p className="mt-2 text-sm text-[#4F5F73]">You canâ€™t confirm the weight of your own task. Another member needs to confirm it.</p> : null}
             {weightHistory.length ? (
               <ul className="mt-3 space-y-1 text-sm text-[#4F5F73]">
-                {weightHistory.map((item) => <li key={item.id}>{item.old_weight != null ? `${item.old_weight} → ${item.new_weight}` : `Set to ${item.new_weight}`} · {item.actor_name} · {timeAgo(item.created_at)}</li>)}
+                {weightHistory.map((item) => <li key={item.id}>{item.old_weight != null ? `${item.old_weight} â†’ ${item.new_weight}` : `Set to ${item.new_weight}`} Â· {item.actor_name} Â· {timeAgo(item.created_at)}</li>)}
               </ul>
             ) : <p className="mt-2 text-sm text-[#4F5F73]">No weight changes yet.</p>}
           </Section>
@@ -175,11 +231,11 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
           <Section title={`Comments (${comments.length})`}>
             {comments.length ? (
               <ol className="space-y-2">
-                {comments.map((item) => <li key={item.id} className="rounded-lg bg-[#EEF1F4] px-3 py-2 text-sm"><p className="whitespace-pre-wrap">{item.content}</p><p className="mt-1 text-[13px] text-[#4F5F73]">{item.author_name} · {timeAgo(item.created_at)}</p></li>)}
+                {comments.map((item) => <li key={item.id} className="rounded-lg bg-[#EEF1F4] px-3 py-2 text-sm"><p className="whitespace-pre-wrap">{item.content}</p><p className="mt-1 text-[13px] text-[#4F5F73]">{item.author_name} Â· {timeAgo(item.created_at)}</p></li>)}
               </ol>
             ) : <p className="text-sm text-[#4F5F73]">No comments yet.</p>}
             <form onSubmit={submitComment} className="mt-2 flex gap-2">
-              <input value={comment} onChange={(event) => setComment(event.target.value)} aria-label="Add a comment" placeholder="Add a comment…" maxLength={500} className="h-10 min-w-0 flex-1 rounded-lg border border-[#CBD5E1] px-3 text-[15px]" />
+              <input value={comment} onChange={(event) => setComment(event.target.value)} aria-label="Add a comment" placeholder="Add a commentâ€¦" maxLength={500} className="h-10 min-w-0 flex-1 rounded-lg border border-[#CBD5E1] px-3 text-[15px]" />
               <button type="submit" disabled={actions.busy || !comment.trim()} className={btnSecondary}>Post</button>
             </form>
           </Section>
@@ -198,3 +254,4 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
 };
 
 export default TaskPanel;
+

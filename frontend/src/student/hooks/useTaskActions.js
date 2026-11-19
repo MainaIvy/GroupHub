@@ -15,14 +15,14 @@ export default function useTaskActions(groupId, reload) {
     try {
       const response = await request();
       if (response.data?.requires_confirmation) {
-        return { warning: response.data.balance_warning || 'This would create an uneven workload.' };
+        return { warning: response.data.balance_warning || 'This would create an uneven workload.', data: response.data };
       }
       await reload();
       return { ok: true, data: response.data };
     } catch (requestError) {
       const message = requestError.response?.data?.error || fallback;
       setError(message);
-      return { error: message };
+      return { error: message, data: requestError.response?.data };
     } finally {
       setBusy(false);
     }
@@ -45,7 +45,8 @@ export default function useTaskActions(groupId, reload) {
     }), 'Unable to reassign this task.'),
     changeWeight: (task, weight) => run(() => axios.post(`${base}/tasks/${task.id}/weight/`, { weight: Number(weight) }), 'Unable to change the weight.'),
     confirmWeight: (task) => run(() => axios.post(`${base}/tasks/${task.id}/confirm-weight/`, {}), 'Unable to confirm the weight.'),
-    setStatus: (task, status) => run(() => axios.post(`${ROOT}/tasks/${task.id}/update-status/`, { status }), 'Unable to update this task.'),
+    setStatus: (task, status, extra = {}) => run(() => axios.post(`${ROOT}/tasks/${task.id}/update-status/`, { status, ...extra }), 'Unable to update this task.'),
     comment: (task, content) => run(() => axios.post(`${base}/comments/`, { task_id: task.id, content }), 'Unable to add this comment.'),
+    addWork: (task, formData) => run(() => axios.post(`${base}/tasks/${task.id}/work/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }), 'Unable to add proof of work.'),
   };
 }

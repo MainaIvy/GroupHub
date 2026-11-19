@@ -11,9 +11,14 @@ const card = 'rounded-xl border border-[#D7DEE6] bg-white p-4';
 
 const roleLabel = (member) => (member.is_leader ? 'Leader' : member.role === 'admin' ? 'Admin' : 'Member');
 
-const MembersTab = ({ group, members, isLeader, joinRequests, access, onLeft, onLeaveError, setGroups }) => {
+const MembersTab = ({ group, members, isLeader, joinRequests, access, onLeft, onLeaveError, setGroups, onReload }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
+  const [newMax, setNewMax] = useState(String(group.max_members || 5));
+
+  const canManageGroup = isLeader || access?.can_manage === true || user?.user_type === 'lecturer';
 
   const leave = async () => {
     setLeaving(true);
@@ -29,6 +34,22 @@ const MembersTab = ({ group, members, isLeader, joinRequests, access, onLeft, on
     }
   };
 
+  const updateGroupSize = async () => {
+    setSettingsBusy(true);
+    setSettingsError('');
+    try {
+      const response = await axios.patch(`/api/accounts/groups/${group.id}/settings/`, { max_members: Number(newMax) }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token') || ''}` },
+      });
+      setNewMax(String(response.data.max_members));
+      if (onReload) onReload();
+    } catch (requestError) {
+      setSettingsError(requestError.response?.data?.error || 'Unable to update group size.');
+    } finally {
+      setSettingsBusy(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section className={card} aria-labelledby="mem-list">
@@ -41,8 +62,18 @@ const MembersTab = ({ group, members, isLeader, joinRequests, access, onLeft, on
             </li>
           ))}
         </ul>
+        {canManageGroup ? (
+          <div className="mt-4 border-t border-[#E3EAF2] pt-4">
+            <label className="block text-[11px] font-bold text-[#4A6079] uppercase tracking-wider mb-2">Group size limit</label>
+            <div className="flex gap-2">
+              <input type="number" min="2" max="15" value={newMax} onChange={(event) => setNewMax(event.target.value)} className="w-20 rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm font-medium text-[#1F2D3D]" />
+              <button type="button" disabled={settingsBusy} onClick={updateGroupSize} className={btnSecondary}>Save</button>
+              {settingsError && <p className="mt-2 text-xs text-red-700">{settingsError}</p>}
+            </div>
+          </div>
+        ) : null}
         <div className="mt-4 border-t border-[#E3EAF2] pt-4">
-          {isLeader ? <p className="text-sm text-[#4F5F73]">You lead this group, so you can’t leave it. Delete it from the Groups page instead.</p> : (
+          {isLeader ? <p className="text-sm text-[#4F5F73]">You lead this group, so you canâ€™t leave it. Delete it from the Groups page instead.</p> : (
             <button type="button" onClick={() => setConfirmOpen(true)} className={btnSecondary}><LogOut size={16} aria-hidden="true" /> Leave group</button>
           )}
         </div>

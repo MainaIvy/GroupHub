@@ -40,8 +40,7 @@ export default function useStudentWorkspace() {
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState('');
-  const [maxMembers, setMaxMembers] = useState('6');
-  const [inviteUsernames, setInviteUsernames] = useState('');
+  const [maxMembers, setMaxMembers] = useState('5');  const [inviteUsernames, setInviteUsernames] = useState('');
   const [groupMenuId, setGroupMenuId] = useState(null);
 
   const [chatGroupId, setChatGroupId] = useState(null);
@@ -487,8 +486,7 @@ export default function useStudentWorkspace() {
       setSelectedCourse(courseCode);
     }
     setSelectedUnitId(unit?.id ? String(unit.id) : '');
-    setMaxMembers('6');
-    setInviteUsernames('');
+    setMaxMembers('5');    setInviteUsernames('');
     setModalTab('create');
     setInviteError('');
     setError('');

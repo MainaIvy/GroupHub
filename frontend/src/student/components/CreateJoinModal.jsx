@@ -43,7 +43,8 @@ const CreateJoinModal = ({ ctx }) => {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block text-[10px] font-black text-[#4A6079] uppercase tracking-wider">Group size
-                <input type="number" min="2" max="32767" required value={maxMembers} onChange={(event) => setMaxMembers(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#D7DEE6] bg-white px-3 py-2 text-xs font-medium text-[#1F2D3D] focus:outline-none focus:ring-2 focus:ring-[#7189A3]" />
+                <input type="number" min="2" max="15" required value={maxMembers} onChange={(event) => setMaxMembers(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#D7DEE6] bg-white px-3 py-2 text-xs font-medium text-[#1F2D3D] focus:outline-none focus:ring-2 focus:ring-[#7189A3]" />
+                <p className="mt-1 text-[11px] font-normal text-[#4F5F73]">Default 5, max 15. Cannot be smaller than invited members.</p>
               </label>
               <label className="block text-[10px] font-black text-[#4A6079] uppercase tracking-wider">Invite classmates <span className="font-normal normal-case">(optional)</span>
                 <input type="text" value={inviteUsernames} onChange={(event) => setInviteUsernames(event.target.value)} placeholder="Admission numbers, separated by commas" className="mt-1.5 w-full rounded-xl border border-[#D7DEE6] bg-white px-3 py-2 text-xs font-medium text-[#1F2D3D] placeholder:text-[#4F5F73] focus:outline-none focus:ring-2 focus:ring-[#7189A3]" />

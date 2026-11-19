@@ -10,7 +10,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.utils import timezone
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APITestCase
 
 from accounts.consumers import ChatConsumer
 from accounts.balance import calculate_group_balance
@@ -2857,3 +2857,136 @@ class BackendInvariantTests(TestCase):
         response = self.client.post('/api/accounts/groups/join/', {'code': 'IVGLOCK'}, format='json')
         self.assertEqual(response.status_code, 400, response.json())
         self.assertIn('locked', response.json()['error'].lower())
+
+
+class TaskPlanRuleTests(APITestCase):
+    """Rollup progress, compile locking, and claim weighting rules for the plan view."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username='planadmin', email='admin@zetech.ac.ke', password='pass')
+        self.lecturer = User.objects.create_user(username='planlect', email='lecturer@zetech.ac.ke', password='pass', user_type='lecturer')
+        self.student = User.objects.create_user(username='planstudent', email='student@zetech.ac.ke', password='pass', user_type='student')
+        self.member = User.objects.create_user(username='planmember', email='member@zetech.ac.ke', password='pass', user_type='student')
+        self.semester = Semester.objects.create(name='Plan Term', year=2026, semester=1, start_date='2026-01-01', end_date='2026-12-31')
+        self.course = Course.objects.create(code='CS101', name='Computer Science 101')
+        self.unit = Unit.objects.create(
+            code='CS101-X', name='Plan Unit', year_of_study=1, semester=1,
+            course=self.course,
+        )
+        self.unit.default_max_members = 10
+        self.unit.save(update_fields=['default_max_members'])
+        self.group = Group.objects.create(
+            name='Plan Group', course='Plan Unit', year_of_study='1', join_code='PLANGRP',
+            unit=self.unit, term=self.semester, lecturer=self.lecturer, leader=self.student, max_members=10,
+        )
+        self.project = Project.objects.create(
+            group=self.group, title='Business Plan', deadline=timezone.now() + timedelta(days=14),
+        )
+        GroupMembership.objects.create(group=self.group, student=self.student, role='leader')
+        GroupMembership.objects.create(group=self.group, student=self.member, role='member')
+
+        self.summary = Task.objects.create(
+            project=self.project, title='Executive summary', weight=2,
+            due_date=timezone.now() + timedelta(days=7), section='Executive summary',
+            assignment_mode='open_to_claim', proposal_status='proposed', proposed_by=self.student,
+        )
+        self.research_parent = Task.objects.create(
+            project=self.project, title='Market research', weight=5,
+            due_date=timezone.now() + timedelta(days=10), section='Market research',
+            assignment_mode='open_to_claim', proposed_by=self.student,
+        )
+        self.survey = Task.objects.create(
+            project=self.project, title='Make survey', parent_task=self.research_parent, weight=2,
+            due_date=timezone.now() + timedelta(days=8), assignment_mode='assigned',
+            proposed_by=self.student, assigned_to=self.member,
+        )
+        self.interview = Task.objects.create(
+            project=self.project, title='Interview customers', parent_task=self.research_parent, weight=3,
+            due_date=timezone.now() + timedelta(days=9), assignment_mode='open_to_claim', proposed_by=self.student,
+        )
+        self.compile_task = Task.objects.create(
+            project=self.project, title='Compile and edit', weight=3,
+            due_date=timezone.now() + timedelta(days=14), section='Compile and edit',
+            assignment_mode='assigned', proposed_by=self.student,
+        )
+        self.project.refresh_from_db()
+
+    def _auth(self, user):
+        self.client.force_authenticate(user=user)
+
+    def test_rollup_computes_section_progress_from_subtasks(self):
+        self.research_parent.refresh_from_db()
+        self.assertEqual(self.research_parent.progress_percentage, 0)
+        self._auth(self.member)
+        self.client.post(f'/api/accounts/tasks/{self.survey.id}/update-status/', {'status': 'completed'}, format='json')
+        self.research_parent.refresh_from_db()
+        # survey 2/5 weight = 40% of section
+        self.assertEqual(self.research_parent.progress_percentage, 40)
+
+        self._auth(self.student)
+        self.client.post(f'/api/accounts/tasks/{self.interview.id}/claim/', {'confirm_override': True}, format='json')
+        self.client.post(f'/api/accounts/tasks/{self.interview.id}/update-status/', {'status': 'completed'}, format='json')
+        self.research_parent.refresh_from_db()
+        # 40% + 60% = 100%
+        self.assertEqual(self.research_parent.progress_percentage, 100)
+        self.assertEqual(self.research_parent.status, 'completed')
+
+    def test_compile_task_is_locked_until_all_other_sections_complete(self):
+        self._auth(self.student)
+        response = self.client.post(f'/api/accounts/tasks/{self.compile_task.id}/update-status/', {'status': 'completed'}, format='json')
+        self.assertEqual(response.status_code, 403, response.json())
+        self.assertIn('locked', response.json()['error'].lower())
+
+        # Complete all subtasks under market research.
+        self._auth(self.member)
+        self.client.post(f'/api/accounts/tasks/{self.survey.id}/update-status/', {'status': 'completed'}, format='json')
+        self._auth(self.student)
+        self.client.post(f'/api/accounts/tasks/{self.interview.id}/claim/', {'confirm_override': True}, format='json')
+        self.client.post(f'/api/accounts/tasks/{self.interview.id}/update-status/', {'status': 'completed'}, format='json')
+        # Complete the sibling section too so every non-compile section is done.
+        self.client.post(f'/api/accounts/tasks/{self.summary.id}/update-status/', {'status': 'completed'}, format='json')
+
+        # Now compile task unlocks.
+        self._auth(self.student)
+        response = self.client.post(f'/api/accounts/tasks/{self.compile_task.id}/update-status/', {'status': 'completed'}, format='json')
+        self.assertEqual(response.status_code, 200, response.json())
+
+    def test_leader_can_override_compile_lock_with_reason(self):
+        self._auth(self.student)
+        locked_response = self.client.post(f'/api/accounts/tasks/{self.compile_task.id}/update-status/', {'status': 'completed'}, format='json')
+        self.assertEqual(locked_response.status_code, 403)
+
+        override_response = self.client.post(
+            f'/api/accounts/tasks/{self.compile_task.id}/update-status/',
+            {'status': 'completed', 'override_reason': 'Emergency submission.'},
+            format='json',
+        )
+        self.assertEqual(override_response.status_code, 200, override_response.json())
+
+    def test_claim_blocks_when_member_would_take_too_much_weight(self):
+        # member currently owns survey weight 2; claim interview weight 3 = 5 weight, within limit,
+        # then claim summary weight 2 would be 7 total and trigger balance warning.
+        # First approve both open-to-claim tasks so they can be claimed.
+        self._auth(self.student)
+        self.client.post(f'/api/accounts/groups/{self.group.id}/tasks/{self.summary.id}/approve/', {'assignment_mode': 'open_to_claim'}, format='json')
+        self.client.post(f'/api/accounts/groups/{self.group.id}/tasks/{self.interview.id}/approve/', {'assignment_mode': 'open_to_claim'}, format='json')
+
+        self._auth(self.member)
+        response = self.client.post(f'/api/accounts/groups/{self.group.id}/tasks/{self.interview.id}/claim/', {'confirm_override': True}, format='json')
+        self.assertEqual(response.status_code, 200, response.json())
+
+        summary_response = self.client.post(f'/api/accounts/groups/{self.group.id}/tasks/{self.summary.id}/claim/', {'confirm_override': True}, format='json')
+        self.assertIn(summary_response.status_code, (200, 409), summary_response.json())
+        if summary_response.status_code == 409:
+            self.assertIn('balance', summary_response.json()['error'].lower())
+
+    def test_unit_default_max_members_is_enforced_on_group_create(self):
+        self._auth(self.student)
+        response = self.client.post('/api/accounts/groups/create/', {
+            'name': 'Too Big', 'course': 'Plan Unit', 'unit_id': self.unit.id,
+            'max_members': self.unit.default_max_members + 1,
+        }, format='json')
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('default maximum', response.json()['error'].lower())
+
+

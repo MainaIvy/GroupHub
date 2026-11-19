@@ -110,6 +110,7 @@ urlpatterns = [
     path('groups/<int:group_id>/tasks/<int:task_id>/claim/', planning_views.claim_task, name='claim_task'),
     path('groups/<int:group_id>/tasks/propose/', planning_views.propose_task, name='propose_task'),
     path('groups/<int:group_id>/projects/', planning_views.group_projects, name='group_projects'),
+    path('project-templates/', planning_views.project_templates, name='project_templates'),
     path('tasks/<int:task_id>/update-progress/', views.update_task_progress, name='update_task_progress'),
     path('tasks/<int:task_id>/update-status/', views.update_task_status, name='update_task_status'),
     path('groups/<int:group_id>/polls/', poll_views.group_polls, name='group_polls'),

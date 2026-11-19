@@ -82,7 +82,7 @@ const GroupWorkspace = ({ ctx }) => {
   const members = useMemo(() => workspace?.members || [], [workspace]);
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) || null;
   const insight = insights.byGroup[groupId];
-  const isLeader = Boolean(group?.is_leader);
+  const isLeader = Boolean(group?.is_leader) || workspace?.group?.leader_id === user?.id;
   const joinRequests = notif.joinRequests.filter((item) => String(item.related_group_id) === String(groupId));
   const toGroups = () => navigate('/student/dashboard', { state: { tab: 'groups' } });
 
@@ -138,7 +138,26 @@ const GroupWorkspace = ({ ctx }) => {
     if (!workspace) return null;
     switch (tab) {
       case 'tasks':
-        return <TasksTab tasks={tasks} userId={user?.id} selectedTaskId={selectedTaskId} onSelectTask={openTask} onPropose={() => setProposeFor(null)} />;
+        return (
+          <TasksTab
+            workspace={workspace}
+            tasks={tasks}
+            members={members}
+            projects={data.projects}
+            balance={data.balance}
+            compile={workspace.compile}
+            actions={actions}
+            user={user}
+            isLeader={isLeader}
+            selectedTaskId={selectedTaskId}
+            onSelectTask={openTask}
+            onProposeSection={() => setProposeFor(null)}
+            onAddSubtask={(section) => setProposeFor(section)}
+            onCreateProject={() => ctx.setProjectModal({})}
+            onGoSubmission={() => goTab('submission')}
+            reload={data.reload}
+          />
+        );
       case 'chat':
         return <ChatTab groupId={group.id} tasks={tasks} onOpenTask={openTask} onAssignTask={() => setProposeFor(null)} onGoGroups={toGroups} />;
       case 'polls':
@@ -146,9 +165,9 @@ const GroupWorkspace = ({ ctx }) => {
       case 'files':
         return <FilesTab files={extras.files} loading={extras.filesLoading} error={extras.filesError} onRetry={extras.reloadFiles} onGoChat={() => goTab('chat')} />;
       case 'submission':
-        return <SubmissionTab ctx={ctx} />;
+        return <SubmissionTab ctx={{ ...ctx, workspaceCompile: workspace.compile, workspace, isWorkspaceLeader: isLeader }} />;
       case 'members':
-        return <MembersTab group={{ ...workspace.group, ...group }} members={members} isLeader={isLeader} joinRequests={joinRequests} access={access} setGroups={setGroups} onLeft={toGroups} onLeaveError={setError} />;
+        return <MembersTab group={{ ...workspace.group, ...group }} members={members} isLeader={isLeader} joinRequests={joinRequests} access={access} setGroups={setGroups} onLeft={toGroups} onLeaveError={setError} onReload={data.reload} />;
       case 'activity':
         return <ActivityTab activity={data.activity} comments={data.comments} onGoTasks={() => goTab('tasks')} />;
       default:
@@ -169,6 +188,7 @@ const GroupWorkspace = ({ ctx }) => {
           activity={data.activity}
           userId={user?.id}
           leaderId={workspace.group.leader_id}
+          compile={workspace.compile}
           actions={actions}
           onClose={closeTask}
           onSelectTask={openTask}

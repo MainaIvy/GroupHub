@@ -1,64 +1,353 @@
-import React, { useMemo, useState } from 'react';
-import { ListTodo, Plus } from 'lucide-react';
-import { btnPrimary } from '../../design';
-import EmptyState from '../../components/EmptyState';
-import TaskCard from '../TaskCard';
-import { COLUMNS, columnOf } from '../taskUtils';
+import React, { useCallback, useMemo, useState } from 'react';
+import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, FileText, Users } from 'lucide-react';
+import Avatar from '../../components/Avatar';
+import { btnPrimary, btnSecondary } from '../../design';
+import { ProgressBar } from '../../components/ProgressBar';
+import { childrenOf, formatDue, weightText } from '../taskUtils';
 
-const SEGMENT = 'h-10 px-4 text-sm font-semibold first:rounded-l-lg last:rounded-r-lg border border-[#D7DEE6]';
+const statuses = ['todo', 'in_progress', 'completed'];
+const personsLabel = 'Group by: Section';
+const groupLabels = { section: 'Section', person: 'Person', status: 'Status' };
 
-const TasksTab = ({ tasks, userId, selectedTaskId, onSelectTask, onPropose }) => {
-  const [scope, setScope] = useState('all');
-  const [filter, setFilter] = useState('all');
+const sectionStatusChip = (status) => ({
+  completed: 'bg-[#E3EAF2] text-[#35475C] border-[#D7DEE6]',
+  in_progress: 'bg-[#EEF1F4] text-[#2F4A66] border-[#C9D5E2]',
+  todo: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
+}[status] || 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]');
 
-  const topLevel = useMemo(() => {
-    const ids = new Set(tasks.map((task) => task.id));
-    return tasks.filter((task) => !task.parent_task_id || !ids.has(task.parent_task_id));
-  }, [tasks]);
+const TaskRow = ({ task, members, actions, userId, leaderId, compile, openGroupTasks }) => {
+  const subtasks = task.subtask_ids.map((id) => tasks.find((item) => item.id === id)).filter(Boolean);
+  const member = members.find((item) => item.id === task.assigned_to_id);
+  const isLeader = userId === leaderId;
+  const isAssignee = task.assigned_to_id === userId;
+  const canFinish = isAssignee && task.board_status !== 'completed';
+  const canStart = isAssignee && task.board_status === 'todo';
+  const canClaim = task.board_status === 'open_to_claim' && !task.has_subtasks;
+  const statusLabel = { todo: 'To do', in_progress: 'In progress', completed: 'Done' }[task.board_status] || task.board_status;
+  const proofCount = (task.work_items || []).length;
+  const isCompile = task.is_compile_task || task.title.trim().toLowerCase() === 'compile and edit';
+  const compileLocked = compile.is_locked;
+  const canEditCompile = isLeader && compile.can_override;
 
-  const visible = topLevel.filter((task) => {
-    if (scope === 'mine' && task.assigned_to_id !== userId) return false;
-    if (filter === 'proposed') return task.board_status === 'proposed';
-    if (filter === 'open_to_claim') return task.board_status === 'open_to_claim';
+  const finishTask = async () => {
+    if (!task.has_subtasks) {
+      const result = await actions.setStatus(task, 'completed');
+      return result?.ok;
+    }
     return true;
-  });
+  };
 
-  if (!tasks.length) {
-    return <EmptyState icon={ListTodo} title="No tasks yet" description="Propose the first task. Your group leader approves it and sets who does it." actionLabel="Propose a task" onAction={onPropose} />;
-  }
+  const claimTask = async () => {
+    return actions.claim(task, false).ok ?? false;
+  };
+
+  const reassignTask = async (newAssigneeId) => {
+    return actions.reassign(task, newAssigneeId, false).ok ?? false;
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Task scope" className="inline-flex">
-            {[['all', 'All'], ['mine', 'Mine']].map(([key, label]) => <button key={key} type="button" aria-pressed={scope === key} onClick={() => setScope(key)} className={`${SEGMENT} ${scope === key ? 'bg-[#35475C] text-white' : 'bg-white text-[#1F2D3D] hover:bg-[#EEF1F4]'}`}>{label}</button>)}
+    <article key={task.id} className="rounded-xl border border-[#D7DEE6] bg-white p-3 text-[13px]">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
+            {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final section</span> : null}
+            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${sectionStatusChip(task.board_status)}`}>
+              {statusLabel}
+            </span>
+            {task.is_overdue && <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700">Overdue</span>}
           </div>
-          <label className="flex items-center gap-2 text-sm font-medium text-[#33445A]">Show
-            <select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-10 rounded-lg border border-[#CBD5E1] bg-white px-3 text-[15px]">
-              <option value="all">All tasks</option>
-              <option value="proposed">Proposed</option>
-              <option value="open_to_claim">Open to claim</option>
-            </select>
-          </label>
+          {task.due_date && (
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-[#4F5F73]">
+              <CalendarDays size={12} aria-hidden="true" /> {formatDue(task.due_date)}{task.weight ? ` Â· ${weightText(task.weight)} pts` : ''}
+            </div>
+          )}
         </div>
-        <button type="button" onClick={onPropose} className={btnPrimary}><Plus size={16} aria-hidden="true" /> Propose task</button>
+        <div className="flex items-center gap-1.5">
+          {member ? <Avatar name={member.name} avatar={member.avatar} size={22} className="text-[10px]" /> : <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-[#8A97A8] text-[11px] text-[#4F5F73]">?</span>}
+          {proofCount > 0 && <FileText size={12} className="text-[#4A6079]" title="Proof attached" />}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {COLUMNS.map((column) => {
-          const items = visible.filter((task) => columnOf(task) === column.key);
-          return (
-            <section key={column.key} aria-label={column.label} className="rounded-xl bg-[#D9E0E8] p-3">
-              <h3 className="mb-3 flex items-center justify-between text-sm font-bold text-[#1F2D3D]"><span>{column.label}</span><span className="rounded-full bg-white px-2 py-0.5 text-[13px] text-[#33445A]">{items.length}</span></h3>
-              <div className="space-y-3">
-                {items.map((task) => <TaskCard key={task.id} task={task} tasks={tasks} selected={selectedTaskId === task.id} onOpen={() => onSelectTask(task.id)} />)}
-                {!items.length ? <p className="rounded-lg border border-dashed border-[#8A97A8] px-3 py-6 text-center text-sm text-[#4F5F73]">Nothing here.</p> : null}
-              </div>
-            </section>
-          );
-        })}
+      <div className="mt-2.5 space-y-2">
+        {task.has_subtasks ? (
+          <ul className="space-y-1">
+            {subtasks.map((subtask) => {
+              const subMember = members.find((item) => item.id === subtask.assigned_to_id);
+              const subStatusLabel = { todo: 'To do', in_progress: 'In progress', completed: 'Done' }[subtask.board_status] || subtask.board_status;
+              const canClaimSub = subtask.board_status === 'open_to_claim' && !subtask.has_subtasks;
+              const canFinishSub = subtask.assigned_to_id === userId && subtask.board_status !== 'completed';
+              const subProofCount = (subtask.work_items || []).length;
+              const subCompileLocked = compileLocked && subtask.is_compile_task;
+              return (
+                <li key={subtask.id} className="flex items-center justify-between gap-2 rounded-lg border border-[#E3EAF2] bg-[#EEF1F4] px-2.5 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h5 className="font-medium text-[#1F2D3D] truncate">{subtask.title}</h5>
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#4F5F73]">
+                          {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
+                          {subtask.weight ? <span>Â· {weightText(subtask.weight)} pts</span> : ''}
+                          {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
+                        </div>
+                      </div>
+                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sectionStatusChip(subtask.board_status)}`}>
+                        {subStatusLabel}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {subMember ? <Avatar name={subMember.name} avatar={subMember.avatar} size={18} className="text-[9px]" /> : <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-[#8A97A8] text-[9px] text-[#4F5F73]">?</span>}
+                      {subProofCount > 0 && <FileText size={10} className="text-[#4A6079]" title="Proof attached" />}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {canClaimSub && !subCompileLocked ? (
+                      <button type="button" disabled={actions.busy} onClick={() => actions.claim(subtask, false)} className={btnSecondary}>Claim</button>
+                    ) : null}
+                    {canFinishSub && !subCompileLocked ? (
+                      <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'completed')} className={btnPrimary}>Done</button>
+                    ) : null}
+                    {subCompileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              {member ? <Avatar name={member.name} avatar={member.avatar} size={20} className="text-[9px]" /> : <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-[#8A97A8] text-[9px] text-[#4F5F73]">?</span>}
+              {proofCount > 0 && <FileText size={10} className="text-[#4A6079]" title="Proof attached" />}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {canClaim && !compileLocked ? (
+                <button type="button" disabled={actions.busy} onClick={() => claimTask()} className={btnSecondary}>Claim</button>
+              ) : null}
+              {canFinish && !compileLocked ? (
+                <button type="button" disabled={actions.busy} onClick={() => finishTask()} className={btnPrimary}>Done</button>
+              ) : null}
+              {!member && canEditCompile && isCompile && compileLocked ? (
+                <button type="button" disabled={actions.busy} onClick={() => openGroupTasks()} className={btnSecondary}>Combine</button>
+              ) : null}
+              {member && !compileLocked ? (
+                <button type="button" disabled={actions.busy} onClick={() => reassignTask(member.id)} className={btnSecondary}>Reassign</button>
+              ) : null}
+              {compileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
+            </div>
+          </div>
+        )}
       </div>
+    </article>
+  );
+};
+
+const TaskGroup = ({ title, tasks, members, actions, userId, leaderId, compile, openGroupTasks, collapsible }) => {
+  const [open, setOpen] = useState(true);
+  const headerLabel = collapsible ? (open ? <ChevronUp size={14} className="mr-1 text-[#4F5F73]" /> : <ChevronDown size={14} className="mr-1 text-[#4F5F73]" />) : null;
+  return (
+    <section className="space-y-3" aria-label={title}>
+      <button
+        type="button"
+        onClick={collapsible ? () => setOpen((previous) => !previous) : undefined}
+        aria-expanded={!collapsible || open}
+        className="flex items-center justify-between gap-2 rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-left hover:bg-[#EEF1F4]"
+      >
+        <span className="flex items-center gap-1 shrink-0 font-semibold text-[#1F2D3D]">{headerLabel}{title}</span>
+        <span className="shrink-0 text-[12px] font-semibold text-[#4F5F73]">{tasks.length}</span>
+      </button>
+      {(!collapsible || open) && (
+        <div className="space-y-2">
+          {tasks.map((task) => <TaskRow key={task.id} task={task} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={openGroupTasks} />)}
+        </div>
+      )}
+    </section>
+  );
+};
+
+const TasksTab = ({
+  workspace,
+  tasks,
+  members,
+  projects,
+  balance,
+  compile,
+  actions,
+  user,
+  isLeader,
+  selectedTaskId,
+  onSelectTask,
+  onProposeSection,
+  onAddSubtask,
+  onCreateProject,
+  onGoSubmission,
+  reload,
+}) => {
+  const [groupBy, setGroupBy] = useState('section');
+  const [openSection, setOpenSection] = useState(undefined);
+
+  const userId = user?.id;
+  const leaderId = workspace.group?.leader_id;
+  const rootTasks = tasks.filter((task) => !task.parent_task_id);
+  const sectionOrder = ['Compile and edit', ...rootTasks.filter((task) => task.title.trim().toLowerCase() !== 'compile and edit').sort((a, b) => new Date(a.due_date || '9999') - new Date(b.due_date || '9999'))];
+  const groupedBySection = useMemo(() => {
+    const map = new Map();
+    sectionOrder.forEach((task) => map.set(task.id, [task.id, ...(task.subtask_ids || [])]));
+    const remaining = tasks.filter((task) => !task.parent_task_id && !sectionOrder.some((section) => section.id === task.id));
+    remaining.forEach((task) => map.set(task.id, [task.id, ...(task.subtask_ids || [])]));
+    return sectionOrder.concat(remaining).map((task) => ({ section: task, items: map.get(task.id).map((id) => tasks.find((item) => item.id === id)).filter(Boolean) }));
+  }, [tasks]);
+  const groupedByPerson = useMemo(() => {
+    const map = new Map(members.map((member) => [member.id, { member, items: [] }]));
+    tasks.forEach((task) => {
+      if (task.assigned_to_id) {
+        const entry = map.get(task.assigned_to_id);
+        if (entry) entry.items.push(task);
+      }
+    });
+    return Array.from(map.values()).filter((entry) => entry.items.length > 0);
+  }, [tasks, members]);
+  const groupedByStatus = useMemo(() => statuses.map((status) => ({ status, items: tasks.filter((task) => task.board_status === status) })), [tasks]);
+
+  const sections = useMemo(() => {
+    if (groupBy === 'section') return groupedBySection.map((group) => ({ title: group.section.title, tasks: group.items, sectionId: group.section.id }));
+    if (groupBy === 'person') return groupedByPerson.map((group) => ({ title: group.member.name, tasks: group.items, sectionId: `person-${group.member.id}`, avatar: group.member.avatar }));
+    return groupedByStatus.map((group) => ({ title: group.status.charAt(0).toUpperCase() + group.status.slice(1), tasks: group.items, sectionId: `status-${group.status}` }));
+  }, [groupBy, groupedBySection, groupedByPerson, groupedByStatus]);
+
+  const openCombine = useCallback(() => {
+    actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed', { override_reason: '' });
+  }, [actions, tasks]);
+
+  const project = projects?.[0] || workspace.project || {};
+  const overallProgress = workspace.project_progress ?? 0;
+  const openToClaim = tasks.filter((task) => task.board_status === 'open_to_claim' && !task.has_subtasks && task.section);
+
+  const taskCardForOpen = selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) : null;
+
+  return (
+    <div className="space-y-6">
+      <header className="rounded-xl border border-[#D7DEE6] bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:flex-nowrap sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-[#1F2D3D]">{workspace.group?.project_title || project.title || 'Project plan'}</h2>
+            <p className="mt-1 text-sm text-[#4F5F73]">{workspace.group?.unit_name || ''}</p>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-[#1F2D3D]">{overallProgress}%</span>
+              <span className="text-sm font-semibold text-[#4A6079]">overall progress</span>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-sm text-[#4F5F73]">
+              <CalendarDays size={14} aria-hidden="true" />
+              <span>{workspace.group?.project_deadline || project.deadline ? formatDue(project.deadline) : 'No deadline'}</span>
+              <span className="hidden sm:inline">Â· {members.length || workspace.group?.members_count || 0} members</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={onProposeSection} className={btnSecondary}>Add section</button>
+            <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed')} className={btnPrimary}>Ready to submit</button>
+          </div>
+        </div>
+      </header>
+
+      {compile.is_locked && (
+        <section className="rounded-lg border border-[#E3EAF2] bg-[#EEF1F4] p-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={16} className="mt-0.5 text-[#2F4A66]" aria-hidden="true" />
+            <p className="text-sm text-[#2F4A66]">{compile.lock_reason}</p>
+          </div>
+          {compile.ready_to_combine && compile.can_override && (
+            <button type="button" disabled={actions.busy} onClick={openCombine} className="mt-2.5 rounded-lg bg-[#35475C] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#4A6079] disabled:opacity-50">Override and start combine</button>
+          )}
+        </section>
+      )}
+      {compile.ready_to_combine && !compile.is_locked && (
+        <section className="rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] p-3">
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-[#2F4A66]" aria-hidden="true" />
+            <p className="text-sm text-[#2F4A66]">Ready to combine â€” all sections complete.</p>
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-xl border border-[#D7DEE6] bg-white p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1 text-sm font-semibold text-[#33445A]">
+            <Users size={14} aria-hidden="true" /> Members
+          </div>
+          <div className="flex flex-wrap gap-1 overflow-x-auto">
+            {members.map((member) => (
+              <div key={member.id} className="flex items-center gap-2 rounded-lg border border-[#D7DEE6] bg-white px-2.5 py-1.5">
+                <Avatar name={member.name} avatar={member.avatar} size={20} className="text-[9px]" />
+                <span className="text-[12px] font-medium text-[#1F2D3D] truncate">{member.name}</span>
+                {member.is_leader && <span className="ml-1 rounded bg-[#E3EAF2] px-1.5 py-0.5 text-[10px] font-bold text-[#2F4A66]">Leader</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-[#D7DEE6] bg-white p-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="text-sm font-bold text-[#1F2D3D]">Plan view</h3>
+          <div className="flex gap-1 rounded-lg border border-[#D7DEE6]">
+            {[['section', 'section'], ['person', 'person'], ['status', 'status']].map(([value, label]) => (
+              <button key={value} type="button" role="radio" aria-checked={groupBy === value} onClick={() => setGroupBy(value)} className={`h-8 px-3 text-xs font-medium transition ${groupBy === value ? 'bg-[#35475C] text-white' : 'text-[#33445A] hover:bg-[#EEF1F4]'}`}>{groupLabels[value]}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <section aria-labelledby="open-to-claim">
+            <h4 className="text-sm font-semibold text-[#1F2D3D] mb-2">Open to claim</h4>
+            {openToClaim.length ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {openToClaim.map((task) => {
+                  const member = members.find((item) => item.id === task.assigned_to_id);
+                  return (
+                    <article key={task.id} className="rounded-lg border border-[#D7DEE6] bg-white p-2.5 text-[12px]">
+                      <h5 className="font-medium text-[#1F2D3D] truncate">{task.title}</h5>
+                      <div className="mt-1 flex items-center gap-1 text-xs text-[#4F5F73]">
+                        {task.due_date && <span>{formatDue(task.due_date)}</span>}
+                        {task.weight ? <span>Â· {weightText(task.weight)} pts</span> : ''}
+                      </div>
+                      <button type="button" disabled={actions.busy} onClick={() => actions.claim(task, false)} className="mt-2 rounded-lg bg-[#35475C] w-full px-3 py-1.5 text-xs font-bold text-white hover:bg-[#4A6079] disabled:opacity-50">Claim</button>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : <p className="text-sm text-[#4F5F73]">No unclaimed subtasks right now.</p>}
+          </section>
+
+          <section className="space-y-2" aria-labelledby="sections">
+            <h4 className="text-sm font-semibold text-[#1F2D3D] mb-2">Sections</h4>
+            {sections.length ? (
+              sections.map((section) => (
+                <TaskGroup key={section.sectionId} title={section.title} tasks={section.tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={reload} collapsible={groupBy === 'section'} />
+              ))
+            ) : (
+              <p className="text-sm text-[#4F5F73]">No sections yet. Add one to start the plan.</p>
+            )}
+          </section>
+        </div>
+      </section>
+
+      {balance && (
+        <section className="rounded-xl border border-[#D7DEE6] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1F2D3D] mb-3">Workload balance</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {members.map((member) => (
+              <div key={member.id} className="rounded-lg border border-[#E3EAF2] bg-white p-3">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2"><Avatar name={member.name} avatar={member.avatar} size={22} className="text-[10px]" /><span className="font-medium text-[#1F2D3D] truncate">{member.name}</span></div>
+                  {member.is_leader && <span className="rounded bg-[#E3EAF2] px-1.5 py-0.5 text-[10px] font-bold text-[#2F4A66]">Leader</span>}
+                </div>
+                <ProgressBar value={Math.min(100, member.share_percent || 0)} label={`${member.name} share`} />
+                <p className="mt-1 text-xs text-[#4F5F73]">{member.points_assigned || 0} pts Â· {(member.share_percent || 0).toFixed(1)}%</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
     </div>
   );
 };

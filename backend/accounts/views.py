@@ -1549,7 +1549,13 @@ def get_group_task_workspace(request, group_id):
             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
 
         members = GroupMembership.objects.filter(group=group).select_related('student').order_by('joined_at')
-        tasks = list(Task.objects.filter(project__group=group).select_related('project', 'assigned_to').order_by('created_at'))
+        tasks = list(Task.objects.filter(project__group=group).select_related(
+            'project', 'assigned_to', 'proposed_by', 'weight_confirmed_by'
+        ).prefetch_related(
+            'subtasks',
+            'comments__author',
+            'work_items__submitted_by',
+        ).order_by('created_at'))
         projects = list(Project.objects.filter(group=group).order_by('created_at'))
         comments_by_task = {}
         comments = TaskComment.objects.filter(task__project__group=group).select_related('author').order_by('created_at')
@@ -1562,6 +1568,24 @@ def get_group_task_workspace(request, group_id):
                 'content': comment.content,
                 'created_at': comment.created_at.isoformat(),
             })
+        work_items_by_task = {}
+        for task in tasks:
+            items = []
+            for item in task.work_items.all().order_by('-created_at'):
+                file_name = item.file.name.rsplit('/', 1)[-1] if item.file else ''
+                items.append({
+                    'id': item.id,
+                    'task_id': item.task_id,
+                    'author_id': item.submitted_by_id,
+                    'author_name': f"{item.submitted_by.first_name} {item.submitted_by.last_name}".strip() or item.submitted_by.username,
+                    'note': item.note,
+                    'url': item.url,
+                    'file_name': file_name,
+                    'file_url': f'/api/accounts/work-items/{item.id}/file/' if item.file else '',
+                    'marks_complete': item.marks_complete,
+                    'created_at': item.created_at.isoformat(),
+                })
+            work_items_by_task[task.id] = items
         children_by_parent = {}
         for task in tasks:
             children_by_parent.setdefault(task.parent_task_id, []).append(task)
@@ -1593,14 +1617,31 @@ def get_group_task_workspace(request, group_id):
             'last_name': membership.student.last_name,
             'role': membership.role,
             'is_leader': membership.student_id == group.leader_id,
+            'avatar': avatar_url(membership.student),
         } for membership in members]
+
+        compile_task = next((t for t in tasks if str(t.title).strip().lower() == 'compile and edit' and not t.parent_task_id), None)
+        non_compile_sections = [t for t in tasks if not t.parent_task_id and (compile_task is None or t.id != compile_task.id)]
+        all_other_sections_complete = bool(non_compile_sections) and all(task_rollup(t)['progress'] >= 100 for t in non_compile_sections)
+        compile_locked = bool(compile_task and non_compile_sections and not all_other_sections_complete)
+        compile_done = bool(compile_task and task_rollup(compile_task)['progress'] >= 100)
+        compile_info = {
+            'task_id': compile_task.id if compile_task else None,
+            'is_locked': compile_locked,
+            'ready_to_combine': bool(compile_task and non_compile_sections and all_other_sections_complete and not compile_done),
+            'is_done': compile_done,
+            'lock_reason': 'Compile and edit is locked until all other sections are complete.' if compile_locked else None,
+            'can_override': request.user.id == group.leader_id,
+        }
         task_data = []
         for task in tasks:
             rollup = task_rollup(task)
+            child_ids = [c.id for c in children_by_parent.get(task.id, [])]
             task_data.append({
                 'id': task.id,
                 'title': task.title,
                 'description': task.description,
+                'section': task.section,
                 'status': rollup['status'],
                 'board_status': board_status(task, rollup['status']),
                 'proposal_status': task.proposal_status,
@@ -1610,9 +1651,10 @@ def get_group_task_workspace(request, group_id):
                 'weight': task.weight,
                 'task_weight': task.weight,
                 'parent_task_id': task.parent_task_id,
-                'is_parent': bool(children_by_parent.get(task.id)),
+                'is_parent': bool(child_ids),
                 'assigned_to_id': task.assigned_to_id,
                 'assigned_to_name': f"{task.assigned_to.first_name} {task.assigned_to.last_name}".strip() if task.assigned_to else 'Unassigned',
+                'assigned_to_avatar': avatar_url(task.assigned_to) if task.assigned_to else None,
                 'project_name': task.project.title if task.project else '',
                 'project_id': task.project_id,
                 'project_title': task.project.title if task.project else '',
@@ -1620,7 +1662,10 @@ def get_group_task_workspace(request, group_id):
                 'is_overdue': bool(task.due_date and task.due_date < timezone.now() and rollup['status'] != 'completed'),
                 'completed_at': task.completed_at.isoformat() if task.completed_at else None,
                 'comments': comments_by_task.get(task.id, []),
-                'has_subtasks': bool(children_by_parent.get(task.id)),
+                'work_items': work_items_by_task.get(task.id, []),
+                'has_subtasks': bool(child_ids),
+                'subtask_ids': child_ids,
+                'is_compile_task': str(task.title).strip().lower() == 'compile and edit' and not task.parent_task_id,
                 'can_update_progress': (
                     task.assigned_to_id == request.user.id
                     or can_view_group(request.user, group)
@@ -1632,11 +1677,21 @@ def get_group_task_workspace(request, group_id):
         insights = compute_group_insights(group)
         health = insights['health']
         next_deadline = insights['next_deadline']
+        primary_project = projects[0] if projects else None
+        project_header = {
+            'id': primary_project.id if primary_project else None,
+            'title': (primary_project.title if primary_project else group.name),
+            'description': primary_project.description if primary_project else '',
+            'deadline': primary_project.deadline.isoformat() if primary_project and primary_project.deadline else None,
+            'progress': project_progress,
+            'status': 'completed' if root_tasks and project_progress == 100 else 'in_progress' if project_progress else 'planning',
+        }
         return Response({
             'group': {
                 'id': group.id,
                 'name': group.name,
-                'project_title': tasks[0].project.title if tasks and tasks[0].project else group.name,
+                'project_title': project_header['title'],
+                'project_deadline': project_header['deadline'],
                 'unit_code': group.unit_code,
                 'unit_name': group.unit.name if group.unit_id and group.unit else '',
                 'join_code': group.join_code,
@@ -1654,8 +1709,10 @@ def get_group_task_workspace(request, group_id):
                 } for project in projects],
                 'next_deadline': next_deadline,
             },
+            'project': project_header,
+            'compile': compile_info,
             'project_progress': project_progress,
-            'project_status': 'completed' if root_tasks and project_progress == 100 else 'in_progress' if project_progress else 'planning',
+            'project_status': project_header['status'],
             'members': member_data,
             'tasks': task_data,
             'health': health,
@@ -1889,6 +1946,20 @@ def group_submissions(request, group_id):
                 return Response({'error': 'Use a PDF, Office document, text, CSV, or image file.'}, status=status.HTTP_400_BAD_REQUEST)
             if uploaded_file.size > 10 * 1024 * 1024:
                 return Response({'error': 'Each file must be 10 MB or smaller.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Final submission requires compile task done unless leader overrides with reason.
+        compile_task = Task.objects.filter(project__group=group, title__iexact='Compile and edit', parent_task__isnull=True).first()
+        if compile_task and compile_task.status != 'completed':
+            override_reason = str(request.data.get('override_reason') or '').strip()
+            from .planning_views import _compile_task_lock
+            locked, lock_reason = _compile_task_lock(group)
+            if not (request.user.id == group.leader_id and override_reason):
+                return Response({
+                    'error': 'Final submission opens after “Compile and edit” is done. The leader can override with a reason.' if not locked else (lock_reason or 'Compile and edit is locked until all other sections are complete.'),
+                    'compile_locked': locked,
+                    'compile_done': False,
+                    'requires_override': request.user.id == group.leader_id,
+                }, status=status.HTTP_403_FORBIDDEN)
 
         submission = Submission.objects.create(
             project=project,
@@ -2385,6 +2456,13 @@ def update_task_status(request, task_id):
 
         if task.subtasks.exists():
             return Response({'error': 'Parent task progress is determined by its micro-tasks.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if task.title.strip().lower() == 'compile and edit' and not task.parent_task_id:
+            from .planning_views import _compile_task_lock
+            locked, reason = _compile_task_lock(task.project.group)
+            override_reason = str(request.data.get('override_reason') or '').strip()
+            if locked and not (task.project.group.leader_id == user.id and override_reason):
+                return Response({'error': reason or 'Compile and edit is locked until all other sections are complete.'}, status=status.HTTP_403_FORBIDDEN)
 
         new_status = request.data.get('status')
         if new_status not in ['pending', 'in_progress', 'completed']:
@@ -3180,11 +3258,16 @@ def create_group_view(request):
     year_of_study = unit.year_of_study
 
     try:
-        max_members = int(data.get('max_members'))
-        if max_members < 2 or max_members > 32767:
+        raw_max = data.get('max_members', 5)
+        max_members = int(raw_max if raw_max not in (None, '') else 5)
+        if max_members < 2 or max_members > 15:
             raise ValueError
     except (TypeError, ValueError):
-        return Response({'error': 'Choose a group size of at least 2 members.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Choose a group size between 2 and 15 members.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # If the group belongs to a unit, it cannot exceed the unit default maximum.
+    if unit and unit.default_max_members and max_members > unit.default_max_members:
+        return Response({'error': f'Group size cannot exceed this unitâ€™s default maximum of {unit.default_max_members} members.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if not name or not course or not year_of_study:
         return Response({'error': 'Name, course, and year of study are required'}, status=status.HTTP_400_BAD_REQUEST)
