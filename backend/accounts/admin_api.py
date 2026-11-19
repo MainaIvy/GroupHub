@@ -265,7 +265,7 @@ def admin_create_user(request):
                     return Response({'error': 'Each unit must match its selected year and semester.'}, status=status.HTTP_400_BAD_REQUEST)
                 if UnitAssignment.objects.filter(unit=unit, term=term).exclude(lecturer=user).exists():
                     return Response({'error': f'{unit.code} is already assigned for {term.name}.'}, status=status.HTTP_400_BAD_REQUEST)
-                assignment_rows.append(UnitAssignment(lecturer=user, unit=unit, term=term))
+                assignment_rows.append(UnitAssignment(lecturer=user, unit=unit, term=term, status='approved'))
             UnitAssignment.objects.bulk_create(assignment_rows, ignore_conflicts=True)
             Unit.objects.filter(id__in=[row.unit_id for row in assignment_rows]).update(assigned_lecturer=user)
 
