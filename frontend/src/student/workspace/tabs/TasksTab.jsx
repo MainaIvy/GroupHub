@@ -15,7 +15,7 @@ const sectionStatusChip = (status) => ({
   todo: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
 }[status] || 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]');
 
-const TaskRow = ({ task, members, actions, userId, leaderId, compile, openGroupTasks }) => {
+const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, openGroupTasks }) => {
   const subtasks = task.subtask_ids.map((id) => tasks.find((item) => item.id === id)).filter(Boolean);
   const member = members.find((item) => item.id === task.assigned_to_id);
   const isLeader = userId === leaderId;
@@ -157,7 +157,7 @@ const TaskGroup = ({ title, tasks, members, actions, userId, leaderId, compile, 
       </button>
       {(!collapsible || open) && (
         <div className="space-y-2">
-          {tasks.map((task) => <TaskRow key={task.id} task={task} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={openGroupTasks} />)}
+          {tasks.map((task) => <TaskRow key={task.id} task={task} tasks={tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={openGroupTasks} />)}
         </div>
       )}
     </section>
