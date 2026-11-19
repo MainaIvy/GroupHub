@@ -1257,11 +1257,10 @@ def admin_roster_create(request):
     full_name = str(request.data.get('full_name', '')).strip()
     department = str(request.data.get('department', '')).strip()
     staff_id = str(request.data.get('staff_id', '')).strip().upper() or None
-    status = request.data.get('status', 'invited')
+    roster_status = request.data.get('status', 'invited')
 
     if not email or not full_name or not department:
         return Response({'error': 'Email, full name, and department are required.'}, status=status.HTTP_400_BAD_REQUEST)
-
     if LecturerRoster.objects.filter(email=email).exists():
         return Response({'error': 'A roster entry with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1270,7 +1269,7 @@ def admin_roster_create(request):
         full_name=full_name,
         department=department,
         staff_id=staff_id,
-        status=status,
+        status=roster_status,
     )
     _audit(request, 'create_roster', 'LecturerRoster', roster.id, {'email': email})
     return Response({'id': roster.id, 'email': roster.email, 'full_name': roster.full_name}, status=status.HTTP_201_CREATED)
