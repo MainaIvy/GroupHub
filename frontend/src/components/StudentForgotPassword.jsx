@@ -73,7 +73,7 @@ export default function StudentForgotPassword() {
         </header>
 
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-700">
             <Mail className="h-7 w-7" />
           </div>
           <h1 id="forgot-title" className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
@@ -86,22 +86,22 @@ export default function StudentForgotPassword() {
 
         {success ? (
           <div className="space-y-4">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-start gap-3">
-                <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-600 shrink-0" />
-                <div className="text-sm text-emerald-800">
+                <CheckCircle className="mt-0.5 h-5 w-5 text-blue-600 shrink-0" />
+                <div className="text-sm text-blue-800">
                   <p className="font-semibold">Reset link ready</p>
-                  <p className="mt-1 text-xs text-emerald-700">
+                  <p className="mt-1 text-xs text-blue-700">
                     Copy the link below and open it in your browser to set a new password. The link expires in 2 hours.
                   </p>
                   {resetUrl && (
-                    <div className="mt-2.5 rounded-lg border border-emerald-200 bg-white px-3 py-2 flex items-center gap-2">
-                      <code className="flex-1 text-[10px] break-all text-emerald-900">{resetUrl}</code>
+                    <div className="mt-2.5 rounded-lg border border-blue-200 bg-white px-3 py-2 flex items-center gap-2">
+                      <code className="flex-1 text-[10px] break-all text-blue-900">{resetUrl}</code>
                       <button
                         type="button"
                         onClick={copyLink}
                         aria-label="Copy reset link"
-                        className="rounded-lg border border-emerald-200 px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-50 transition"
+                        className="rounded-lg border border-emerald-200 px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-emerald-50 transition"
                       >
                         Copy
                       </button>
@@ -110,7 +110,7 @@ export default function StudentForgotPassword() {
                   <button
                     type="button"
                     onClick={() => navigate(`/student/reset-password/${token}/`)}
-                    className="mt-2.5 w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition"
+                    className="mt-2.5 w-full rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition"
                   >
                     Go to reset password
                   </button>
@@ -119,7 +119,7 @@ export default function StudentForgotPassword() {
             </div>
             <button
               onClick={() => navigate('/login')}
-              className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700"
+              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
             >
               Back to sign in
             </button>
@@ -156,7 +156,7 @@ export default function StudentForgotPassword() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700 disabled:opacity-70"
+              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-70"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -169,7 +169,7 @@ export default function StudentForgotPassword() {
             </button>
 
             <p className="pt-1 text-center text-sm text-slate-500">
-              <Link to="/login" className="font-semibold text-violet-700 hover:text-violet-900">
+              <Link to="/login" className="font-semibold text-blue-700 hover:text-blue-900">
                 ← Back to sign in
               </Link>
             </p>

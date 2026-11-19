@@ -101,7 +101,7 @@ export default function StaffResetPassword() {
         </header>
 
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-700">
             {success ? <CheckCircle className="h-7 w-7" /> : <ShieldCheck className="h-7 w-7" />}
           </div>
           <h1 id="reset-title" className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
@@ -120,7 +120,7 @@ export default function StaffResetPassword() {
         )}
 
         {success ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-emerald-800">
             <p className="font-semibold">{message}</p>
           </div>
         ) : (
@@ -196,7 +196,7 @@ export default function StaffResetPassword() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700 disabled:opacity-70"
+              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-70"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -211,7 +211,7 @@ export default function StaffResetPassword() {
         )}
 
         <p className="pt-4 text-center text-sm text-slate-500">
-          <Link to="/login" className="font-semibold text-violet-700 hover:text-violet-900">
+          <Link to="/login" className="font-semibold text-blue-700 hover:text-blue-900">
             ← Back to sign in
           </Link>
         </p>

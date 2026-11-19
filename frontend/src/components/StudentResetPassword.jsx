@@ -101,7 +101,7 @@ export default function StudentResetPassword() {
         </header>
 
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-700">
             {success ? <CheckCircle className="h-7 w-7" /> : <ShieldCheck className="h-7 w-7" />}
           </div>
           <h1 id="reset-title" className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
@@ -149,7 +149,7 @@ export default function StudentResetPassword() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-slate-400 transition hover:text-violet-700"
+                  className="text-slate-400 transition hover:text-blue-700"
                   aria-label="Toggle password visibility"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -181,7 +181,7 @@ export default function StudentResetPassword() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="text-slate-400 transition hover:text-violet-700"
+                  className="text-slate-400 transition hover:text-blue-700"
                   aria-label="Toggle password visibility"
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -196,7 +196,7 @@ export default function StudentResetPassword() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-700 disabled:opacity-70"
+              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-70"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -211,7 +211,7 @@ export default function StudentResetPassword() {
         )}
 
         <p className="pt-4 text-center text-sm text-slate-500">
-          <Link to="/login" className="font-semibold text-violet-700 hover:text-violet-900">
+          <Link to="/login" className="font-semibold text-blue-700 hover:text-blue-900">
             ← Back to sign in
           </Link>
         </p>
