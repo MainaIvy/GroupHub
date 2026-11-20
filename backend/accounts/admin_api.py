@@ -853,8 +853,6 @@ def lecturer_setup(request):
 @permission_classes(admin_permissions)
 def admin_roster_template(request):
     """Download CSV template for lecturer roster import."""
-    import csv
-    from django.http import HttpResponse
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="lecturer_roster_template.csv"'
     writer = csv.writer(response)
@@ -862,6 +860,109 @@ def admin_roster_template(request):
     writer.writerow(['john.doe@zetech.ac.ke', 'John Doe', 'Computer Science', 'BSCS', 'BCU101', 'CS1234'])
     writer.writerow(['jane.smith@zetech.ac.ke', 'Jane Smith', 'Engineering', 'BSE', 'BEE201', 'ENG5678'])
     return response
+
+
+@api_view(['GET'])
+@permission_classes(admin_permissions)
+def admin_units_template(request):
+    """Download CSV template for units import."""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="units_template.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['unit_code', 'unit_name', 'course_code', 'year_of_study', 'semester', 'academic_level', 'default_max_members'])
+    writer.writerow(['BCU101', 'Introduction to Programming', 'BSCS', '1', '1', 'Certificate', '5'])
+    writer.writerow(['BEE201', 'Circuit Analysis', 'BSE', '2', '1', 'Diploma', '4'])
+    return response
+
+
+@api_view(['POST'])
+@permission_classes(admin_permissions)
+def admin_units_import(request):
+    """Import units from CSV/XLSX file."""
+    import io
+    from openpyxl import load_workbook
+
+    file = request.FILES.get('file')
+    if not file:
+        return Response({'error': 'No file uploaded.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    mode = request.data.get('mode', 'add')
+    if mode not in ('add', 'replace'):
+        return Response({'error': 'Mode must be "add" or "replace".'}, status=status.HTTP_400_BAD_REQUEST)
+
+    filename = file.name.lower()
+    rows = []
+    if filename.endswith('.csv'):
+        content = file.read().decode('utf-8')
+        import csv as _csv
+        reader = _csv.DictReader(io.StringIO(content))
+        rows = list(reader)
+    elif filename.endswith('.xlsx'):
+        wb = load_workbook(file, read_only=True)
+        ws = wb.active
+        headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            rows.append(dict(zip(headers, row)))
+    else:
+        return Response({'error': 'File must be CSV or XLSX.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    required_columns = ['unit_code', 'unit_name', 'course_code']
+    missing_cols = [col for col in required_columns if col not in (rows[0] if rows else {})]
+    if missing_cols:
+        return Response({'error': f'Missing required columns: {", ".join(missing_cols)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    summary = {'created': 0, 'updated': 0, 'errors': 0}
+
+    with transaction.atomic():
+        seen_codes = set()
+        for row in rows:
+            unit_code = str(row.get('unit_code', '')).strip().upper()
+            unit_name = str(row.get('unit_name', '')).strip()
+            course_code = str(row.get('course_code', '')).strip().upper()
+            year_of_study = str(row.get('year_of_study', '1')).strip() or '1'
+            semester = str(row.get('semester', '1')).strip() or '1'
+            academic_level = str(row.get('academic_level', '')).strip() or None
+            default_max_members = str(row.get('default_max_members', '5')).strip() or '5'
+
+            if not unit_code or not unit_name or not course_code:
+                summary['errors'] += 1
+                continue
+
+            if unit_code in seen_codes:
+                summary['errors'] += 1
+                continue
+            seen_codes.add(unit_code)
+
+            course = Course.objects.filter(code__iexact=course_code).first()
+            if not course:
+                summary['errors'] += 1
+                continue
+
+            try:
+                yos = int(year_of_study)
+                sem = int(semester)
+                max_members = int(default_max_members)
+            except ValueError:
+                summary['errors'] += 1
+                continue
+
+            unit, created = Unit.objects.update_or_create(
+                code=unit_code,
+                course=course,
+                defaults={
+                    'name': unit_name,
+                    'year_of_study': yos,
+                    'semester': sem,
+                    'academic_level': academic_level,
+                    'default_max_members': max_members,
+                },
+            )
+            if created:
+                summary['created'] += 1
+            else:
+                summary['updated'] += 1
+
+    return Response({'status': 'ok', 'summary': summary}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

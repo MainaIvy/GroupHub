@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   AppstoreOutlined,
+  ArrowLeftOutlined,
   ArrowRightOutlined,
   AuditOutlined,
   CheckCircleOutlined,
@@ -27,14 +28,17 @@ import {
 import { API_BASE } from '../apiConfig';
 
 /*
-  Palette (cream / black / yellow):
-    cream   #F3EFEA   page background
+  Palette (modern indigo/slate):
+    bg      #F8FAFC   page background
     card    #FFFFFF   panels and stat cards
-    ink     #1C1C1C   text, rail, primary buttons, highlighted card
-    yellow  #F5C842   active rail icon and accents
-    butter  #FBF0C9   soft fills
-    line    #E6E0D8   borders
-    muted   #8B8680   secondary text
+    ink     #0F172A   text, rail, primary buttons
+    indigo  #4F46E5   primary actions, active rail icon
+    indigoL #E0E7FF   soft fills
+    line    #E2E8F0   borders
+    muted   #64748B   secondary text
+    success #10B981   success states
+    warning #F59E0B   warning states
+    danger  #EF4444   danger states
 */
 
 const tokenHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
@@ -85,20 +89,20 @@ const endpoints = {
 
 const ui = {
   input:
-    'rounded-xl border border-[#DDD6CC] bg-white p-3 text-sm text-[#1C1C1C] placeholder:text-[#B3ADA5] outline-none focus:border-[#1C1C1C] focus:ring-2 focus:ring-[#1C1C1C]/15',
+    'rounded-xl border border-[#CBD5E1] bg-white p-3 text-sm text-[#0F172A] placeholder:text-[#94A3B8] outline-none focus:border-[#4F46E5] focus:ring-2 focus-ring-[#4F46E5]/15',
   primary:
-    'rounded-xl bg-[#1C1C1C] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#333333] disabled:opacity-50',
+    'rounded-xl bg-[#4F46E5] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4338CA] disabled:opacity-50',
   ghost:
-    'rounded-xl border border-[#DDD6CC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1C1C1C] transition hover:bg-[#FBF0C9]',
+    'rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9]',
 };
 
-const STATUS_COLORS = { active: '#3F9B67', approved: '#3F9B67', pending: '#D99A4E', suspended: '#B3263A' };
+const STATUS_COLORS = { active: '#10B981', approved: '#10B981', pending: '#F59E0B', suspended: '#EF4444' };
 
 function StatusDot({ value }) {
   const key = String(value ?? '').toLowerCase();
   return (
     <span className="inline-flex items-center gap-2 capitalize">
-      <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLORS[key] || '#B9A5A8' }} />
+      <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLORS[key] || '#94A3B8' }} />
       {value ?? '—'}
     </span>
   );
@@ -108,16 +112,16 @@ function Stat({ label, value, icon, highlight }) {
   return (
     <div
       className={`flex items-center justify-between rounded-3xl p-5 shadow-sm ${
-        highlight ? 'bg-[#1C1C1C] text-white' : 'bg-white text-[#1C1C1C]'
+        highlight ? 'bg-[#0F172A] text-white' : 'bg-white text-[#0F172A]'
       }`}
     >
       <div>
         <p className="text-3xl font-bold">{value ?? '—'}</p>
-        <p className={`mt-1 text-sm ${highlight ? 'text-white/60' : 'text-[#8B8680]'}`}>{label}</p>
+        <p className={`mt-1 text-sm ${highlight ? 'text-white/60' : 'text-[#64748B]'}`}>{label}</p>
       </div>
       <span
         className={`flex h-12 w-12 items-center justify-center rounded-full text-2xl ${
-          highlight ? 'bg-[#F5C842] text-[#1C1C1C]' : 'bg-[#FBF0C9] text-[#1C1C1C]'
+          highlight ? 'bg-[#4F46E5] text-[#0F172A]' : 'bg-[#E0E7FF] text-[#0F172A]'
         }`}
       >
         {icon}
@@ -130,7 +134,7 @@ function Panel({ title, action, children }) {
   return (
     <section className="rounded-3xl bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#1C1C1C]">{title}</h3>
+        <h3 className="font-semibold text-[#0F172A]">{title}</h3>
         {action}
       </div>
       {children}
@@ -143,7 +147,7 @@ function SeeAll({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg bg-[#1C1C1C] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#333333]"
+      className="rounded-lg bg-[#0F172A] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#4338CA]"
     >
       See all <ArrowRightOutlined />
     </button>
@@ -156,6 +160,15 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('');
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [state, setState] = useState({ loading: true, error: '' });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [greeting, setGreeting] = useState('');
+
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  useEffect(() => {
+    setGreeting(`${timeGreeting}, Administrator`);
+  }, [timeGreeting]);
 
   const load = async (activeTab = tab) => {
     setState({ loading: true, error: '' });
@@ -256,7 +269,7 @@ export default function AdminDashboard() {
     <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
+          <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
             {columns.map((column) => (
               <th key={column.key} className="px-5 py-4">
                 {column.label}
@@ -266,7 +279,7 @@ export default function AdminDashboard() {
         </thead>
         <tbody>
           {rows?.map((row) => (
-            <tr key={row.id} className="border-b border-[#EFEAE3] text-[#1C1C1C] last:border-0 hover:bg-[#F7F4EF]">
+            <tr key={row.id} className="border-b border-[#E2E8F0] text-[#0F172A] last:border-0 hover:bg-[#F1F5F9]">
               {columns.map((column) => (
                 <td key={column.key} className="px-5 py-3.5">
                   {column.render ? column.render(row) : (row[column.key] ?? '—')}
@@ -276,7 +289,7 @@ export default function AdminDashboard() {
           ))}
         </tbody>
       </table>
-      {!rows?.length && <p className="p-10 text-center text-[#8B8680]">No records found.</p>}
+      {!rows?.length && <p className="p-10 text-center text-[#64748B]">No records found.</p>}
     </div>
   );
 
@@ -292,13 +305,13 @@ export default function AdminDashboard() {
   let content = null;
   if (waiting) {
     content = (
-      <div className="rounded-3xl bg-white p-12 text-center text-[#8B8680] shadow-sm">
+      <div className="rounded-3xl bg-white p-12 text-center text-[#64748B] shadow-sm">
         Loading {tab.toLowerCase()}...
       </div>
     );
   } else if (state.error) {
     content = (
-      <div className="rounded-3xl bg-[#FBE4E6] p-5 text-[#B3263A]">
+      <div className="rounded-3xl bg-[#FEE2E2] p-5 text-[#EF4444]">
         {state.error}{' '}
         <button type="button" onClick={() => load()} className="ml-3 font-semibold underline">
           Retry
@@ -325,20 +338,20 @@ export default function AdminDashboard() {
           <div className="lg:col-span-2">
             <Panel title="At-risk groups" action={<SeeAll onClick={() => goTo('Groups')} />}>
               {data.at_risk_groups?.length ? (
-                <ul className="divide-y divide-[#EFEAE3]">
+                <ul className="divide-y divide-[#E2E8F0]">
                   {data.at_risk_groups.map((group) => (
                     <li key={group.id} className="flex items-center justify-between py-3 text-sm">
-                      <span className="font-medium text-[#1C1C1C]">{group.name}</span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-[#FBE4E6] px-3 py-1 text-xs font-semibold text-[#B3263A]">
-                        <span className="h-2 w-2 rounded-full bg-[#B3263A]" />
+                      <span className="font-medium text-[#0F172A]">{group.name}</span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[#FEE2E2] px-3 py-1 text-xs font-semibold text-[#EF4444]">
+                        <span className="h-2 w-2 rounded-full bg-[#EF4444]" />
                         At risk
                       </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-[#8B8680]">
-                  <CheckCircleOutlined className="text-3xl text-[#3F9B67]" />
+                <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-[#64748B]">
+                  <CheckCircleOutlined className="text-3xl text-[#10B981]" />
                   No at-risk groups. Every group is on track.
                 </div>
               )}
@@ -352,9 +365,9 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={item.run}
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-sm text-[#1C1C1C] transition hover:bg-[#F7F4EF]"
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-sm text-[#0F172A] transition hover:bg-[#F1F5F9]"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FBF0C9] text-[#1C1C1C]">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E0E7FF] text-[#0F172A]">
                       {item.icon}
                     </span>
                     <span className="flex-1 font-medium">{item.label}</span>
@@ -436,7 +449,7 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => action(`${API_BASE}/api/accounts/admin/users/${row.id}/approve/`, { method: 'POST' })}
-                    className="rounded-lg bg-[#FBF0C9] px-3 py-1.5 text-xs font-semibold text-[#1C1C1C] hover:bg-[#F5E3A5]"
+                    className="rounded-lg bg-[#E0E7FF] px-3 py-1.5 text-xs font-semibold text-[#0F172A] hover:bg-[#FCD34D]"
                   >
                     Approve
                   </button>
@@ -445,7 +458,7 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => action(`${API_BASE}/api/accounts/admin/users/${row.id}/reactivate/`, { method: 'POST' })}
-                    className="rounded-lg bg-[#E3F1E8] px-3 py-1.5 text-xs font-semibold text-[#2F7A4B] hover:bg-[#D2E8DA]"
+                    className="rounded-lg bg-[#D1FAE5] px-3 py-1.5 text-xs font-semibold text-[#047857] hover:bg-[#A7F3D0]"
                   >
                     Reactivate
                   </button>
@@ -455,7 +468,7 @@ export default function AdminDashboard() {
                     onClick={() =>
                       action(`${API_BASE}/api/accounts/admin/users/${row.id}/suspend/`, { method: 'POST', confirm: 'Suspend this user?' })
                     }
-                    className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+                    className="rounded-lg bg-[#FEE2E2] px-3 py-1.5 text-xs font-semibold text-[#EF4444] hover:bg-[#FECACA]"
                   >
                     Suspend
                   </button>
@@ -488,54 +501,91 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3EFEA] text-[#1C1C1C]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       <div className="flex min-h-screen">
-        {/* Slim floating icon rail */}
-        <aside className="sticky top-2 z-30 m-2 flex h-[calc(100vh-1rem)] w-14 shrink-0 flex-col items-center self-start rounded-[28px] bg-[#1C1C1C] py-4 text-white sm:top-3 sm:m-3 sm:h-[calc(100vh-1.5rem)]">
-          <div title="GroupHub Admin" className="mb-6 flex h-10 w-10 items-center justify-center text-2xl text-[#F5C842]">
-            <TeamOutlined />
+        {/* Collapsible sidebar */}
+        <aside
+          className={`sticky top-2 z-30 m-2 flex h-[calc(100vh-1rem)] flex-col items-center self-start rounded-[28px] bg-[#0F172A] py-4 text-white sm:top-3 sm:m-3 sm:h-[calc(100vh-1.5rem)] transition-all duration-300 ${
+            sidebarOpen ? 'w-64' : 'w-14'
+          }`}
+        >
+          <div className="mb-6 flex items-center justify-between px-3">
+            <div className="flex h-10 w-10 items-center justify-center text-2xl text-[#4F46E5]">
+              <TeamOutlined />
+            </div>
+            {!sidebarOpen && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition"
+              >
+                <ArrowRightOutlined className="text-sm" />
+              </button>
+            )}
           </div>
 
-          <nav className="flex flex-1 flex-col items-center gap-2">
+          {sidebarOpen && (
+            <div className="px-2">
+              <h2 className="px-3 mb-4 text-sm font-semibold text-[#4F46E5] tracking-wider uppercase">GroupHub Admin</h2>
+            </div>
+          )}
+
+          <nav className="flex flex-1 flex-col items-center gap-1">
             {tabs.map((item) => {
               const active = tab === item;
               return (
-                <div key={item} className="group relative">
+                <div key={item} className="group relative w-full">
                   <button
                     type="button"
                     aria-label={item}
                     aria-current={active ? 'page' : undefined}
                     onClick={() => goTo(item)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-full text-lg transition ${
-                      active ? 'bg-[#F5C842] text-[#1C1C1C]' : 'text-white/60 hover:bg-white/10 hover:text-white'
+                    className={`flex w-full items-center justify-center gap-3 rounded-xl px-3 py-2.5 text-lg transition ${
+                      active
+                        ? 'bg-[#4F46E5]/10 text-[#4F46E5]'
+                        : 'text-[#94A3B8] hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     {tabIcons[item]}
+                    {sidebarOpen && <span className="flex-1 text-sm font-medium">{item}</span>}
                   </button>
-                  <span className="pointer-events-none absolute left-full top-1/2 z-40 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#1C1C1C] px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100">
-                    {item}
-                  </span>
+                  {sidebarOpen && (
+                    <span className="pointer-events-none absolute left-full top-1/2 z-40 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#0F172A] px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100">
+                      {item}
+                    </span>
+                  )}
                 </div>
               );
             })}
           </nav>
 
-          <div className="group relative">
+          {sidebarOpen && (
+            <div className="mt-auto px-3 pb-4">
+              <p className="text-xs text-[#94A3B8] mb-3">{greeting}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.href = '/login';
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+              >
+                <LogoutOutlined className="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
+          )}
+
+          {!sidebarOpen && (
             <button
               type="button"
-              aria-label="Sign out"
-              onClick={() => {
-                localStorage.clear();
-                window.location.href = '/login';
-              }}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-lg text-white/60 transition hover:bg-white/10 hover:text-white"
+              onClick={() => setSidebarOpen(false)}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition"
+              title="Collapse sidebar"
             >
-              <LogoutOutlined />
+              <ArrowLeftOutlined className="text-sm" />
             </button>
-            <span className="pointer-events-none absolute left-full top-1/2 z-40 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#1C1C1C] px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100">
-              Sign out
-            </span>
-          </div>
+          )}
         </aside>
 
         {/* Main */}
@@ -543,8 +593,8 @@ export default function AdminDashboard() {
           <header className="flex items-center gap-4 px-3 py-5 sm:px-4 md:px-8">
             <h2 className="text-xl font-bold md:text-2xl">{tab === 'Overview' ? 'Dashboard' : tab}</h2>
 
-            <div className="mx-auto hidden w-full max-w-sm items-center gap-2 rounded-full border border-[#E6E0D8] bg-white px-4 py-2 sm:flex">
-              <SearchOutlined className="text-[#8B8680]" />
+            <div className="mx-auto hidden w-full max-w-sm items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-4 py-2 sm:flex">
+              <SearchOutlined className="text-[#64748B]" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -555,12 +605,12 @@ export default function AdminDashboard() {
             </div>
 
             <div className="ml-auto flex items-center gap-3 sm:ml-0">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1C1C1C] text-sm font-bold text-[#F5C842]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0F172A] text-sm font-bold text-[#4F46E5]">
                 A
               </span>
               <div className="hidden leading-tight lg:block">
-                <p className="text-sm font-semibold">Administrator</p>
-                <p className="text-xs text-[#8B8680]">Zetech University</p>
+                <p className="text-sm font-semibold">{greeting || 'Administrator'}</p>
+                <p className="text-xs text-[#64748B]">Zetech University</p>
               </div>
             </div>
           </header>
@@ -588,7 +638,7 @@ function SettingsForm({ values, onSave }) {
     <div className="max-w-xl rounded-3xl bg-white p-6 shadow-sm">
       <div className="grid gap-4">
         {fields.map(([key, label]) => (
-          <label key={key} className="text-sm font-medium text-[#1C1C1C]">
+          <label key={key} className="text-sm font-medium text-[#0F172A]">
             {label}
             <input
               type={key === 'file_size_limit' ? 'number' : 'text'}
@@ -708,21 +758,21 @@ function AssignmentManager({ data, onAction, onReload }) {
       <Panel title="Units with no lecturer">
         <div className="flex flex-wrap gap-2">
           {(data.unassigned || []).map((unit) => (
-            <span key={unit.id} className="rounded-full bg-[#FBF0C9] px-3 py-1 text-xs font-semibold text-[#1C1C1C]">
+            <span key={unit.id} className="rounded-full bg-[#E0E7FF] px-3 py-1 text-xs font-semibold text-[#0F172A]">
               {unit.code} · {unit.course__name}
             </span>
           ))}
-          {!(data.unassigned || []).length && <p className="text-sm text-[#8B8680]">Every unit has a lecturer.</p>}
+          {!(data.unassigned || []).length && <p className="text-sm text-[#64748B]">Every unit has a lecturer.</p>}
         </div>
       </Panel>
 
       <Panel title="Academic terms">
         <div className="space-y-2">
           {(data.terms || []).map((term) => (
-            <div key={term.id} className="flex items-center justify-between gap-2 rounded-xl border border-[#EFEAE3] px-3 py-2 text-sm">
-              <span className="font-semibold text-[#1C1C1C]">{term.name} {term.is_current && <span className="ml-2 rounded-full bg-[#3F9B67] px-2 py-0.5 text-[10px] text-white">Current</span>}</span>
+            <div key={term.id} className="flex items-center justify-between gap-2 rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm">
+              <span className="font-semibold text-[#0F172A]">{term.name} {term.is_current && <span className="ml-2 rounded-full bg-[#10B981] px-2 py-0.5 text-[10px] text-white">Current</span>}</span>
               {!term.is_current && (
-                <button type="button" onClick={() => onAction(`${API_BASE}/api/accounts/admin/terms/${term.id}/make_current/`, { method: 'POST' })} className="rounded-lg border border-[#DDD6CC] px-3 py-1 text-xs font-semibold">Make current</button>
+                <button type="button" onClick={() => onAction(`${API_BASE}/api/accounts/admin/terms/${term.id}/make_current/`, { method: 'POST' })} className="rounded-lg border border-[#CBD5E1] px-3 py-1 text-xs font-semibold">Make current</button>
               )}
             </div>
           ))}
@@ -739,7 +789,7 @@ function AssignmentManager({ data, onAction, onReload }) {
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
+            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
               <th className="px-5 py-4">Lecturer</th>
               <th className="px-5 py-4">Unit</th>
               <th className="px-5 py-4">Term</th>
@@ -749,10 +799,10 @@ function AssignmentManager({ data, onAction, onReload }) {
           </thead>
           <tbody>
             {(data.assignments || []).map((row) => (
-              <tr key={row.id} className="border-b border-[#EFEAE3] last:border-0 hover:bg-[#F7F4EF]">
+              <tr key={row.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
                 <td className="px-5 py-3.5">
                   {row.lecturer?.name}
-                  <span className="block text-xs text-[#8B8680]">{row.lecturer?.staff_id}</span>
+                  <span className="block text-xs text-[#64748B]">{row.lecturer?.staff_id}</span>
                 </td>
                 <td className="px-5 py-3.5">
                   {row.unit_code} · {row.unit}
@@ -768,7 +818,7 @@ function AssignmentManager({ data, onAction, onReload }) {
                         confirm: 'Remove this unit assignment?',
                       })
                     }
-                    className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+                    className="rounded-lg bg-[#FEE2E2] px-3 py-1.5 text-xs font-semibold text-[#EF4444] hover:bg-[#FECACA]"
                   >
                     Remove
                   </button>
@@ -777,7 +827,7 @@ function AssignmentManager({ data, onAction, onReload }) {
             ))}
           </tbody>
         </table>
-        {!(data.assignments || []).length && <p className="p-10 text-center text-[#8B8680]">No lecturer assignments yet.</p>}
+        {!(data.assignments || []).length && <p className="p-10 text-center text-[#64748B]">No lecturer assignments yet.</p>}
       </div>
 
       <button type="button" onClick={onReload} className={ui.ghost}>
@@ -792,10 +842,10 @@ function renderLoadCards(lecturers = []) {
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {lecturers.map((lecturer) => (
         <div key={lecturer.id} className="rounded-3xl bg-white p-4 shadow-sm">
-          <p className="font-semibold text-[#1C1C1C]">{lecturer.name}</p>
-          <p className="text-xs text-[#8B8680]">{lecturer.staff_id || lecturer.email}</p>
-          <p className="mt-3 text-2xl font-bold text-[#1C1C1C]">
-            {lecturer.load_count ?? '—'} <span className="text-sm font-normal text-[#8B8680]">assigned units</span>
+          <p className="font-semibold text-[#0F172A]">{lecturer.name}</p>
+          <p className="text-xs text-[#64748B]">{lecturer.staff_id || lecturer.email}</p>
+          <p className="mt-3 text-2xl font-bold text-[#0F172A]">
+            {lecturer.load_count ?? '—'} <span className="text-sm font-normal text-[#64748B]">assigned units</span>
           </p>
         </div>
       ))}
@@ -903,8 +953,8 @@ function UserCreateForm({ onCreated }) {
     <form onSubmit={submit} className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-[#1C1C1C]">Create account</h3>
-          <p className="text-sm text-[#8B8680]">Use the catalogue to assign the correct academic structure.</p>
+          <h3 className="font-semibold text-[#0F172A]">Create account</h3>
+          <p className="text-sm text-[#64748B]">Use the catalogue to assign the correct academic structure.</p>
         </div>
         <select
           value={role}
@@ -1020,27 +1070,27 @@ function UserCreateForm({ onCreated }) {
       </div>
 
       {role === 'lecturer' && (
-        <div className="mt-4 rounded-xl bg-[#F7F4EF] p-3 text-sm">
+        <div className="mt-4 rounded-xl bg-[#F1F5F9] p-3 text-sm">
           {assignments.length ? (
             assignments.map((assignment) => (
-              <div key={`${assignment.unit_id}-${assignment.term_id}`} className="flex items-center justify-between border-b border-[#E6E0D8] py-2 last:border-0">
+              <div key={`${assignment.unit_id}-${assignment.term_id}`} className="flex items-center justify-between border-b border-[#E2E8F0] py-2 last:border-0">
                 <span>{assignment.label}</span>
                 <button
                   type="button"
                   onClick={() => setAssignments((current) => current.filter((item) => item !== assignment))}
-                  className="font-semibold text-[#B3263A]"
+                  className="font-semibold text-[#EF4444]"
                 >
                   Remove
                 </button>
               </div>
             ))
           ) : (
-            <span className="text-[#8B8680]">No units assigned yet. You can create the lecturer now and assign units later.</span>
+            <span className="text-[#64748B]">No units assigned yet. You can create the lecturer now and assign units later.</span>
           )}
         </div>
       )}
 
-      {error && <p className="mt-3 rounded-lg bg-[#FBE4E6] p-3 text-sm text-[#B3263A]">{error}</p>}
+      {error && <p className="mt-3 rounded-lg bg-[#FEE2E2] p-3 text-sm text-[#EF4444]">{error}</p>}
       <button disabled={saving} type="submit" className={`mt-4 ${ui.primary}`}>
         {saving ? 'Creating...' : `Create ${role}`}
       </button>
@@ -1125,7 +1175,7 @@ function LecturersManager({ onReload }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#1C1C1C]">Lecturer Roster</h3>
+        <h3 className="font-semibold text-[#0F172A]">Lecturer Roster</h3>
         <button onClick={() => { setForm({ email: '', full_name: '', department: '', staff_id: '', status: 'invited' }); setEditingId(null); setShowAdd(true); }} className={ui.primary}>
           ＋ Add lecturer
         </button>
@@ -1134,7 +1184,7 @@ function LecturersManager({ onReload }) {
       {showAdd && (
         <form onSubmit={handleSubmit} className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h4 className="font-semibold text-[#1C1C1C]">{editingId ? 'Edit lecturer' : 'Add lecturer'}</h4>
+            <h4 className="font-semibold text-[#0F172A]">{editingId ? 'Edit lecturer' : 'Add lecturer'}</h4>
             <button type="button" onClick={() => { setShowAdd(false); setEditingId(null); setForm({ email: '', full_name: '', department: '', staff_id: '', status: 'invited' }); }} className="text-slate-500 hover:text-slate-800">✕</button>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -1159,7 +1209,7 @@ function LecturersManager({ onReload }) {
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
+            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
               <th className="px-5 py-4">Name</th>
               <th className="px-5 py-4">Email</th>
               <th className="px-5 py-4">Department</th>
@@ -1170,8 +1220,8 @@ function LecturersManager({ onReload }) {
           </thead>
           <tbody>
             {roster.map((item) => (
-              <tr key={item.id} className="border-b border-[#EFEAE3] last:border-0 hover:bg-[#F7F4EF]">
-                <td className="px-5 py-3.5 font-medium text-[#1C1C1C]">{item.full_name}</td>
+              <tr key={item.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+                <td className="px-5 py-3.5 font-medium text-[#0F172A]">{item.full_name}</td>
                 <td className="px-5 py-3.5 text-slate-600">{item.email}</td>
                 <td className="px-5 py-3.5">{item.department || '—'}</td>
                 <td className="px-5 py-3.5">{item.staff_id || '—'}</td>
@@ -1193,7 +1243,7 @@ function LecturersManager({ onReload }) {
                 </td>
               </tr>
             ))}
-            {!roster.length && <tr><td colSpan={6} className="p-10 text-center text-[#8B8680]">No lecturers in roster yet.</td></tr>}
+            {!roster.length && <tr><td colSpan={6} className="p-10 text-center text-[#64748B]">No lecturers in roster yet.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1234,8 +1284,8 @@ function GroupsManager({ data, onAction }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-[#1C1C1C]">Groups</h3>
-          <p className="text-sm text-[#8B8680]">{rows.length} group(s)</p>
+          <h3 className="font-semibold text-[#0F172A]">Groups</h3>
+          <p className="text-sm text-[#64748B]">{rows.length} group(s)</p>
         </div>
         <button
           type="button"
@@ -1268,7 +1318,7 @@ function GroupsManager({ data, onAction }) {
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
+            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
               <th className="px-5 py-4 cursor-pointer">Group</th>
               <th className="px-5 py-4">Unit</th>
               <th className="px-5 py-4">Supervising lecturers</th>
@@ -1282,27 +1332,27 @@ function GroupsManager({ data, onAction }) {
             {rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-[#EFEAE3] last:border-0 hover:bg-[#F7F4EF] group"
+                className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9] group"
                 onClick={() => openDrawer(row)}
               >
-                <td className="px-5 py-3.5 font-medium text-[#1C1C1C]">{row.name}</td>
+                <td className="px-5 py-3.5 font-medium text-[#0F172A]">{row.name}</td>
                 <td className="px-5 py-3.5">{row.unit}</td>
                 <td className="px-5 py-3.5 text-sm">
                   {row.supervising_lecturers.length ? (
                     row.supervising_lecturers.map((s, i) => (
-                      <span key={i} className="inline-block mb-1 rounded-full bg-[#FBF0C9] px-2 py-0.5 text-xs text-[#1C1C1C]">{s}</span>
+                      <span key={i} className="inline-block mb-1 rounded-full bg-[#E0E7FF] px-2 py-0.5 text-xs text-[#0F172A]">{s}</span>
                     ))
                   ) : (
-                    <span className="text-xs text-[#8B8680]">—</span>
+                    <span className="text-xs text-[#64748B]">—</span>
                   )}
                 </td>
                 <td className="px-5 py-3.5">{row.leader || '—'}</td>
                 <td className="px-5 py-3.5">{row.members}</td>
                   <td className="px-5 py-3.5">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    row.health?.status === 'at_risk' ? 'bg-[#FBE4E6] text-[#B3263A]' :
-                    row.health?.status === 'quiet' ? 'bg-[#FBF0C9] text-[#D99A4E]' :
-                    'bg-[#E3F1E8] text-[#2F7A4B]'
+                    row.health?.status === 'at_risk' ? 'bg-[#FEE2E2] text-[#EF4444]' :
+                    row.health?.status === 'quiet' ? 'bg-[#E0E7FF] text-[#F59E0B]' :
+                    'bg-[#D1FAE5] text-[#047857]'
                   }`}>
                     {String(row.health?.status || '').replace('_', ' ')}
                   </span>
@@ -1313,7 +1363,7 @@ function GroupsManager({ data, onAction }) {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onAction(`${API_BASE}/api/accounts/admin/groups/${row.id}/lock/`, { method: 'POST', confirm: 'Lock this group?' }) }}
-                        className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+                        className="rounded-lg bg-[#FEE2E2] px-3 py-1.5 text-xs font-semibold text-[#EF4444] hover:bg-[#FECACA]"
                       >
                         Lock
                       </button>
@@ -1322,7 +1372,7 @@ function GroupsManager({ data, onAction }) {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onAction(`${API_BASE}/api/accounts/admin/groups/${row.id}/lock/`, { method: 'DELETE', confirm: 'Unlock this group?' }) }}
-                        className="rounded-lg bg-[#E3F1E8] px-3 py-1.5 text-xs font-semibold text-[#2F7A4B] hover:bg-[#D2E8DA]"
+                        className="rounded-lg bg-[#D1FAE5] px-3 py-1.5 text-xs font-semibold text-[#047857] hover:bg-[#A7F3D0]"
                       >
                         Unlock
                       </button>
@@ -1330,14 +1380,14 @@ function GroupsManager({ data, onAction }) {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onAction(`${API_BASE}/api/accounts/admin/groups/${row.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' }) }}
-                      className="rounded-lg bg-[#FBE4E6] px-3 py-1.5 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+                      className="rounded-lg bg-[#FEE2E2] px-3 py-1.5 text-xs font-semibold text-[#EF4444] hover:bg-[#FECACA]"
                     >
                       Archive
                     </button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setOpenGroup(row) }}
-                      className="rounded-lg border border-[#DDD6CC] px-3 py-1.5 text-xs font-semibold text-[#1C1C1C] hover:bg-[#FBF0C9]"
+                      className="rounded-lg border border-[#CBD5E1] px-3 py-1.5 text-xs font-semibold text-[#0F172A] hover:bg-[#E0E7FF]"
                     >
                       Open
                     </button>
@@ -1347,7 +1397,7 @@ function GroupsManager({ data, onAction }) {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={7} className="p-10 text-center text-[#8B8680]">No groups found.</td>
+                <td colSpan={7} className="p-10 text-center text-[#64748B]">No groups found.</td>
               </tr>
             )}
           </tbody>
@@ -1358,36 +1408,36 @@ function GroupsManager({ data, onAction }) {
       {openGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-[#1C1C1C]/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#0F172A]/60 backdrop-blur-sm"
             onClick={closeDrawer}
           />
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-[#DDD6CC]">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-[#CBD5E1]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-[#1C1C1C]">Group details — {openGroup.name}</h3>
-              <button type="button" onClick={closeDrawer} className="text-[#8B8680] hover:text-[#1C1C1C]">✕</button>
+              <h3 className="font-semibold text-[#0F172A]">Group details — {openGroup.name}</h3>
+              <button type="button" onClick={closeDrawer} className="text-[#64748B] hover:text-[#0F172A]">✕</button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-[#EFEAE3] p-4">
-                <h4 className="font-semibold text-[#1C1C1C] mb-3">Members</h4>
-                <div className="text-sm text-[#8B8680] text-center py-8">Loading members…</div>
+              <div className="rounded-2xl border border-[#E2E8F0] p-4">
+                <h4 className="font-semibold text-[#0F172A] mb-3">Members</h4>
+                <div className="text-sm text-[#64748B] text-center py-8">Loading members…</div>
               </div>
-              <div className="rounded-2xl border border-[#EFEAE3] p-4">
-                <h4 className="font-semibold text-[#1C1C1C] mb-3">Health & activity</h4>
-                <p className="text-sm text-[#8B8680] mb-2">Health: <span className="font-medium text-[#1C1C1C]">{String(openGroup.health?.status || '').replace('_', ' ')}</span></p>
-                <p className="text-sm text-[#8B8680] mb-2">At risk: {openGroup.at_risk ? 'Yes' : 'No'}</p>
-                <p className="text-sm text-[#8B8680]">Members: {openGroup.members}</p>
+              <div className="rounded-2xl border border-[#E2E8F0] p-4">
+                <h4 className="font-semibold text-[#0F172A] mb-3">Health & activity</h4>
+                <p className="text-sm text-[#64748B] mb-2">Health: <span className="font-medium text-[#0F172A]">{String(openGroup.health?.status || '').replace('_', ' ')}</span></p>
+                <p className="text-sm text-[#64748B] mb-2">At risk: {openGroup.at_risk ? 'Yes' : 'No'}</p>
+                <p className="text-sm text-[#64748B]">Members: {openGroup.members}</p>
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-[#EFEAE3] p-4">
-              <h4 className="font-semibold text-[#1C1C1C] mb-3">Join code</h4>
+            <div className="mt-4 rounded-2xl border border-[#E2E8F0] p-4">
+              <h4 className="font-semibold text-[#0F172A] mb-3">Join code</h4>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[#1C1C1C]">{openGroup.join_code}</span>
+                <span className="font-mono text-[#0F172A]">{openGroup.join_code}</span>
                 <button
                   type="button"
                   onClick={() => onAction(`${API_BASE}/api/accounts/admin/groups/${openGroup.id}/regenerate-code/`, { method: 'POST' })}
-                  className="rounded-lg bg-[#1C1C1C] px-3 py-1 text-xs font-semibold text-white"
+                  className="rounded-lg bg-[#0F172A] px-3 py-1 text-xs font-semibold text-white"
                 >
                   Regenerate
                 </button>
@@ -1398,7 +1448,7 @@ function GroupsManager({ data, onAction }) {
               <button
                 type="button"
                 onClick={() => onAction(`${API_BASE}/api/accounts/admin/groups/${openGroup.id}/archive/`, { method: 'POST', confirm: 'Archive this group?' })}
-                className="rounded-lg bg-[#FBE4E6] px-4 py-2 text-xs font-semibold text-[#B3263A] hover:bg-[#F6D3D7]"
+                className="rounded-lg bg-[#FEE2E2] px-4 py-2 text-xs font-semibold text-[#EF4444] hover:bg-[#FECACA]"
               >
                 Archive group
               </button>
@@ -1418,6 +1468,7 @@ function GroupsManager({ data, onAction }) {
 }
 
 function ImportManager({ onReload }) {
+  const [importType, setImportType] = useState('lecturer');
   const [mode, setMode] = useState('add');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -1425,6 +1476,11 @@ function ImportManager({ onReload }) {
   const [commitLoading, setCommitLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const isUnits = importType === 'units';
+  const templateUrl = isUnits ? `${API_BASE}/api/accounts/admin/units/template/` : `${API_BASE}/api/accounts/admin/roster/template/`;
+  const previewUrl = `${API_BASE}/api/accounts/admin/${isUnits ? 'units/import/preview/' : 'roster/import/preview/'}`;
+  const commitUrl = `${API_BASE}/api/accounts/admin/${isUnits ? 'units/import/' : 'roster/import/commit/'}`;
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -1441,7 +1497,7 @@ function ImportManager({ onReload }) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', mode);
-      const response = await fetch(`${API_BASE}/api/accounts/admin/roster/import/preview/`, { method: 'POST', headers: tokenHeaders(), body: formData });
+      const response = await fetch(previewUrl, { method: 'POST', headers: tokenHeaders(), body: formData });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Preview failed');
       setPreview(data);
@@ -1461,7 +1517,7 @@ function ImportManager({ onReload }) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', mode);
-      const response = await fetch(`${API_BASE}/api/accounts/admin/roster/import/commit/`, { method: 'POST', headers: tokenHeaders(), body: formData });
+      const response = await fetch(commitUrl, { method: 'POST', headers: tokenHeaders(), body: formData });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Commit failed');
       setSuccess('Import committed successfully.');
@@ -1475,26 +1531,43 @@ function ImportManager({ onReload }) {
     }
   };
 
-
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="font-semibold text-[#1C1C1C]">Import Lecturer Roster</h3>
-        <a href={`${API_BASE}/api/accounts/admin/roster/template/`} className={ui.ghost} download>Download CSV template</a>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-[#0F172A]">Import {isUnits ? 'Units' : 'Lecturer Roster'}</h3>
+        </div>
+        <div className="flex gap-1 rounded-lg border border-[#CBD5E1] bg-white">
+          <button
+            type="button"
+            onClick={() => setImportType('lecturer')}
+            className={`px-4 py-1.5 text-xs font-medium transition ${importType === 'lecturer' ? 'bg-[#4F46E5] text-white' : 'text-[#64748B] hover:bg-[#F1F5F9]'}`}
+          >
+            Lecturers
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportType('units')}
+            className={`px-4 py-1.5 text-xs font-medium transition ${importType === 'units' ? 'bg-[#4F46E5] text-white' : 'text-[#64748B] hover:bg-[#F1F5F9]'}`}
+          >
+            Units
+          </button>
+        </div>
+        <a href={templateUrl} className={ui.ghost} download>Download CSV template</a>
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm">
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div>
-            <label className="block text-xs font-semibold text-[#435B76] mb-1">Mode</label>
+            <label className="block text-xs font-semibold text-[#4F46E5] mb-1">Mode</label>
             <select value={mode} onChange={(e) => setMode(e.target.value)} className={ui.input}>
-              <option value="add">Add (create new assignments)</option>
-              <option value="replace">Replace this term's assignments</option>
+              <option value="add">Add (create new records)</option>
+              <option value="replace">Replace existing records</option>
             </select>
-            <p className="mt-1 text-xs text-[#8B8680]">Replace will end-date old active assignments for this term.</p>
+            <p className="mt-1 text-xs text-[#64748B]">{isUnits ? 'Replace will update existing units by code+course.' : 'Replace will end-date old active assignments for this term.'}</p>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#435B76] mb-1">CSV / XLSX file</label>
+            <label className="block text-xs font-semibold text-[#4F46E5] mb-1">CSV / XLSX file</label>
             <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} className={ui.input} />
           </div>
         </div>
@@ -1503,17 +1576,27 @@ function ImportManager({ onReload }) {
           <button onClick={handleCommit} disabled={commitLoading || !preview} className={ui.primary}>{commitLoading ? 'Committing…' : 'Commit import'}</button>
           {preview && <button onClick={() => setPreview(null)} className={ui.ghost}>Clear</button>}
         </div>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        {success && <p className="mt-3 text-sm text-green-600">{success}</p>}
+        {error && <p className="mt-3 text-sm text-[#EF4444]">{error}</p>}
+        {success && <p className="mt-3 text-sm text-[#10B981]">{success}</p>}
 
         {preview && (
           <div className="mt-5 space-y-4">
             <div className="grid gap-2 text-sm">
-              <div className="rounded-lg bg-slate-50 p-3"><span className="font-semibold text-[#1C1C1C]">Total rows:</span> {preview.summary.total}</div>
-              <div className="rounded-lg bg-green-50 p-3"><span className="font-semibold text-[#1C1C1C]">Valid:</span> {preview.summary.valid}</div>
-              <div className="rounded-lg bg-red-50 p-3"><span className="font-semibold text-[#1C1C1C]">Errors:</span> {preview.summary.errors}</div>
-              <div className="rounded-lg bg-blue-50 p-3"><span className="font-semibold text-[#1C1C1C]">New lecturers:</span> {preview.summary.new_lecturers}</div>
-              <div className="rounded-lg bg-violet-50 p-3"><span className="font-semibold text-[#1C1C1C]">Existing lecturers:</span> {preview.summary.existing_lecturers}</div>
+              <div className="rounded-lg bg-[#E0E7FF] p-3"><span className="font-semibold text-[#0F172A]">Total rows:</span> {preview.summary.total ?? preview.summary.created + preview.summary.updated + preview.summary.errors}</div>
+              {isUnits ? (
+                <>
+                  <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#0F172A]">Created:</span> {preview.summary.created}</div>
+                  <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#0F172A]">Updated:</span> {preview.summary.updated}</div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-lg bg-green-50 p-3"><span className="font-semibold text-[#0F172A]">Valid:</span> {preview.summary.valid}</div>
+                  <div className="rounded-lg bg-red-50 p-3"><span className="font-semibold text-[#0F172A]">Errors:</span> {preview.summary.errors}</div>
+                  <div className="rounded-lg bg-blue-50 p-3"><span className="font-semibold text-[#0F172A]">New lecturers:</span> {preview.summary.new_lecturers}</div>
+                  <div className="rounded-lg bg-violet-50 p-3"><span className="font-semibold text-[#0F172A]">Existing lecturers:</span> {preview.summary.existing_lecturers}</div>
+                </>
+              )}
+              <div className="rounded-lg bg-[#EF4444]/10 p-3"><span className="font-semibold text-[#0F172A]">Errors:</span> {preview.summary.errors}</div>
             </div>
 
             {preview.errors.length && (
@@ -1527,33 +1610,65 @@ function ImportManager({ onReload }) {
             )}
 
             {preview.matched_rows.length && (
-              <div className="overflow-x-auto rounded-xl border border-[#E6E0D8]">
+              <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
-                      <th className="px-3 py-2">Row</th>
-                      <th className="px-3 py-2">Email</th>
-                      <th className="px-3 py-2">Name</th>
-                      <th className="px-3 py-2">Department</th>
-                      <th className="px-3 py-2">Programme</th>
-                      <th className="px-3 py-2">Unit</th>
-                      <th className="px-3 py-2">Staff ID</th>
-                      <th className="px-3 py-2">New?</th>
-                      <th className="px-3 py-2">Units</th>
+                    <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                      {isUnits ? (
+                        <>
+                          <th className="px-3 py-2">Row</th>
+                          <th className="px-3 py-2">Unit Code</th>
+                          <th className="px-3 py-2">Unit Name</th>
+                          <th className="px-3 py-2">Course Code</th>
+                          <th className="px-3 py-2">Year</th>
+                          <th className="px-3 py-2">Semester</th>
+                          <th className="px-3 py-2">Academic Level</th>
+                          <th className="px-3 py-2">Max Members</th>
+                          <th className="px-3 py-2">Status</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-3 py-2">Row</th>
+                          <th className="px-3 py-2">Email</th>
+                          <th className="px-3 py-2">Name</th>
+                          <th className="px-3 py-2">Department</th>
+                          <th className="px-3 py-2">Programme</th>
+                          <th className="px-3 py-2">Unit</th>
+                          <th className="px-3 py-2">Staff ID</th>
+                          <th className="px-3 py-2">New?</th>
+                          <th className="px-3 py-2">Units</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {preview.matched_rows.map((row) => (
-                      <tr key={row.row} className="border-b border-[#EFEAE3] last:border-0 hover:bg-[#F7F4EF]">
-                        <td className="px-3 py-2">{row.row}</td>
-                        <td className="px-3 py-2">{row.email}</td>
-                        <td className="px-3 py-2">{row.full_name}</td>
-                        <td className="px-3 py-2">{row.department}</td>
-                        <td className="px-3 py-2">{row.programme_name}</td>
-                        <td className="px-3 py-2">{row.unit_name}</td>
-                        <td className="px-3 py-2">{row.staff_id || '—'}</td>
-                        <td className="px-3 py-2">{row.is_new_lecturer ? <span className="text-green-600 font-medium">New</span> : <span className="text-slate-500">Existing</span>}</td>
-                        <td className="px-3 py-2">{row.units_affected}</td>
+                      <tr key={row.row} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+                        {isUnits ? (
+                          <>
+                            <td className="px-3 py-2">{row.row}</td>
+                            <td className="px-3 py-2 font-mono text-[#0F172A]">{row.unit_code}</td>
+                            <td className="px-3 py-2">{row.unit_name}</td>
+                            <td className="px-3 py-2">{row.course_code}</td>
+                            <td className="px-3 py-2">{row.year_of_study}</td>
+                            <td className="px-3 py-2">{row.semester}</td>
+                            <td className="px-3 py-2">{row.academic_level || '—'}</td>
+                            <td className="px-3 py-2">{row.default_max_members}</td>
+                            <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-3 py-2">{row.row}</td>
+                            <td className="px-3 py-2">{row.email}</td>
+                            <td className="px-3 py-2">{row.full_name}</td>
+                            <td className="px-3 py-2">{row.department}</td>
+                            <td className="px-3 py-2">{row.programme_name}</td>
+                            <td className="px-3 py-2">{row.unit_name}</td>
+                            <td className="px-3 py-2">{row.staff_id || '—'}</td>
+                            <td className="px-3 py-2">{row.is_new_lecturer ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
+                            <td className="px-3 py-2">{row.units_affected}</td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -1589,15 +1704,15 @@ function ImportHistoryManager({ onReload }) {
     }
   };
 
-  if (loading) return <div className="text-center text-[#8B8680] py-10">Loading history...</div>;
+  if (loading) return <div className="text-center text-[#64748B] py-10">Loading history...</div>;
 
   return (
     <div className="space-y-5">
-      <h3 className="font-semibold text-[#1C1C1C]">Import History</h3>
+      <h3 className="font-semibold text-[#0F172A]">Import History</h3>
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
+            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
               <th className="px-5 py-4">File</th>
               <th className="px-5 py-4">Mode</th>
               <th className="px-5 py-4">Created by</th>
@@ -1609,12 +1724,12 @@ function ImportHistoryManager({ onReload }) {
           </thead>
           <tbody>
             {history.map((batch) => (
-              <tr key={batch.id} className="border-b border-[#EFEAE3] last:border-0 hover:bg-[#F7F4EF]">
-                <td className="px-5 py-3.5 font-medium text-[#1C1C1C]">{batch.file_name}</td>
+              <tr key={batch.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+                <td className="px-5 py-3.5 font-medium text-[#0F172A]">{batch.file_name}</td>
                 <td className="px-5 py-3.5">{batch.mode}</td>
                 <td className="px-5 py-3.5">{batch.created_by}</td>
                 <td className="px-5 py-3.5">{new Date(batch.created_at).toLocaleString()}</td>
-                <td className="px-5 py-3.5 text-sm text-[#8B8680]">
+                <td className="px-5 py-3.5 text-sm text-[#64748B]">
                   {batch.summary.created_rosters} rosters, {batch.summary.created_assignments} assignments
                 </td>
                 <td className="px-5 py-3.5">
@@ -1631,7 +1746,7 @@ function ImportHistoryManager({ onReload }) {
                 </td>
               </tr>
             ))}
-            {!history.length && <tr><td colSpan={7} className="p-10 text-center text-[#8B8680]">No imports yet.</td></tr>}
+            {!history.length && <tr><td colSpan={7} className="p-10 text-center text-[#64748B]">No imports yet.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1651,24 +1766,24 @@ function UnitsManager() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-center text-[#8B8680] py-10">Loading units...</div>;
+  if (loading) return <div className="text-center text-[#64748B] py-10">Loading units...</div>;
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#1C1C1C]">Units with no lecturer (current term)</h3>
+        <h3 className="font-semibold text-[#0F172A]">Units with no lecturer (current term)</h3>
         <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-800">{unassigned.length} unassigned</span>
       </div>
       {unassigned.length === 0 ? (
-        <div className="rounded-3xl bg-white p-10 text-center text-[#8B8680] shadow-sm">
+        <div className="rounded-3xl bg-white p-10 text-center text-[#64748B] shadow-sm">
           <CheckCircleOutlined className="mx-auto h-12 w-12 text-green-600" />
-          <p className="mt-4 text-lg font-medium text-[#1C1C1C]">Every unit has a lecturer</p>
+          <p className="mt-4 text-lg font-medium text-[#0F172A]">Every unit has a lecturer</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E6E0D8] text-xs font-semibold uppercase tracking-wide text-[#8B8680]">
+              <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
                 <th className="px-5 py-4">Code</th>
                 <th className="px-5 py-4">Unit</th>
                 <th className="px-5 py-4">Programme</th>
@@ -1678,8 +1793,8 @@ function UnitsManager() {
             </thead>
             <tbody>
               {unassigned.map((unit) => (
-                <tr key={unit.id} className="border-b border-[#EFEAE3] last:border-0 hover:bg-[#F7F4EF]">
-                  <td className="px-5 py-3.5 font-mono text-[#1C1C1C]">{unit.code}</td>
+                <tr key={unit.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+                  <td className="px-5 py-3.5 font-mono text-[#0F172A]">{unit.code}</td>
                   <td className="px-5 py-3.5">{unit.name}</td>
                   <td className="px-5 py-3.5">{unit.course__name}</td>
                   <td className="px-5 py-3.5">Year {unit.year_of_study}</td>
