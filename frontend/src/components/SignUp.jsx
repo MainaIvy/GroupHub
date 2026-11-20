@@ -210,7 +210,11 @@ const SignUp = () => {
     .sort((a, b) => a - b))],
   [selectedStudentCourse, formData.academicLevel, formData.yearOfStudy]);
 
-  const uniqueUniversities = useMemo(() => [...new Set(academicCourses.map((c) => c.university).filter(Boolean))], [academicCourses]);
+  const uniqueUniversities = useMemo(() => {
+    const unis = [...new Set(academicCourses.map((c) => c.university).filter(Boolean))];
+    if (!unis.includes('Zetech University')) unis.push('Zetech University');
+    return unis;
+  }, [academicCourses]);
 
   const setField = useCallback((name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
