@@ -35,6 +35,7 @@ urlpatterns = [
     path('admin/export/<str:export_type>/', admin_api.admin_export, name='admin_export'),
     path('admin/roster/template/', admin_api.admin_roster_template, name='admin_roster_template'),
     path('admin/units/template/', admin_api.admin_units_template, name='admin_units_template'),
+    path('admin/units/import/preview/', admin_api.admin_units_import_preview, name='admin_units_import_preview'),
     path('admin/units/import/', admin_api.admin_units_import, name='admin_units_import'),
     path('admin/roster/import/preview/', admin_api.admin_roster_import_preview, name='admin_roster_import_preview'),
     path('admin/roster/import/commit/', admin_api.admin_roster_import_commit, name='admin_roster_import_commit'),

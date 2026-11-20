@@ -869,16 +869,28 @@ def admin_units_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="units_template.csv"'
     writer = csv.writer(response)
-    writer.writerow(['unit_code', 'unit_name', 'course_code', 'year_of_study', 'semester', 'academic_level'])
-    writer.writerow(['BCU101', 'Introduction to Programming', 'BSCS', '1', '1', 'Certificate'])
-    writer.writerow(['BEE201', 'Circuit Analysis', 'BSE', '2', '1', 'Diploma'])
+    writer.writerow(['unit_code', 'unit_name', 'course_code', 'year_of_study', 'semester', 'academic_level', 'lecturer_email'])
+    writer.writerow(['BCU101', 'Introduction to Programming', 'BSCS', '1', '1', 'Certificate', 'john.doe@zetech.ac.ke'])
+    writer.writerow(['BEE201', 'Circuit Analysis', 'BSE', '2', '1', 'Diploma', 'jane.smith@zetech.ac.ke'])
     return response
 
 
 @api_view(['POST'])
 @permission_classes(admin_permissions)
+def admin_units_import_preview(request):
+    """Preview units import from CSV/XLSX file (validates without committing)."""
+    return _process_units_import(request, commit=False)
+
+
+@api_view(['POST'])
+@permission_classes(admin_permissions)
 def admin_units_import(request):
-    """Import units from CSV/XLSX file."""
+    """Import units from CSV/XLSX file (commits to database)."""
+    return _process_units_import(request, commit=True)
+
+
+def _process_units_import(request, commit=False):
+    """Shared logic for units import preview and commit."""
     import io
     from openpyxl import load_workbook
 
@@ -912,40 +924,45 @@ def admin_units_import(request):
         return Response({'error': f'Missing required columns: {", ".join(missing_cols)}'}, status=status.HTTP_400_BAD_REQUEST)
 
     summary = {'created': 0, 'updated': 0, 'errors': 0}
+    matched_rows = []
+    errors = []
+    seen_codes = set()
+    term = current_term() if commit else None
 
-    with transaction.atomic():
-        seen_codes = set()
-        for row in rows:
-            unit_code = str(row.get('unit_code', '')).strip().upper()
-            unit_name = str(row.get('unit_name', '')).strip()
-            course_code = str(row.get('course_code', '')).strip().upper()
-            year_of_study = str(row.get('year_of_study', '1')).strip() or '1'
-            semester = str(row.get('semester', '1')).strip() or '1'
-            academic_level = str(row.get('academic_level', '')).strip() or None
-            default_max_members = str(row.get('default_max_members', '5')).strip() or '5'
+    for idx, row in enumerate(rows, start=1):
+        unit_code = str(row.get('unit_code', '')).strip().upper()
+        unit_name = str(row.get('unit_name', '')).strip()
+        course_code = str(row.get('course_code', '')).strip().upper()
+        year_of_study = str(row.get('year_of_study', '1')).strip() or '1'
+        semester = str(row.get('semester', '1')).strip() or '1'
+        academic_level = str(row.get('academic_level', '')).strip() or None
+        lecturer_email = str(row.get('lecturer_email', '')).strip().lower()
 
-            if not unit_code or not unit_name or not course_code:
-                summary['errors'] += 1
-                continue
+        row_errors = []
 
-            if unit_code in seen_codes:
-                summary['errors'] += 1
-                continue
-            seen_codes.add(unit_code)
+        if not unit_code or not unit_name or not course_code:
+            row_errors.append('Missing required fields (unit_code, unit_name, course_code)')
 
-            course = Course.objects.filter(code__iexact=course_code).first()
-            if not course:
-                summary['errors'] += 1
-                continue
+        if unit_code in seen_codes:
+            row_errors.append(f'Duplicate unit code {unit_code} in file')
+        seen_codes.add(unit_code)
 
-            try:
-                yos = int(year_of_study)
-                sem = int(semester)
-                max_members = int(default_max_members)
-            except ValueError:
-                summary['errors'] += 1
-                continue
+        course = Course.objects.filter(code__iexact=course_code).first()
+        if not course:
+            row_errors.append(f'Course {course_code} not found')
 
+        try:
+            yos = int(year_of_study)
+            sem = int(semester)
+        except ValueError:
+            row_errors.append('Invalid year_of_study or semester')
+
+        if row_errors:
+            summary['errors'] += 1
+            errors.append({'row': idx, 'error': '; '.join(row_errors)})
+            continue
+
+        if commit:
             unit, created = Unit.objects.update_or_create(
                 code=unit_code,
                 course=course,
@@ -954,7 +971,6 @@ def admin_units_import(request):
                     'year_of_study': yos,
                     'semester': sem,
                     'academic_level': academic_level,
-                    'default_max_members': max_members,
                 },
             )
             if created:
@@ -962,7 +978,47 @@ def admin_units_import(request):
             else:
                 summary['updated'] += 1
 
-    return Response({'status': 'ok', 'summary': summary}, status=status.HTTP_200_OK)
+            # Assign unit to lecturer if lecturer_email provided
+            if lecturer_email:
+                lecturer = User.objects.filter(email__iexact=lecturer_email, user_type='lecturer').first()
+                if lecturer and term:
+                    UnitAssignment.objects.update_or_create(
+                        lecturer=lecturer, unit=unit, term=term,
+                        defaults={
+                            'status': 'approved',
+                            'requested_by': lecturer,
+                            'approved_by': request.user,
+                            'approved_at': timezone.now(),
+                            'start_date': term.start_date,
+                            'end_date': None,
+                        },
+                    )
+                elif not lecturer:
+                    summary['errors'] += 1
+                    errors.append({'row': idx, 'error': f'Lecturer {lecturer_email} not found or not a lecturer'})
+
+        matched_rows.append({
+            'row': idx,
+            'unit_code': unit_code,
+            'unit_name': unit_name,
+            'course_code': course_code,
+            'year_of_study': yos,
+            'semester': sem,
+            'academic_level': academic_level or '—',
+            'lecturer_email': lecturer_email or '—',
+            'is_new_unit': created if commit else None,
+        })
+
+    if commit:
+        with transaction.atomic():
+            pass  # changes already saved above
+
+    return Response({
+        'status': 'ok',
+        'summary': summary,
+        'errors': errors,
+        'matched_rows': matched_rows,
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

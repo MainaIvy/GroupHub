@@ -837,6 +837,7 @@ function AssignmentManager({ data, onAction, onReload }) {
                       <th className="px-3 py-2">Year</th>
                       <th className="px-3 py-2">Semester</th>
                       <th className="px-3 py-2">Academic Level</th>
+                      <th className="px-3 py-2">Lecturer</th>
                       <th className="px-3 py-2">Status</th>
                     </tr>
                   </thead>
@@ -850,6 +851,7 @@ function AssignmentManager({ data, onAction, onReload }) {
                         <td className="px-3 py-2">{row.year_of_study}</td>
                         <td className="px-3 py-2">{row.semester}</td>
                         <td className="px-3 py-2">{row.academic_level || '—'}</td>
+                        <td className="px-3 py-2">{row.lecturer_email || '—'}</td>
                         <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
                       </tr>
                     ))}
@@ -1776,6 +1778,7 @@ function ImportManager({ onReload }) {
                           <th className="px-3 py-2">Year</th>
                           <th className="px-3 py-2">Semester</th>
                           <th className="px-3 py-2">Academic Level</th>
+                          <th className="px-3 py-2">Lecturer</th>
                           <th className="px-3 py-2">Status</th>
                         </>
                       ) : (
@@ -1805,6 +1808,7 @@ function ImportManager({ onReload }) {
                             <td className="px-3 py-2">{row.year_of_study}</td>
                             <td className="px-3 py-2">{row.semester}</td>
                             <td className="px-3 py-2">{row.academic_level || '—'}</td>
+                            <td className="px-3 py-2">{row.lecturer_email || '—'}</td>
                             <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
                           </>
                         ) : (
