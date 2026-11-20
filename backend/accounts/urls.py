@@ -29,6 +29,7 @@ urlpatterns = [
     path('admin/catalog/<str:item_type>/', admin_api.admin_catalog_item, name='admin_catalog_create'),
     path('admin/catalog/<str:item_type>/<int:item_id>/', admin_api.admin_catalog_item, name='admin_catalog_update'),
     path('admin/settings/', admin_api.admin_settings, name='admin_settings'),
+    path('admin/settings/reset/', admin_api.admin_settings_reset, name='admin_settings_reset'),
     path('admin/announcements/', admin_api.admin_announcements, name='admin_announcements'),
     path('admin/announcements/<int:announcement_id>/', admin_api.admin_announcement_delete, name='admin_announcement_delete'),
     path('admin/audit/', admin_api.admin_audit, name='admin_audit'),

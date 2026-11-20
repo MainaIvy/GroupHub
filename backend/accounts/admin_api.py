@@ -583,22 +583,174 @@ def admin_import_catalog(request):
     return Response({'message': 'Catalog import completed.'})
 
 
+SETTING_SCHEMA = {
+    'allowed_email_domain': {'type': 'str', 'default': 'zetech.ac.ke'},
+    'default_group_size': {'type': 'int', 'min': 1, 'max': 12, 'default': 5},
+    'balance_thresholds': {'type': 'dict', 'fields': {
+        'warning': {'type': 'int', 'min': 0, 'max': 100, 'default': 15},
+        'critical': {'type': 'int', 'min': 0, 'max': 100, 'default': 25},
+    }, 'default': {'warning': 15, 'critical': 25}},
+    'minimum_points': {'type': 'int', 'min': 1, 'max': 50, 'default': 6},
+    'quiet_days': {'type': 'int', 'min': 1, 'max': 30, 'default': 5},
+    'overdue_count': {'type': 'int', 'min': 1, 'max': 20, 'default': 2},
+    'file_size_limit': {'type': 'int', 'min': 1, 'max': 50, 'default': 10},  # MB, stored as bytes
+}
+
+SETTING_HELP = {
+    'allowed_email_domain': 'Only emails ending with this domain can register.',
+    'default_group_size': 'Default maximum members per new group.',
+    'balance_thresholds_warning': 'Group balance warning threshold (%).',
+    'balance_thresholds_critical': 'Group balance critical threshold (%).',
+    'minimum_points': 'Minimum points a student needs to join a group.',
+    'quiet_days': 'Days of inactivity before a group is flagged quiet.',
+    'overdue_count': 'Overdue tasks before a group is flagged at risk.',
+    'file_size_limit': 'Maximum file upload size (MB).',
+}
+
+
+def _get_setting_metadata():
+    """Return {key: {updated_at, last_editor}} from AuditLog for settings changes."""
+    entries = AuditLog.objects.filter(
+        action__in=('update_settings', 'reset_settings'),
+    ).select_related('actor').order_by('-created_at')
+    meta = {}
+    for entry in entries:
+        details = entry.details or {}
+        actor_name = f'{entry.actor.first_name} {entry.actor.last_name}'.strip() or entry.actor.username
+        for key, val in details.items():
+            if key not in meta:
+                meta[key] = {
+                    'updated_at': entry.created_at.isoformat(),
+                    'last_editor': actor_name,
+                }
+            if key == 'balance_thresholds' and isinstance(val, dict):
+                for sub_key in val:
+                    full_key = f'balance_thresholds_{sub_key}'
+                    if full_key not in meta:
+                        meta[full_key] = {
+                            'updated_at': entry.created_at.isoformat(),
+                            'last_editor': actor_name,
+                        }
+    return meta
+
+
 @api_view(['GET', 'PUT'])
 @permission_classes(admin_permissions)
 def admin_settings(request):
-    defaults = {
-        'allowed_email_domain': 'zetech.ac.ke', 'default_group_size': 5,
-        'balance_thresholds': {'warning': 15, 'critical': 25},
-        'minimum_points': 6, 'file_size_limit': 10485760,
-        'warning': 15, 'critical': 25, 'quiet_days': 5, 'overdue_count': 2,
-    }
     if request.method == 'GET':
         values = {setting.key: setting.value for setting in AdminSetting.objects.all()}
-        return Response({**defaults, **values})
+        meta = _get_setting_metadata()
+
+        result = {}
+        for key, spec in SETTING_SCHEMA.items():
+            if key == 'balance_thresholds':
+                bt = dict(spec['default'])
+                if key in values and isinstance(values[key], dict):
+                    bt.update(values[key])
+                result[key] = {}
+                for sub_key, sub_spec in spec['fields'].items():
+                    full_key = f'{key}_{sub_key}'
+                    result[key][sub_key] = {
+                        'value': bt[sub_key],
+                        'updated_at': meta.get(full_key, {}).get('updated_at'),
+                        'last_editor': meta.get(full_key, {}).get('last_editor'),
+                    }
+            else:
+                default_val = spec['default']
+                val = values.get(key, default_val)
+                if spec['type'] == 'int' and isinstance(val, str):
+                    try:
+                        val = int(val)
+                    except (TypeError, ValueError):
+                        val = default_val
+                result[key] = {
+                    'value': val,
+                    'updated_at': meta.get(key, {}).get('updated_at'),
+                    'last_editor': meta.get(key, {}).get('last_editor'),
+                }
+        return Response(result)
+
+    # PUT - validate and save
+    errors = {}
+    to_save = {}
+
     for key, value in request.data.items():
+        if key not in SETTING_SCHEMA:
+            errors[key] = 'Unknown setting.'
+            continue
+
+        spec = SETTING_SCHEMA[key]
+
+        if key == 'balance_thresholds':
+            if not isinstance(value, dict):
+                errors[key] = 'Must be an object with warning and critical.'
+                continue
+            bt_errors = {}
+            bt_val = dict(spec['default'])
+            for sub_key, sub_spec in spec['fields'].items():
+                sub_val = value.get(sub_key, sub_spec['default'])
+                if not isinstance(sub_val, int):
+                    try:
+                        sub_val = int(sub_val)
+                    except (TypeError, ValueError):
+                        bt_errors[sub_key] = 'Must be a number.'
+                        continue
+                if sub_val < sub_spec['min'] or sub_val > sub_spec['max']:
+                    bt_errors[sub_key] = f'Must be between {sub_spec["min"]} and {sub_spec["max"]}.'
+                    continue
+                bt_val[sub_key] = sub_val
+            if bt_errors:
+                errors[key] = bt_errors
+                continue
+            if bt_val['warning'] >= bt_val['critical']:
+                errors[key] = 'Warning must be less than critical.'
+                continue
+            to_save[key] = bt_val
+        else:
+            if spec['type'] == 'int':
+                if not isinstance(value, int):
+                    try:
+                        value = int(value)
+                    except (TypeError, ValueError):
+                        errors[key] = 'Must be a number.'
+                        continue
+                if value < spec['min'] or value > spec['max']:
+                    errors[key] = f'Must be between {spec["min"]} and {spec["max"]}.'
+                    continue
+                if key == 'file_size_limit':
+                    to_save[key] = value * 1024 * 1024  # store in bytes
+                else:
+                    to_save[key] = value
+            else:
+                if not isinstance(value, str) or not value.strip():
+                    errors[key] = 'Required.'
+                    continue
+                to_save[key] = value.strip()
+
+    if errors:
+        return Response({'error': 'Validation failed', 'fields': errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    for key, value in to_save.items():
         AdminSetting.objects.update_or_create(key=key, defaults={'value': value})
-    _audit(request, 'update_settings', 'AdminSetting', details=request.data)
-    return Response(request.data)
+
+    _audit(request, 'update_settings', 'AdminSetting', details=to_save)
+    return Response({'status': 'ok', 'saved': list(to_save.keys())}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes(admin_permissions)
+def admin_settings_reset(request):
+    """Restore all settings to defaults."""
+    for key, spec in SETTING_SCHEMA.items():
+        if key == 'balance_thresholds':
+            AdminSetting.objects.update_or_create(key=key, defaults={'value': spec['default']})
+        elif spec['type'] == 'int' and key == 'file_size_limit':
+            AdminSetting.objects.update_or_create(key=key, defaults={'value': spec['default'] * 1024 * 1024})
+        else:
+            AdminSetting.objects.update_or_create(key=key, defaults={'value': spec['default']})
+
+    _audit(request, 'reset_settings', 'AdminSetting', details={k: v['default'] for k, v in SETTING_SCHEMA.items()})
+    return Response({'status': 'ok', 'reset': list(SETTING_SCHEMA.keys())}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'POST'])

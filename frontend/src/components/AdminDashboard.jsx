@@ -418,10 +418,7 @@ export default function AdminDashboard() {
     );
   } else if (tab === 'Settings') {
     content = (
-      <SettingsForm
-        values={data}
-        onSave={(values) => action(endpoints.Settings, { method: 'PUT', body: JSON.stringify(values) })}
-      />
+      <SettingsManager values={data} onReload={() => load('Settings')} />
     );
   } else if (tab === 'Announcements') {
     content = (
@@ -654,40 +651,288 @@ export default function AdminDashboard() {
   );
 }
 
-function SettingsForm({ values, onSave }) {
-  const [form, setForm] = useState(values);
-  const fields = [
-    ['allowed_email_domain', 'Allowed email domain'],
-    ['default_group_size', 'Default group size'],
-    ['minimum_points', 'Minimum points'],
-    ['warning', 'Warning threshold (%)'],
-    ['critical', 'Critical threshold (%)'],
-    ['quiet_days', 'Quiet days'],
-    ['overdue_count', 'Overdue task count'],
-    ['file_size_limit', 'File size limit (MB)'],
+function SettingsManager({ values, onReload }) {
+  const [form, setForm] = useState({
+    allowed_email_domain: '',
+    default_group_size: '',
+    balance_thresholds_warning: '',
+    balance_thresholds_critical: '',
+    minimum_points: '',
+    quiet_days: '',
+    overdue_count: '',
+    file_size_limit: '',
+  });
+  const [original, setOriginal] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [resetConfirm, setResetConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!values) return;
+    const next = {
+      allowed_email_domain: values.allowed_email_domain?.value ?? '',
+      default_group_size: String(values.default_group_size?.value ?? ''),
+      balance_thresholds_warning: String(values.balance_thresholds?.warning?.value ?? ''),
+      balance_thresholds_critical: String(values.balance_thresholds?.critical?.value ?? ''),
+      minimum_points: String(values.minimum_points?.value ?? ''),
+      quiet_days: String(values.quiet_days?.value ?? ''),
+      overdue_count: String(values.overdue_count?.value ?? ''),
+      file_size_limit: String((values.file_size_limit?.value ?? 0) / (1024 * 1024)),
+    };
+    setForm(next);
+    setOriginal(next);
+    setDirty(false);
+    setErrors({});
+  }, [values]);
+
+  const isDirty = () => {
+    if (!original) return false;
+    return Object.keys(form).some((k) => String(form[k] ?? '') !== String(original[k] ?? ''));
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    const f = form;
+
+    if (!f.allowed_email_domain || !f.allowed_email_domain.includes('@')) {
+      newErrors.allowed_email_domain = 'Enter a valid domain (e.g. zetech.ac.ke).';
+    }
+
+    const dgs = parseInt(f.default_group_size);
+    if (isNaN(dgs) || dgs < 1 || dgs > 12) newErrors.default_group_size = 'Must be 1–12.';
+
+    const btWarn = parseInt(f.balance_thresholds_warning);
+    const btCrit = parseInt(f.balance_thresholds_critical);
+    if (isNaN(btWarn) || btWarn < 0 || btWarn > 100) newErrors.balance_thresholds_warning = 'Must be 0–100.';
+    if (isNaN(btCrit) || btCrit < 0 || btCrit > 100) newErrors.balance_thresholds_critical = 'Must be 0–100.';
+    if (!isNaN(btWarn) && !isNaN(btCrit) && btWarn >= btCrit) {
+      newErrors.balance_thresholds_warning = 'Warning must be less than critical.';
+      newErrors.balance_thresholds_critical = 'Critical must be greater than warning.';
+    }
+
+    const mp = parseInt(f.minimum_points);
+    if (isNaN(mp) || mp < 1 || mp > 50) newErrors.minimum_points = 'Must be 1–50.';
+
+    const qd = parseInt(f.quiet_days);
+    if (isNaN(qd) || qd < 1 || qd > 30) newErrors.quiet_days = 'Must be 1–30.';
+
+    const oc = parseInt(f.overdue_count);
+    if (isNaN(oc) || oc < 1 || oc > 20) newErrors.overdue_count = 'Must be 1–20.';
+
+    const fsl = parseInt(f.file_size_limit);
+    if (isNaN(fsl) || fsl < 1 || fsl > 50) newErrors.file_size_limit = 'Must be 1–50 MB.';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        allowed_email_domain: form.allowed_email_domain,
+        default_group_size: parseInt(form.default_group_size),
+        balance_thresholds: {
+          warning: parseInt(form.balance_thresholds_warning),
+          critical: parseInt(form.balance_thresholds_critical),
+        },
+        minimum_points: parseInt(form.minimum_points),
+        quiet_days: parseInt(form.quiet_days),
+        overdue_count: parseInt(form.overdue_count),
+        file_size_limit: parseInt(form.file_size_limit),
+      };
+      const response = await fetch(`${API_BASE}/api/accounts/admin/settings/`, {
+        method: 'PUT',
+        headers: { ...tokenHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Save failed');
+      setToast({ type: 'success', message: 'Settings saved.' });
+      setDirty(false);
+      onReload();
+    } catch (e) {
+      setToast({ type: 'error', message: e.message || 'Save failed.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setResetConfirm(false);
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/accounts/admin/settings/reset/`, {
+        method: 'POST',
+        headers: tokenHeaders(),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Reset failed');
+      setToast({ type: 'success', message: 'Settings reset to defaults.' });
+      setDirty(false);
+      onReload();
+    } catch (e) {
+      setToast({ type: 'error', message: e.message || 'Reset failed.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    if (!original) return;
+    setForm({ ...original });
+    setDirty(false);
+    setErrors({});
+  };
+
+  const cards = [
+    {
+      id: 'registration',
+      title: 'Registration & access',
+      fields: [
+        { key: 'allowed_email_domain', label: 'Allowed email domain', type: 'text', unit: '', help: 'Only emails ending with this domain can register.' },
+      ],
+      metaKey: 'allowed_email_domain',
+    },
+    {
+      id: 'groups',
+      title: 'Groups',
+      fields: [
+        { key: 'default_group_size', label: 'Default group size', type: 'number', unit: 'members', min: 1, max: 12, help: 'Default maximum members per new group.' },
+      ],
+      metaKey: 'default_group_size',
+    },
+    {
+      id: 'workload',
+      title: 'Workload balance',
+      fields: [
+        { key: 'minimum_points', label: 'Minimum points', type: 'number', unit: 'points', min: 1, max: 50, help: 'Minimum points a student needs to join a group.' },
+        { key: 'quiet_days', label: 'Quiet days', type: 'number', unit: 'days', min: 1, max: 30, help: 'Days of inactivity before a group is flagged quiet.' },
+        { key: 'overdue_count', label: 'Overdue task count', type: 'number', unit: 'tasks', min: 1, max: 20, help: 'Overdue tasks before a group is flagged at risk.' },
+      ],
+      metaKeys: ['minimum_points', 'quiet_days', 'overdue_count'],
+    },
+    {
+      id: 'health',
+      title: 'Group health',
+      fields: [
+        { key: 'balance_thresholds_warning', label: 'Warning threshold', type: 'number', unit: '%', min: 0, max: 100, help: 'Group balance warning threshold (%).' },
+        { key: 'balance_thresholds_critical', label: 'Critical threshold', type: 'number', unit: '%', min: 0, max: 100, help: 'Group balance critical threshold (%).' },
+      ],
+      metaKeys: ['balance_thresholds_warning', 'balance_thresholds_critical'],
+    },
+    {
+      id: 'files',
+      title: 'Files',
+      fields: [
+        { key: 'file_size_limit', label: 'File size limit', type: 'number', unit: 'MB', min: 1, max: 50, help: 'Maximum file upload size (MB).' },
+      ],
+      metaKey: 'file_size_limit',
+    },
+    {
+      id: 'notifications',
+      title: 'Notifications',
+      fields: [],
+      emptyMessage: 'Notification preferences are set per-user in their own Settings page.',
+    },
   ];
+
+  const getLastChanged = (metaKeys) => {
+    if (Array.isArray(metaKeys)) {
+      const entry = metaKeys.map((k) => values?.[k]).find((e) => e && e.updated_at);
+      if (entry) return `Last changed by ${entry.last_editor ?? '—'} on ${new Date(entry.updated_at).toLocaleDateString()}`;
+      return '';
+    }
+    const entry = values?.[metaKeys];
+    if (entry && entry.updated_at) return `Last changed by ${entry.last_editor ?? '—'} on ${new Date(entry.updated_at).toLocaleDateString()}`;
+    return '';
+  };
+
   return (
-    <div className="max-w-xl rounded-3xl bg-white p-6 shadow-sm">
-      <div className="grid gap-4">
-        {fields.map(([key, label]) => (
-          <label key={key} className="text-sm font-medium text-[#1A1A1A]">
-            {label}
-            <input
-              type={key === 'file_size_limit' ? 'number' : 'text'}
-              className={`mt-1 w-full ${ui.input}`}
-              value={form?.[key] ?? ''}
-              onChange={(event) => setForm({ ...form, [key]: event.target.value })}
-            />
-          </label>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={() => onSave({ ...form, file_size_limit: form?.file_size_limit ? Number(form.file_size_limit) * 1024 * 1024 : form?.file_size_limit })}
-        className={`mt-5 ${ui.primary}`}
-      >
-        Save settings
-      </button>
+    <div className="space-y-5">
+      {cards.map((card) => {
+        const lastChanged = card.metaKeys ? getLastChanged(card.metaKeys) : card.metaKey ? getLastChanged(card.metaKey) : '';
+        return (
+          <div key={card.id} className="rounded-3xl bg-white border border-[#DDDDDD] p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#1A1A1A] mb-3">{card.title}</h3>
+            {card.fields.length === 0 && (
+              <p className="text-sm text-[#666666]">{card.emptyMessage}</p>
+            )}
+            {card.fields.map((field) => (
+              <div key={field.key} className="mb-4">
+                <label className="flex items-center justify-between gap-2 text-sm font-medium text-[#1A1A1A] mb-1">
+                  {field.label}
+                  {errors[field.key] && <span className="text-xs font-medium text-[#C62828]">Invalid</span>}
+                </label>
+                <input
+                  type={field.type}
+                  min={field.min}
+                  max={field.max}
+                  value={form[field.key] ?? ''}
+                  onChange={(e) => {
+                    setForm({ ...form, [field.key]: e.target.value });
+                    setErrors({ ...errors, [field.key]: null });
+                    setDirty(isDirty());
+                  }}
+                  className={`mt-1 w-full ${ui.input} ${errors[field.key] ? 'border-[#C62828]' : ''}`}
+                />
+                <p className="text-xs text-[#666666] mt-1">{field.unit ? `${field.unit} · ` : ''}{field.help}</p>
+              </div>
+            ))}
+            {lastChanged && (
+              <p className="text-xs text-[#666666] mt-4 pt-3 border-t border-[#DDDDDD]">{lastChanged}</p>
+            )}
+          </div>
+        );
+      })}
+
+      {dirty && (
+        <div className="sticky bottom-0 z-50 w-full bg-[#F5F5F7] border-t border-[#DDDDDD] p-4 backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" onClick={handleDiscard} className="flex-1 rounded-xl border border-[#CCCCCC] bg-white px-4 py-2.5 text-sm font-semibold text-[#666666] transition hover:bg-[#ECF0F1]">
+              Discard
+            </button>
+            <button type="button" onClick={() => setResetConfirm(true)} className="flex-1 rounded-xl border border-[#CCCCCC] bg-white px-4 py-2.5 text-sm font-semibold text-[#666666] transition hover:bg-[#ECF0F1]">
+              Reset to defaults
+            </button>
+            <button type="button" onClick={handleSave} disabled={saving} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${saving ? 'opacity-50' : 'bg-[#2C3E50] hover:bg-[#34495E]'}`}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {resetConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setResetConfirm(false)} />
+          <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-md w-full border border-[#DDDDDD]">
+            <h3 className="text-lg font-bold text-[#1A1A1A] mb-2">Reset to defaults?</h3>
+            <p className="text-sm text-[#666666] mb-6">This will restore all settings to their default values. This cannot be undone.</p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setResetConfirm(false)} className="flex-1 rounded-xl border border-[#CCCCCC] bg-white px-4 py-2.5 text-sm font-semibold text-[#666666] transition hover:bg-[#ECF0F1]">
+                Cancel
+              </button>
+              <button type="button" onClick={handleReset} disabled={saving} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${saving ? 'opacity-50' : 'bg-[#2C3E50] hover:bg-[#34495E]'}`}>
+                {saving ? 'Resetting…' : 'Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[60]">
+          <div className={`rounded-xl px-4 py-3 shadow-lg flex items-center gap-3 animate-in slide-in-from-right duration-300 ${
+            toast.type === 'success' ? 'bg-[#D1FAE5] text-[#047857] border border-[#A7F3D0]' : 'bg-[#FEE2E2] text-[#C62828] border border-[#FECACA]'
+          }`}>
+            <span className="text-sm font-medium">{toast.message}</span>
+            <button type="button" onClick={() => setToast(null)} className="opacity-60 hover:opacity-100">✕</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
