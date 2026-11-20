@@ -328,17 +328,6 @@ const Login = () => {
             <p className="text-center text-xs text-red-600">{googleError}</p>
           )}
 
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#D7DEE6]" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-xs uppercase tracking-[0.2em] text-[#4F5F73]">
-                or sign in as staff
-              </span>
-            </div>
-          </div>
-
           <p className="pt-1 text-center text-sm text-[#4F5F73]">
             Don&apos;t have an account?{' '}
             <Link to="/signup" className="font-semibold text-[#35475C] underline">
