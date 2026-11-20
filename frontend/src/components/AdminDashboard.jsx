@@ -290,7 +290,7 @@ export default function AdminDashboard() {
           </tr>
         </thead>
         <tbody>
-          {rows?.map((row) => (
+          {Array.isArray(rows) ? rows.map((row) => (
             <tr key={row.id} className="border-b border-[#DDDDDD] text-[#1A1A1A] last:border-0 hover:bg-[#F5F5F7]">
               {columns.map((column) => (
                 <td key={column.key} className="px-5 py-3.5">
@@ -298,10 +298,10 @@ export default function AdminDashboard() {
                 </td>
               ))}
             </tr>
-          ))}
+          )) : null}
         </tbody>
+        {!Array.isArray(rows) || !rows.length && <p className="p-10 text-center text-[#666666]">No records found.</p>}
       </table>
-      {!rows?.length && <p className="p-10 text-center text-[#666666]">No records found.</p>}
     </div>
   );
 
