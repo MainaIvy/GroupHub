@@ -865,13 +865,11 @@ def admin_roster_template(request):
 @api_view(['GET'])
 @permission_classes(admin_permissions)
 def admin_units_template(request):
-    """Download CSV template for units import."""
+    """Download CSV template for assigning units to lecturers (header only)."""
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="units_template.csv"'
     writer = csv.writer(response)
     writer.writerow(['unit_code', 'course_code', 'lecturer_email'])
-    writer.writerow(['BCU101', 'BSCS', 'john.doe@zetech.ac.ke'])
-    writer.writerow(['BEE201', 'BSE', 'jane.smith@zetech.ac.ke'])
     return response
 
 
