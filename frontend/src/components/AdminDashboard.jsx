@@ -51,7 +51,6 @@ const tabs = [
   'Units',
   'Units and lecturers',
   'Groups',
-  'Catalog',
   'Settings',
   'Announcements',
   'Audit log',
@@ -63,10 +62,9 @@ const tabIcons = {
   Lecturers: <UserAddOutlined />,
   Import: <UploadOutlined />,
   'Import History': <HistoryOutlined />,
-  Units: <WarningOutlined />,
+  Units: <AppstoreOutlined />,
   'Units and lecturers': <ReadOutlined />,
   Groups: <UsergroupAddOutlined />,
-  Catalog: <AppstoreOutlined />,
   Settings: <SettingOutlined />,
   Announcements: <NotificationOutlined />,
   'Audit log': <AuditOutlined />,
@@ -78,9 +76,9 @@ const endpoints = {
   Lecturers: `${API_BASE}/api/accounts/admin/rosters/`,
   Import: `${API_BASE}/api/accounts/admin/roster/template/`,
   'Import History': `${API_BASE}/api/accounts/admin/import/history/`,
+  Units: `${API_BASE}/api/accounts/admin/catalog/`,
   'Units and lecturers': `${API_BASE}/api/accounts/admin/assignments/`,
   Groups: `${API_BASE}/api/accounts/admin/groups/`,
-  Catalog: `${API_BASE}/api/accounts/admin/catalog/`,
   Settings: `${API_BASE}/api/accounts/admin/settings/`,
   Announcements: `${API_BASE}/api/accounts/admin/announcements/`,
   'Audit log': `${API_BASE}/api/accounts/admin/audit/`,
@@ -392,7 +390,7 @@ export default function AdminDashboard() {
         </div>
       </>
     );
-  } else if (tab === 'Catalog') {
+  } else if (tab === 'Units') {
     content = (
       <>
         <div className="mb-4 flex flex-wrap gap-2">
@@ -404,6 +402,13 @@ export default function AdminDashboard() {
           className={ui.primary}
         >
           Run Excel import
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadExport('units')}
+          className={ui.ghost}
+        >
+          Export units
         </button>
       </div>
         {renderTable(data?.units, [
@@ -499,8 +504,6 @@ export default function AdminDashboard() {
     content = <ImportManager onReload={() => load()} />;
   } else if (tab === 'Import History') {
     content = <ImportHistoryManager onReload={() => load()} />;
-  } else if (tab === 'Units') {
-    content = <UnitsManager />;
   } else if (tab === 'Groups') {
     content = <GroupsManager data={data} onAction={action} />;
   } else {
@@ -1861,61 +1864,6 @@ function ImportHistoryManager({ onReload }) {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function UnitsManager() {
-  const [unassigned, setUnassigned] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/accounts/admin/assignments/unassigned/`, { headers: tokenHeaders() })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load units'))))
-      .then(setUnassigned)
-      .catch((e) => console.error(e))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="text-center text-[#666666] py-10">Loading units...</div>;
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#1A1A1A]">Units with no lecturer (current term)</h3>
-        <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-800">{unassigned.length} unassigned</span>
-      </div>
-      {unassigned.length === 0 ? (
-        <div className="rounded-3xl bg-white p-10 text-center text-[#666666] shadow-sm">
-          <CheckCircleOutlined className="mx-auto h-12 w-12 text-green-600" />
-          <p className="mt-4 text-lg font-medium text-[#1A1A1A]">Every unit has a lecturer</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
-                <th className="px-5 py-4">Code</th>
-                <th className="px-5 py-4">Unit</th>
-                <th className="px-5 py-4">Programme</th>
-                <th className="px-5 py-4">Year</th>
-                <th className="px-5 py-4">Semester</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unassigned.map((unit) => (
-                <tr key={unit.id} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
-                  <td className="px-5 py-3.5 font-mono text-[#1A1A1A]">{unit.code}</td>
-                  <td className="px-5 py-3.5">{unit.name}</td>
-                  <td className="px-5 py-3.5">{unit.course__name}</td>
-                  <td className="px-5 py-3.5">Year {unit.year_of_study}</td>
-                  <td className="px-5 py-3.5">Semester {unit.semester}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
