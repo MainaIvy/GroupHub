@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, Edit2, FileText, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, Edit2, FileText, Trash2 } from 'lucide-react';
 import Avatar from '../../components/Avatar';
 import { btnPrimary, btnSecondary } from '../../design';
 import { ProgressBar } from '../../components/ProgressBar';
@@ -278,23 +278,6 @@ const TasksTab = ({
           </div>
         </section>
       )}
-
-      <section className="rounded-xl border border-[#D7DEE6] bg-white p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1 text-sm font-semibold text-[#33445A]">
-            <Users size={14} aria-hidden="true" /> Members
-          </div>
-          <div className="flex flex-wrap gap-1 overflow-x-auto">
-            {members.map((member) => (
-              <div key={member.id} className="flex items-center gap-2 rounded-lg border border-[#D7DEE6] bg-white px-2.5 py-1.5">
-                <Avatar name={member.name} avatar={member.avatar} size={20} className="text-[9px]" />
-                <span className="text-[12px] font-medium text-[#1F2D3D] truncate">{member.name}</span>
-                {member.is_leader && <span className="ml-1 rounded bg-[#E3EAF2] px-1.5 py-0.5 text-[10px] font-bold text-[#2F4A66]">Leader</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="rounded-xl border border-[#D7DEE6] bg-white p-4">
         <div className="flex items-center justify-between gap-3 mb-3">
