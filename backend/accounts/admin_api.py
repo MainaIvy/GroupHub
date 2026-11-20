@@ -869,9 +869,9 @@ def admin_units_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="units_template.csv"'
     writer = csv.writer(response)
-    writer.writerow(['unit_code', 'unit_name', 'course_code', 'year_of_study', 'semester', 'academic_level', 'lecturer_email'])
-    writer.writerow(['BCU101', 'Introduction to Programming', 'BSCS', '1', '1', 'Certificate', 'john.doe@zetech.ac.ke'])
-    writer.writerow(['BEE201', 'Circuit Analysis', 'BSE', '2', '1', 'Diploma', 'jane.smith@zetech.ac.ke'])
+    writer.writerow(['unit_code', 'course_code', 'lecturer_email'])
+    writer.writerow(['BCU101', 'BSCS', 'john.doe@zetech.ac.ke'])
+    writer.writerow(['BEE201', 'BSE', 'jane.smith@zetech.ac.ke'])
     return response
 
 
@@ -890,7 +890,7 @@ def admin_units_import(request):
 
 
 def _process_units_import(request, commit=False):
-    """Shared logic for units import preview and commit."""
+    """Shared logic for units-to-lecturer assignment import preview and commit."""
     import io
     from openpyxl import load_workbook
 
@@ -918,7 +918,7 @@ def _process_units_import(request, commit=False):
     else:
         return Response({'error': 'File must be CSV or XLSX.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    required_columns = ['unit_code', 'unit_name', 'course_code']
+    required_columns = ['unit_code', 'lecturer_email']
     missing_cols = [col for col in required_columns if col not in (rows[0] if rows else {})]
     if missing_cols:
         return Response({'error': f'Missing required columns: {", ".join(missing_cols)}'}, status=status.HTTP_400_BAD_REQUEST)
@@ -926,36 +926,33 @@ def _process_units_import(request, commit=False):
     summary = {'created': 0, 'updated': 0, 'errors': 0}
     matched_rows = []
     errors = []
-    seen_codes = set()
+    seen = set()
     term = current_term() if commit else None
 
     for idx, row in enumerate(rows, start=1):
         unit_code = str(row.get('unit_code', '')).strip().upper()
-        unit_name = str(row.get('unit_name', '')).strip()
-        course_code = str(row.get('course_code', '')).strip().upper()
-        year_of_study = str(row.get('year_of_study', '1')).strip() or '1'
-        semester = str(row.get('semester', '1')).strip() or '1'
-        academic_level = str(row.get('academic_level', '')).strip() or None
+        course_code = str(row.get('course_code', '')).strip().upper() or None
         lecturer_email = str(row.get('lecturer_email', '')).strip().lower()
 
         row_errors = []
 
-        if not unit_code or not unit_name or not course_code:
-            row_errors.append('Missing required fields (unit_code, unit_name, course_code)')
+        if not unit_code or not lecturer_email:
+            row_errors.append('Missing required fields (unit_code, lecturer_email)')
 
-        if unit_code in seen_codes:
-            row_errors.append(f'Duplicate unit code {unit_code} in file')
-        seen_codes.add(unit_code)
+        key = (unit_code, course_code)
+        if key in seen:
+            row_errors.append(f'Duplicate row: {unit_code} / {course_code or "any course"}')
+        seen.add(key)
 
-        course = Course.objects.filter(code__iexact=course_code).first()
-        if not course:
-            row_errors.append(f'Course {course_code} not found')
+        unit = Unit.objects.filter(code__iexact=unit_code).first()
+        if course_code:
+            unit = Unit.objects.filter(code__iexact=unit_code, course__code__iexact=course_code).first()
+        if not unit:
+            row_errors.append(f'Unit {unit_code} not found' + (f' in course {course_code}' if course_code else ''))
 
-        try:
-            yos = int(year_of_study)
-            sem = int(semester)
-        except ValueError:
-            row_errors.append('Invalid year_of_study or semester')
+        lecturer = User.objects.filter(email__iexact=lecturer_email, user_type='lecturer').first()
+        if not lecturer:
+            row_errors.append(f'Lecturer {lecturer_email} not found or not a lecturer')
 
         if row_errors:
             summary['errors'] += 1
@@ -963,55 +960,32 @@ def _process_units_import(request, commit=False):
             continue
 
         if commit:
-            unit, created = Unit.objects.update_or_create(
-                code=unit_code,
-                course=course,
+            UnitAssignment.objects.update_or_create(
+                lecturer=lecturer, unit=unit, term=term,
                 defaults={
-                    'name': unit_name,
-                    'year_of_study': yos,
-                    'semester': sem,
-                    'academic_level': academic_level,
+                    'status': 'approved',
+                    'requested_by': lecturer,
+                    'approved_by': request.user,
+                    'approved_at': timezone.now(),
+                    'start_date': term.start_date,
+                    'end_date': None,
                 },
             )
-            if created:
-                summary['created'] += 1
-            else:
-                summary['updated'] += 1
-
-            # Assign unit to lecturer if lecturer_email provided
-            if lecturer_email:
-                lecturer = User.objects.filter(email__iexact=lecturer_email, user_type='lecturer').first()
-                if lecturer and term:
-                    UnitAssignment.objects.update_or_create(
-                        lecturer=lecturer, unit=unit, term=term,
-                        defaults={
-                            'status': 'approved',
-                            'requested_by': lecturer,
-                            'approved_by': request.user,
-                            'approved_at': timezone.now(),
-                            'start_date': term.start_date,
-                            'end_date': None,
-                        },
-                    )
-                elif not lecturer:
-                    summary['errors'] += 1
-                    errors.append({'row': idx, 'error': f'Lecturer {lecturer_email} not found or not a lecturer'})
+            summary['updated'] += 1
 
         matched_rows.append({
             'row': idx,
-            'unit_code': unit_code,
-            'unit_name': unit_name,
-            'course_code': course_code,
-            'year_of_study': yos,
-            'semester': sem,
-            'academic_level': academic_level or '—',
-            'lecturer_email': lecturer_email or '—',
-            'is_new_unit': created if commit else None,
+            'unit_code': unit.code,
+            'unit_name': unit.name,
+            'course_code': unit.course.code,
+            'lecturer_email': lecturer.email,
+            'lecturer_name': f'{lecturer.first_name} {lecturer.last_name}'.strip() or lecturer.username,
+            'is_new': False,
         })
 
     if commit:
         with transaction.atomic():
-            pass  # changes already saved above
+            pass
 
     return Response({
         'status': 'ok',

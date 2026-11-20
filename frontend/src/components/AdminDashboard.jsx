@@ -834,10 +834,8 @@ function AssignmentManager({ data, onAction, onReload }) {
                       <th className="px-3 py-2">Unit Code</th>
                       <th className="px-3 py-2">Unit Name</th>
                       <th className="px-3 py-2">Course Code</th>
-                      <th className="px-3 py-2">Year</th>
-                      <th className="px-3 py-2">Semester</th>
-                      <th className="px-3 py-2">Academic Level</th>
-                      <th className="px-3 py-2">Lecturer</th>
+                      <th className="px-3 py-2">Lecturer Email</th>
+                      <th className="px-3 py-2">Lecturer Name</th>
                       <th className="px-3 py-2">Status</th>
                     </tr>
                   </thead>
@@ -848,10 +846,8 @@ function AssignmentManager({ data, onAction, onReload }) {
                         <td className="px-3 py-2 font-mono text-[#0F172A]">{row.unit_code}</td>
                         <td className="px-3 py-2">{row.unit_name}</td>
                         <td className="px-3 py-2">{row.course_code}</td>
-                        <td className="px-3 py-2">{row.year_of_study}</td>
-                        <td className="px-3 py-2">{row.semester}</td>
-                        <td className="px-3 py-2">{row.academic_level || '—'}</td>
                         <td className="px-3 py-2">{row.lecturer_email || '—'}</td>
+                        <td className="px-3 py-2">{row.lecturer_name || '—'}</td>
                         <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
                       </tr>
                     ))}
@@ -1775,10 +1771,8 @@ function ImportManager({ onReload }) {
                           <th className="px-3 py-2">Unit Code</th>
                           <th className="px-3 py-2">Unit Name</th>
                           <th className="px-3 py-2">Course Code</th>
-                          <th className="px-3 py-2">Year</th>
-                          <th className="px-3 py-2">Semester</th>
-                          <th className="px-3 py-2">Academic Level</th>
-                          <th className="px-3 py-2">Lecturer</th>
+                          <th className="px-3 py-2">Lecturer Email</th>
+                          <th className="px-3 py-2">Lecturer Name</th>
                           <th className="px-3 py-2">Status</th>
                         </>
                       ) : (
@@ -1805,10 +1799,8 @@ function ImportManager({ onReload }) {
                             <td className="px-3 py-2 font-mono text-[#0F172A]">{row.unit_code}</td>
                             <td className="px-3 py-2">{row.unit_name}</td>
                             <td className="px-3 py-2">{row.course_code}</td>
-                            <td className="px-3 py-2">{row.year_of_study}</td>
-                            <td className="px-3 py-2">{row.semester}</td>
-                            <td className="px-3 py-2">{row.academic_level || '—'}</td>
                             <td className="px-3 py-2">{row.lecturer_email || '—'}</td>
+                            <td className="px-3 py-2">{row.lecturer_name || '—'}</td>
                             <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
                           </>
                         ) : (
