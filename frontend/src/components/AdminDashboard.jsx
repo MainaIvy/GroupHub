@@ -219,10 +219,6 @@ export default function AdminDashboard() {
         const historyResponse = await fetch(`${API_BASE}/api/accounts/admin/import/history/`, { headers: tokenHeaders() });
         payload = await historyResponse.json().catch(() => []);
       }
-      if (activeTab === 'Units') {
-        const unassignedResponse = await fetch(`${API_BASE}/api/accounts/admin/assignments/unassigned/`, { headers: tokenHeaders() });
-        payload = await unassignedResponse.json().catch(() => []);
-      }
       setData(payload);
     } catch (requestError) {
       setState({ loading: false, error: requestError.message });
