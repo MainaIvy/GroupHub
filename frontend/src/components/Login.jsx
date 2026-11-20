@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { X, ShieldCheck, Mail, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, ShieldCheck, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import logo from '../assets/images/GROUPHUBLOGO.png';
 import { API_BASE } from '../apiConfig';
 
@@ -337,18 +337,6 @@ const Login = () => {
                 or sign in as staff
               </span>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            <Link
-              to="/staff/activate-email"
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#D7DEE6] bg-white px-4 py-3 text-sm font-semibold text-[#35475C] transition hover:bg-[#EEF1F4]"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF1F4] text-[#35475C]">
-                <Mail className="h-5 w-5" />
-              </div>
-              <span>Activate with email</span>
-            </Link>
           </div>
 
           <p className="pt-1 text-center text-sm text-[#4F5F73]">
