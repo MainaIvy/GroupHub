@@ -2678,8 +2678,12 @@ def update_task_status(request, task_id):
                 return Response({'error': reason or 'Compile and edit is locked until all other sections are complete.'}, status=status.HTTP_403_FORBIDDEN)
 
         new_status = request.data.get('status')
-        if new_status not in ['pending', 'in_progress', 'completed']:
+        if new_status not in ['pending', 'in_progress', 'completed', 'todo']:
             return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Normalize 'todo' to 'pending' for storage
+        if new_status == 'todo':
+            new_status = 'pending'
 
         old_status = task.status
         task.status = new_status

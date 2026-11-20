@@ -23,7 +23,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
   const canFinish = isAssignee && task.board_status !== 'completed';
   const canStart = isAssignee && task.board_status === 'todo';
   const canClaim = task.board_status === 'open_to_claim' && !task.has_subtasks;
-  const statusLabel = { todo: 'To do', in_progress: 'In progress', completed: 'Done' }[task.board_status] || task.board_status;
+  const statusLabel = { pending: 'Pending', in_progress: 'In progress', completed: 'Done' }[task.board_status] || task.board_status;
   const proofCount = (task.work_items || []).length;
   const isCompile = task.is_compile_task || task.title.trim().toLowerCase() === 'compile and edit';
   const compileLocked = compile.is_locked;
@@ -53,7 +53,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
             <h4 className="font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
             {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final task</span> : null}
             <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)} cursor-pointer hover:opacity-80 transition-colors`} onClick={(isLeader || isAssignee) && !compileLocked ? () => {
-              const next = task.board_status === 'completed' ? 'todo' : task.board_status === 'todo' ? 'in_progress' : 'completed';
+              const next = task.board_status === 'completed' ? 'pending' : task.board_status === 'pending' ? 'in_progress' : 'completed';
               actions.setStatus(task, next);
             } : undefined}>
               {statusLabel}
@@ -77,7 +77,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
           <ul className="space-y-1">
             {subtasks.map((subtask) => {
               const subMember = members.find((item) => item.id === subtask.assigned_to_id);
-              const subStatusLabel = { todo: 'To do', in_progress: 'In progress', completed: 'Done' }[subtask.board_status] || subtask.board_status;
+              const subStatusLabel = { pending: 'Pending', in_progress: 'In progress', completed: 'Done' }[subtask.board_status] || subtask.board_status;
               const canClaimSub = subtask.board_status === 'open_to_claim' && !subtask.has_subtasks;
               const canFinishSub = subtask.assigned_to_id === userId && subtask.board_status !== 'completed';
               const subProofCount = (subtask.work_items || []).length;
@@ -95,7 +95,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
                         </div>
                       </div>
                       <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusChip(subtask.board_status)} cursor-pointer hover:opacity-80 transition-colors`} onClick={() => {
-                        const next = subtask.board_status === 'completed' ? 'todo' : subtask.board_status === 'todo' ? 'in_progress' : 'completed';
+                        const next = subtask.board_status === 'completed' ? 'pending' : subtask.board_status === 'pending' ? 'in_progress' : 'completed';
                         actions.setStatus(subtask, next);
                       }}>
                         {subStatusLabel}
