@@ -5,13 +5,14 @@ import { WEIGHT_SCALE } from '../../taskWeights';
 const field = 'mt-1 h-10 w-full rounded-lg border border-[#CBD5E1] bg-white px-3 text-[15px] text-[#1F2D3D]';
 
 // Proposes a task or subtask. The leader approves it afterwards.
-const ProposeTaskModal = ({ parent, task, projects, busy, error, onSubmit, onClose }) => {
+const ProposeTaskModal = ({ parent, task, members, projects, busy, error, onSubmit, onClose }) => {
   const [form, setForm] = useState({
     title: task?.title || '',
     description: task?.description || '',
     weight: task?.weight ?? 2,
     dueDate: task?.due_date ? String(task.due_date).slice(0, 10) : '',
     projectId: task?.project_id ? String(task.project_id) : (parent?.project_id ? String(parent.project_id) : (projects?.[0]?.id ? String(projects[0].id) : '')),
+    assignedToId: task?.assigned_to_id ? String(task.assigned_to_id) : '',
   });
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -25,6 +26,7 @@ const ProposeTaskModal = ({ parent, task, projects, busy, error, onSubmit, onClo
       due_date: form.dueDate,
       project_id: form.projectId ? Number(form.projectId) : undefined,
       parent_task_id: parent?.id,
+      assigned_to_id: form.assignedToId ? Number(form.assignedToId) : undefined,
     });
     if (result?.ok) onClose();
   };
@@ -54,6 +56,16 @@ const ProposeTaskModal = ({ parent, task, projects, busy, error, onSubmit, onClo
           <label className="block text-sm font-medium text-[#33445A]">Project
             <select value={form.projectId} onChange={update('projectId')} className={field}>
               {projects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}
+            </select>
+          </label>
+        ) : null}
+        {members && members.length > 0 ? (
+          <label className="block text-sm font-medium text-[#33445A]">Assign to
+            <select value={form.assignedToId} onChange={update('assignedToId')} className={field}>
+              <option value="">Unassigned (anyone can claim)</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>{member.name}{member.is_leader ? ' (Leader)' : ''}</option>
+              ))}
             </select>
           </label>
         ) : null}

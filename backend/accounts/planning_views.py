@@ -230,11 +230,21 @@ def propose_task(request, group_id):
         if parent.parent_task_id:
             return _error('Subtasks cannot have their own subtasks. Add this under the primary task.')
 
+    assigned_to_id = request.data.get('assigned_to_id')
+    assignee = None
+    if assigned_to_id not in (None, ''):
+        try:
+            assignee = User.objects.get(pk=int(assigned_to_id), user_type='student')
+        except (ValueError, User.DoesNotExist):
+            return _error('Selected assignee is not a valid group member.')
+        if not is_member(assignee, group) and not is_leader(assignee, group):
+            return _error('Selected assignee is not a member of this group.')
+
     with transaction.atomic():
         task = Task.objects.create(
             project=project, title=title, description=str(request.data.get('description') or '').strip(),
             weight=weight, due_date=due_date, parent_task=parent,
-            assigned_to=None, proposal_status='proposed', proposed_by=user, weight_confirmed=False,
+            assigned_to=assignee, proposal_status='proposed', proposed_by=user, weight_confirmed=False,
         )
         TaskActivity.objects.create(
             task=task, actor=user, action='proposed', new_weight=weight,
@@ -513,6 +523,18 @@ def edit_task(request, group_id, task_id):
         if parsed is None:
             return _error('Enter a valid due date.')
         task.due_date = parsed
+    assigned_to_id = request.data.get('assigned_to_id')
+    if assigned_to_id is not None:
+        if assigned_to_id in (None, ''):
+            task.assigned_to = None
+        else:
+            try:
+                assignee = User.objects.get(pk=int(assigned_to_id), user_type='student')
+            except (ValueError, User.DoesNotExist):
+                return _error('Selected assignee is not a valid group member.')
+            if not is_member(assignee, group) and not is_leader(assignee, group):
+                return _error('Selected assignee is not a member of this group.')
+            task.assigned_to = assignee
 
     task.save(update_fields=['title', 'description', 'weight', 'weight_confirmed', 'due_date', 'updated_at'])
     TaskActivity.objects.create(
@@ -528,6 +550,7 @@ def edit_task(request, group_id, task_id):
     return Response({'task': {
         'id': task.id, 'title': task.title, 'description': task.description,
         'weight': task.weight, 'due_date': task.due_date.isoformat() if task.due_date else None,
+        'assigned_to_id': task.assigned_to_id,
     }})
 
 

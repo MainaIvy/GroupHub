@@ -201,6 +201,7 @@ const GroupWorkspace = ({ ctx }) => {
       {proposeFor !== undefined ? (
         <ProposeTaskModal
           parent={proposeFor}
+          members={members}
           projects={data.projects}
           busy={actions.busy}
           error={actions.error}
@@ -211,6 +212,7 @@ const GroupWorkspace = ({ ctx }) => {
       {editingTask ? (
         <ProposeTaskModal
           task={editingTask}
+          members={members}
           projects={data.projects}
           busy={actions.busy}
           error={actions.error}
