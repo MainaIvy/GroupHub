@@ -425,9 +425,64 @@ export default function AdminDashboard() {
     );
   } else if (tab === 'Announcements') {
     content = (
-      <AnnouncementForm
-        onSave={(values) => action(endpoints.Announcements, { method: 'POST', body: JSON.stringify(values) })}
-      />
+      <div className="space-y-5">
+        <AnnouncementForm
+          onSave={(values) => {
+            action(endpoints.Announcements, { method: 'POST', body: JSON.stringify(values) }).then(() => {
+              load('Announcements');
+            });
+          }}
+        />
+        <Panel title="Recent Announcements">
+          <div className="overflow-x-auto rounded-xl border border-[#DDDDDD]">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
+                  <th className="px-4 py-3">Title</th>
+                  <th className="px-4 py-3">Audience</th>
+                  <th className="px-4 py-3">Target</th>
+                  <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(Array.isArray(data) ? data : []).map((ann) => (
+                  <tr key={ann.id} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
+                    <td className="px-4 py-3 font-medium text-[#1A1A1A]">{ann.title}</td>
+                    <td className="px-4 py-3">{ann.audience}</td>
+                    <td className="px-4 py-3 text-sm text-[#666666]">
+                      {ann.audience === 'programme' && ann.programme_id ? ann.programme_id : ''}
+                      {ann.audience === 'unit' && ann.unit_id ? ann.unit_id : ''}
+                      {ann.audience === 'all' ? 'Everyone' : ''}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#666666]">{ann.created_at ? new Date(ann.created_at).toLocaleDateString() : ''}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Delete announcement "${ann.title}"?`)) {
+                            action(`${API_BASE}/api/accounts/admin/announcements/${ann.id}/`, { method: 'DELETE' }).then(() => {
+                              load('Announcements');
+                            });
+                          }
+                        }}
+                        className="rounded-xl border border-[#C62828] bg-[#FEF2F2] px-3 py-1.5 text-xs font-semibold text-[#C62828] transition hover:bg-[#C62828] hover:text-white"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {(Array.isArray(data) && data.length === 0) && (
+                  <tr>
+                    <td colSpan={5} className="p-10 text-center text-[#666666]">No announcements yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      </div>
     );
   } else if (tab === 'Users') {
     content = (
@@ -638,7 +693,19 @@ function SettingsForm({ values, onSave }) {
 }
 
 function AnnouncementForm({ onSave }) {
-  const [form, setForm] = useState({ title: '', body: '', audience: 'all' });
+  const [form, setForm] = useState({ title: '', body: '', audience: 'all', programme_id: '', unit_id: '' });
+  const [programmes, setProgrammes] = useState([]);
+  const [units, setUnits] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_BASE}/api/accounts/admin/catalog/`, { headers: tokenHeaders() }).then(r => r.json()).catch(() => ({})),
+    ]).then(([catalog]) => {
+      setProgrammes(catalog.programmes || []);
+      setUnits(catalog.units || []);
+    });
+  }, []);
+
   return (
     <div className="max-w-xl rounded-3xl bg-white p-6 shadow-sm">
       <div className="grid gap-4">
@@ -658,12 +725,36 @@ function AnnouncementForm({ onSave }) {
         <select
           className={ui.input}
           value={form.audience}
-          onChange={(event) => setForm({ ...form, audience: event.target.value })}
+          onChange={(event) => setForm({ ...form, audience: event.target.value, programme_id: '', unit_id: '' })}
         >
           <option value="all">Everyone</option>
           <option value="programme">Programme</option>
           <option value="unit">Unit</option>
         </select>
+        {form.audience === 'programme' && (
+          <select
+            className={ui.input}
+            value={form.programme_id}
+            onChange={(event) => setForm({ ...form, programme_id: event.target.value })}
+          >
+            <option value="">Select programme</option>
+            {programmes.map((p) => (
+              <option key={p.id} value={p.id}>{p.code} · {p.name}</option>
+            ))}
+          </select>
+        )}
+        {form.audience === 'unit' && (
+          <select
+            className={ui.input}
+            value={form.unit_id}
+            onChange={(event) => setForm({ ...form, unit_id: event.target.value })}
+          >
+            <option value="">Select unit</option>
+            {units.map((u) => (
+              <option key={u.id} value={u.id}>{u.code} · {u.name}</option>
+            ))}
+          </select>
+        )}
       </div>
       <button type="button" onClick={() => onSave(form)} className={`mt-5 ${ui.primary}`}>
         Send announcement
