@@ -869,9 +869,9 @@ def admin_units_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="units_template.csv"'
     writer = csv.writer(response)
-    writer.writerow(['unit_code', 'unit_name', 'course_code', 'year_of_study', 'semester', 'academic_level', 'default_max_members'])
-    writer.writerow(['BCU101', 'Introduction to Programming', 'BSCS', '1', '1', 'Certificate', '5'])
-    writer.writerow(['BEE201', 'Circuit Analysis', 'BSE', '2', '1', 'Diploma', '4'])
+    writer.writerow(['unit_code', 'unit_name', 'course_code', 'year_of_study', 'semester', 'academic_level'])
+    writer.writerow(['BCU101', 'Introduction to Programming', 'BSCS', '1', '1', 'Certificate'])
+    writer.writerow(['BEE201', 'Circuit Analysis', 'BSE', '2', '1', 'Diploma'])
     return response
 
 
