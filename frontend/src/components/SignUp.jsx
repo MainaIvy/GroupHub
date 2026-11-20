@@ -87,17 +87,6 @@ const StepIndicator = ({ step }) => {
     </div>
   );
 };
-
-const EditLink = ({ onClick, label }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="text-xs font-semibold text-[#35475C] hover:text-[#1F2D3D] underline hover:underline"
-  >
-    Edit {label}
-  </button>
-);
-
 const SignUp = () => {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -805,85 +794,61 @@ const SignUp = () => {
           {step === 4 && (
             <>
               <h2 className="text-base font-semibold text-[#1F2D3D] mb-4">Review your details</h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><User size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">Full name</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73] truncate">{formData.fullName}</p>
-                      <EditLink onClick={() => goToStep(1)} label="name" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73] truncate">{formData.fullName}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><Mail size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">Email address</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73] truncate max-w-[220px]">{formData.email}</p>
-                      <EditLink onClick={() => goToStep(1)} label="email" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73] truncate max-w-[220px]">{formData.email}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><Hash size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">Registration number</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73] truncate">{formData.regNumber}</p>
-                      <EditLink onClick={() => goToStep(1)} label="reg. number" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73] truncate">{formData.regNumber}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><Building size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">University</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73] truncate">{formData.university || 'Not set'}</p>
-                      <EditLink onClick={() => goToStep(1)} label="university" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73] truncate">{formData.university || 'Not set'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><GraduationCap size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">Academic level</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73]">{formData.academicLevel}</p>
-                      <EditLink onClick={() => goToStep(2)} label="level" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73]">{formData.academicLevel}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><Hash size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">Programme</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73] truncate">{selectedStudentCourse?.name || formData.course}</p>
-                      <EditLink onClick={() => goToStep(2)} label="programme" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73] truncate">{selectedStudentCourse?.name || formData.course}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><Clock size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">Year of study</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73]">Year {formData.yearOfStudy}</p>
-                      <EditLink onClick={() => goToStep(2)} label="year" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73]">Year {formData.yearOfStudy}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[#4F5F73]"><Clock size={16} /></div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-[#1F2D3D]">Semester</p>
-                    <div className="flex items-start gap-2">
-                      <p className="text-xs text-[#4F5F73]">Semester {formData.semester}</p>
-                      <EditLink onClick={() => goToStep(2)} label="semester" />
-                    </div>
+                    <p className="text-xs text-[#4F5F73]">Semester {formData.semester}</p>
                   </div>
                 </div>
               </div>
