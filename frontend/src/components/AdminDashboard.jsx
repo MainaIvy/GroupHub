@@ -697,6 +697,11 @@ function AnnouncementForm({ onSave }) {
 
 function AssignmentManager({ data, onAction, onReload }) {
   const [form, setForm] = useState({ lecturer_id: '', unit_id: '', term_id: '' });
+  const [importFile, setImportFile] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState('');
   const units = data.catalog?.units || [];
   const addAssignment = (event) => {
     event.preventDefault();
@@ -706,9 +711,145 @@ function AssignmentManager({ data, onAction, onReload }) {
     });
     setForm({ lecturer_id: '', unit_id: '', term_id: '' });
   };
+
+  const handleImportFileChange = (e) => {
+    setImportFile(e.target.files[0]);
+    setImportPreview(null);
+    setImportError('');
+    setImportSuccess('');
+  };
+
+  const handleImportPreview = async () => {
+    if (!importFile) { setImportError('Select a file first.'); return; }
+    setImportLoading(true);
+    setImportError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('mode', 'add');
+      const response = await fetch(`${API_BASE}/api/accounts/admin/units/import/preview/`, {
+        method: 'POST', headers: tokenHeaders(), body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Preview failed');
+      setImportPreview(data);
+    } catch (e) {
+      setImportError(e.message);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleImportCommit = async () => {
+    if (!importFile || !importPreview) { setImportError('No preview data.'); return; }
+    setImportLoading(true);
+    setImportError('');
+    setImportSuccess('');
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('mode', 'add');
+      const response = await fetch(`${API_BASE}/api/accounts/admin/units/import/`, {
+        method: 'POST', headers: tokenHeaders(), body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Import failed');
+      setImportSuccess('Units imported successfully.');
+      setImportFile(null);
+      setImportPreview(null);
+      onReload();
+    } catch (e) {
+      setImportError(e.message);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
-      <form onSubmit={addAssignment} className="grid gap-3 rounded-3xl bg-white p-5 shadow-sm md:grid-cols-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-[#0F172A]">Bulk Import Units</h3>
+        </div>
+        <a href={`${API_BASE}/api/accounts/admin/units/template/`} className={ui.ghost} download>Download CSV template</a>
+      </div>
+
+      <div className="rounded-3xl bg-white p-5 shadow-sm">
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <div>
+            <label className="block text-xs font-semibold text-[#4F46E5] mb-1">CSV / XLSX file</label>
+            <input type="file" accept=".csv,.xlsx" onChange={handleImportFileChange} className={ui.input} />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={handleImportPreview} disabled={importLoading || !importFile} className={ui.primary}>
+            {importLoading ? 'Previewing…' : 'Preview'}
+          </button>
+          <button onClick={handleImportCommit} disabled={importLoading || !importPreview} className={ui.primary}>
+            {importLoading ? 'Committing…' : 'Commit import'}
+          </button>
+          {importPreview && <button onClick={() => setImportPreview(null)} className={ui.ghost}>Clear</button>}
+        </div>
+        {importError && <p className="mt-3 text-sm text-[#EF4444]">{importError}</p>}
+        {importSuccess && <p className="mt-3 text-sm text-[#10B981]">{importSuccess}</p>}
+
+        {importPreview && (
+          <div className="mt-5 space-y-4">
+            <div className="grid gap-2 text-sm">
+              <div className="rounded-lg bg-[#E0E7FF] p-3"><span className="font-semibold text-[#0F172A]">Created:</span> {importPreview.summary.created}</div>
+              <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#0F172A]">Updated:</span> {importPreview.summary.updated}</div>
+              <div className="rounded-lg bg-[#EF4444]/10 p-3"><span className="font-semibold text-[#0F172A]">Errors:</span> {importPreview.summary.errors}</div>
+            </div>
+
+            {importPreview.errors.length && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="font-semibold text-red-800 mb-2">Errors:</p>
+                <ul className="text-sm text-red-700 space-y-1 max-h-48 overflow-y-auto">
+                  {importPreview.errors.slice(0, 20).map((err, i) => <li key={i}>Row {err.row}: {err.error}</li>)}
+                  {importPreview.errors.length > 20 && <li>...and {importPreview.errors.length - 20} more</li>}
+                </ul>
+              </div>
+            )}
+
+            {importPreview.matched_rows.length && (
+              <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                      <th className="px-3 py-2">Row</th>
+                      <th className="px-3 py-2">Unit Code</th>
+                      <th className="px-3 py-2">Unit Name</th>
+                      <th className="px-3 py-2">Course Code</th>
+                      <th className="px-3 py-2">Year</th>
+                      <th className="px-3 py-2">Semester</th>
+                      <th className="px-3 py-2">Academic Level</th>
+                      <th className="px-3 py-2">Max Members</th>
+                      <th className="px-3 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importPreview.matched_rows.map((row) => (
+                      <tr key={row.row} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+                        <td className="px-3 py-2">{row.row}</td>
+                        <td className="px-3 py-2 font-mono text-[#0F172A]">{row.unit_code}</td>
+                        <td className="px-3 py-2">{row.unit_name}</td>
+                        <td className="px-3 py-2">{row.course_code}</td>
+                        <td className="px-3 py-2">{row.year_of_study}</td>
+                        <td className="px-3 py-2">{row.semester}</td>
+                        <td className="px-3 py-2">{row.academic_level || '—'}</td>
+                        <td className="px-3 py-2">{row.default_max_members}</td>
+                        <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+    <form onSubmit={addAssignment} className="grid gap-3 rounded-3xl bg-white p-5 shadow-sm md:grid-cols-4">
         <select
           required
           value={form.lecturer_id}
