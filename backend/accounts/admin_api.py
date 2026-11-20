@@ -410,7 +410,7 @@ def admin_unassigned_units(request):
     ).values_list('unit_id', flat=True)) if term else set()
     units = Unit.objects.exclude(id__in=assigned_ids).exclude(assigned_lecturer__isnull=False)
     return Response(list(units.values(
-        'id', 'code', 'name', 'course__name', 'year_of_study', 'semester'
+        'id', 'code', 'name', 'course__name', 'year_of_study', 'semester', 'academic_level'
     )))
 
 
