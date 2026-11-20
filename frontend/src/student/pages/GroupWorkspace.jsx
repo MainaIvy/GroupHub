@@ -43,6 +43,7 @@ const GroupWorkspace = ({ ctx }) => {
   const tab = TAB_KEYS.includes(requestedTab) ? requestedTab : 'overview';
   const [selectedTaskId, setSelectedTaskId] = useState(() => Number(searchParams.get('task')) || null);
   const [proposeFor, setProposeFor] = useState(undefined);
+  const [editingTask, setEditingTask] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const data = useGroupWorkspaceData(group ? groupId : null);
@@ -152,6 +153,8 @@ const GroupWorkspace = ({ ctx }) => {
             selectedTaskId={selectedTaskId}
             onSelectTask={openTask}
             onCreateTask={() => setProposeFor(null)}
+            onEditTask={(task) => setEditingTask(task)}
+            onDeleteTask={(task) => actions.deleteTask(task)}
             onAddSubtask={(section) => setProposeFor(section)}
             onCreateProject={() => ctx.setProjectModal({})}
             onGoSubmission={() => goTab('submission')}
@@ -203,6 +206,16 @@ const GroupWorkspace = ({ ctx }) => {
           error={actions.error}
           onSubmit={actions.propose}
           onClose={() => { setProposeFor(undefined); actions.clearError(); }}
+        />
+      ) : null}
+      {editingTask ? (
+        <ProposeTaskModal
+          task={editingTask}
+          projects={data.projects}
+          busy={actions.busy}
+          error={actions.error}
+          onSubmit={(payload) => actions.editTask(editingTask, payload)}
+          onClose={() => { setEditingTask(null); actions.clearError(); }}
         />
       ) : null}
     </section>

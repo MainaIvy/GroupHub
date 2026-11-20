@@ -5,19 +5,20 @@ import { WEIGHT_SCALE } from '../../taskWeights';
 const field = 'mt-1 h-10 w-full rounded-lg border border-[#CBD5E1] bg-white px-3 text-[15px] text-[#1F2D3D]';
 
 // Proposes a task or subtask. The leader approves it afterwards.
-const ProposeTaskModal = ({ parent, projects, busy, error, onSubmit, onClose }) => {
+const ProposeTaskModal = ({ parent, task, projects, busy, error, onSubmit, onClose }) => {
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    weight: 2,
-    dueDate: '',
-    projectId: parent?.project_id ? String(parent.project_id) : (projects?.[0]?.id ? String(projects[0].id) : ''),
+    title: task?.title || '',
+    description: task?.description || '',
+    weight: task?.weight ?? 2,
+    dueDate: task?.due_date ? String(task.due_date).slice(0, 10) : '',
+    projectId: task?.project_id ? String(task.project_id) : (parent?.project_id ? String(parent.project_id) : (projects?.[0]?.id ? String(projects[0].id) : '')),
   });
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
   const submit = async (event) => {
     event.preventDefault();
     const result = await onSubmit({
+      task_id: task?.id,
       title: form.title.trim(),
       description: form.description.trim(),
       weight: Number(form.weight),
@@ -28,7 +29,7 @@ const ProposeTaskModal = ({ parent, projects, busy, error, onSubmit, onClose }) 
     if (result?.ok) onClose();
   };
 
-  const heading = parent ? `Add a subtask to “${parent.title}”` : 'Add a task';
+  const heading = task ? `Edit “${task.title}”` : (parent ? `Add a subtask to “${parent.title}”` : 'Add a task');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1F2D3D]/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -59,7 +60,7 @@ const ProposeTaskModal = ({ parent, projects, busy, error, onSubmit, onClose }) 
         {error ? <p role="alert" className="text-sm font-medium text-red-700">{error}</p> : null}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>
-          <button type="submit" disabled={busy || !form.title.trim() || !form.dueDate} className={btnPrimary}>{busy ? 'Saving…' : (parent ? 'Add subtask' : 'Add task')}</button>
+          <button type="submit" disabled={busy || !form.title.trim() || !form.dueDate} className={btnPrimary}>{busy ? 'Saving…' : (task ? 'Save changes' : (parent ? 'Add subtask' : 'Add task'))}</button>
         </div>
       </form>
     </div>

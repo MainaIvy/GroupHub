@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, FileText, Users } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, Edit2, FileText, Trash2, Users } from 'lucide-react';
 import Avatar from '../../components/Avatar';
 import { btnPrimary, btnSecondary } from '../../design';
 import { ProgressBar } from '../../components/ProgressBar';
@@ -15,7 +15,7 @@ const taskStatusChip = (status) => ({
   todo: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
 }[status] || 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]');
 
-const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, openGroupTasks }) => {
+const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, openGroupTasks, onEditTask, onDeleteTask }) => {
   const subtasks = task.subtask_ids.map((id) => tasks.find((item) => item.id === id)).filter(Boolean);
   const member = members.find((item) => item.id === task.assigned_to_id);
   const isLeader = userId === leaderId;
@@ -132,6 +132,16 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
               {member && !compileLocked ? (
                 <button type="button" disabled={actions.busy} onClick={() => reassignTask(member.id)} className={btnSecondary}>Reassign</button>
               ) : null}
+              {(isLeader || isAssignee) && !compileLocked && task.board_status !== 'completed' ? (
+                <button type="button" onClick={() => onEditTask(task)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Edit task">
+                  <Edit2 size={12} />
+                </button>
+              ) : null}
+              {isLeader && !compileLocked ? (
+                <button type="button" onClick={() => { if (window.confirm('Delete this task?')) onDeleteTask(task); }} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors" title="Delete task">
+                  <Trash2 size={12} />
+                </button>
+              ) : null}
               {compileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
             </div>
           </div>
@@ -141,7 +151,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
   );
 };
 
-const TaskGroup = ({ title, tasks, members, actions, userId, leaderId, compile, openGroupTasks, collapsible }) => {
+const TaskGroup = ({ title, tasks, members, actions, userId, leaderId, compile, openGroupTasks, collapsible, onEditTask, onDeleteTask }) => {
   const [open, setOpen] = useState(true);
   const headerLabel = collapsible ? (open ? <ChevronUp size={14} className="mr-1 text-[#4F5F73]" /> : <ChevronDown size={14} className="mr-1 text-[#4F5F73]" />) : null;
   return (
@@ -157,7 +167,7 @@ const TaskGroup = ({ title, tasks, members, actions, userId, leaderId, compile, 
       </button>
       {(!collapsible || open) && (
         <div className="space-y-2">
-          {tasks.map((task) => <TaskRow key={task.id} task={task} tasks={tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={openGroupTasks} />)}
+          {tasks.map((task) => <TaskRow key={task.id} task={task} tasks={tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={openGroupTasks} onEditTask={onEditTask} onDeleteTask={onDeleteTask} />)}
         </div>
       )}
     </section>
@@ -177,6 +187,8 @@ const TasksTab = ({
   selectedTaskId,
   onSelectTask,
   onCreateTask,
+  onEditTask,
+  onDeleteTask,
   onCreateProject,
   onGoSubmission,
   reload,
@@ -320,7 +332,7 @@ const TasksTab = ({
             <h4 className="text-sm font-semibold text-[#1F2D3D] mb-2">Tasks</h4>
             {taskGroups.length ? (
               taskGroups.map((group) => (
-                <TaskGroup key={group.sectionId} title={group.title} tasks={group.tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={reload} collapsible={groupBy === 'task'} />
+                <TaskGroup key={group.sectionId} title={group.title} tasks={group.tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={reload} collapsible={groupBy === 'task'} onEditTask={onEditTask} onDeleteTask={onDeleteTask} />
               ))
             ) : (
               <p className="text-sm text-[#4F5F73]">No tasks yet. Add one to start the plan.</p>

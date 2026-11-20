@@ -48,5 +48,7 @@ export default function useTaskActions(groupId, reload) {
     setStatus: (task, status, extra = {}) => run(() => axios.post(`${ROOT}/tasks/${task.id}/update-status/`, { status, ...extra }), 'Unable to update this task.'),
     comment: (task, content) => run(() => axios.post(`${base}/comments/`, { task_id: task.id, content }), 'Unable to add this comment.'),
     addWork: (task, formData) => run(() => axios.post(`${base}/tasks/${task.id}/work/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }), 'Unable to add proof of work.'),
+    editTask: (task, payload) => run(() => axios.post(`${base}/tasks/${task.id}/edit/`, payload), 'Unable to edit this task.'),
+    deleteTask: (task) => run(() => axios.post(`${base}/tasks/${task.id}/delete/`), 'Unable to delete this task.'),
   };
 }

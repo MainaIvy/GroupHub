@@ -465,3 +465,100 @@ def change_task_weight(request, group_id, task_id):
     )
     
     return Response({'task': {'id': task.id, 'weight': new_weight, 'weight_confirmed': False}})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def edit_task(request, group_id, task_id):
+    """Edit a task's title, description, weight, or due date (leader or proposer only)."""
+    group = _load_group(group_id)
+    if group is None:
+        return _error('Group not found', status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    task = Task.objects.filter(pk=task_id, project__group=group).first()
+    if task is None:
+        return _error('Task not found', status.HTTP_404_NOT_FOUND)
+
+    if _is_compile_task(task):
+        return _error('Cannot edit the compile task.', status.HTTP_403_FORBIDDEN)
+
+    is_ldr = is_leader(user, group)
+    if not (is_ldr or task.proposed_by_id == user.id or task.assigned_to_id == user.id):
+        return _error('Only the leader or task assignee can edit this task.', status.HTTP_403_FORBIDDEN)
+
+    title = request.data.get('title')
+    description = request.data.get('description')
+    weight = request.data.get('weight')
+    due_date = request.data.get('due_date')
+
+    if title is not None:
+        title = str(title).strip()
+        if not title:
+            return _error('Enter a task title.')
+        task.title = title
+    if description is not None:
+        task.description = str(description).strip()
+    if weight is not None:
+        try:
+            weight = int(weight)
+            if weight not in WEIGHT_RANGE:
+                raise ValueError
+        except (TypeError, ValueError):
+            return _error(f'Choose a weight from {WEIGHT_MIN} to {WEIGHT_MAX}.')
+        task.weight = weight
+        task.weight_confirmed = False
+    if due_date is not None:
+        parsed = _parse_required_task_due_date(due_date)
+        if parsed is None:
+            return _error('Enter a valid due date.')
+        task.due_date = parsed
+
+    task.save(update_fields=['title', 'description', 'weight', 'weight_confirmed', 'due_date', 'updated_at'])
+    TaskActivity.objects.create(
+        task=task, actor=user, action='edited',
+        note=f'Task updated by {user.get_full_name() or user.email}.',
+    )
+
+    AuditLog.objects.create(
+        actor=user, action='edit_task', target_type='Task', target_id=str(task.id),
+        details={'title': task.title, 'weight': task.weight, 'group_id': group.id},
+    )
+
+    return Response({'task': {
+        'id': task.id, 'title': task.title, 'description': task.description,
+        'weight': task.weight, 'due_date': task.due_date.isoformat() if task.due_date else None,
+    }})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_task(request, group_id, task_id):
+    """Delete a task (leader only; cannot delete compile task or tasks with subtasks)."""
+    group = _load_group(group_id)
+    if group is None:
+        return _error('Group not found', status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    if not is_leader(user, group):
+        return _error('Only the group leader can delete tasks.', status.HTTP_403_FORBIDDEN)
+
+    task = Task.objects.filter(pk=task_id, project__group=group).first()
+    if task is None:
+        return _error('Task not found', status.HTTP_404_NOT_FOUND)
+
+    if _is_compile_task(task):
+        return _error('Cannot delete the compile task.', status.HTTP_403_FORBIDDEN)
+
+    if Task.objects.filter(parent_task=task).exists():
+        return _error('Delete the subtasks first before removing this task.', status.HTTP_400_BAD_REQUEST)
+
+    task_title = task.title
+    task.delete()
+
+    AuditLog.objects.create(
+        actor=user, action='delete_task', target_type='Task', target_id=str(task_id),
+        details={'title': task_title, 'group_id': group.id},
+    )
+
+    return Response({'message': 'Task deleted.', 'task_id': task_id})
