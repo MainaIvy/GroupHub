@@ -3574,10 +3574,6 @@ def create_group_view(request):
     except (TypeError, ValueError):
         return Response({'error': 'Choose a group size between 2 and 15 members.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # If the group belongs to a unit, it cannot exceed the unit default maximum.
-    if unit and unit.default_max_members and max_members > unit.default_max_members:
-        return Response({'error': f'Group size cannot exceed this unitâ€™s default maximum of {unit.default_max_members} members.'}, status=status.HTTP_400_BAD_REQUEST)
-
     if not name or not course or not year_of_study:
         return Response({'error': 'Name, course, and year of study are required'}, status=status.HTTP_400_BAD_REQUEST)
 
