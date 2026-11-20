@@ -2191,8 +2191,8 @@ function ImportManager({ onReload }) {
 
       {showDownloadConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setShowDownloadConfirm(false)} />
-          <div className="bg-white rounded-2xl p-6 shadow-xl max-w-md w-full border border-[#CCCCCC]">
+          <div className="absolute inset-0 bg-black/20 pointer-events-none" onClick={() => setShowDownloadConfirm(false)} />
+          <div className="relative z-10 bg-white rounded-2xl p-6 shadow-xl max-w-md w-full border border-[#CCCCCC] pointer-events-auto">
             <h3 className="text-lg font-bold text-[#1A1A1A] mb-3">Download lecturer template</h3>
             <p className="text-sm text-[#4F5F73] mb-6">
               Do you want to include existing roster data in the template, or download an empty template?
@@ -2200,7 +2200,8 @@ function ImportManager({ onReload }) {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setShowDownloadConfirm(false);
                   downloadTemplate(`${templateUrl}?include_existing=true`, 'lecturer_roster_template.csv');
                 }}
@@ -2210,7 +2211,8 @@ function ImportManager({ onReload }) {
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setShowDownloadConfirm(false);
                   downloadTemplate(`${templateUrl}?include_existing=false`, 'lecturer_roster_template.csv');
                 }}
