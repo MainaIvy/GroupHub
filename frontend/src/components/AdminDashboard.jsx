@@ -154,6 +154,20 @@ function SeeAll({ onClick }) {
   );
 }
 
+const downloadTemplate = async (url, filename) => {
+  const response = await fetch(url, { headers: tokenHeaders() });
+  if (!response.ok) {
+    return false;
+  }
+  const blob = await response.blob();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  return true;
+};
+
 export default function AdminDashboard() {
   const [tab, setTab] = useState('Overview');
   const [data, setData] = useState(null);
@@ -261,20 +275,6 @@ export default function AdminDashboard() {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `${type}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-  };
-
-  const downloadTemplate = async (url, filename) => {
-    const response = await fetch(url, { headers: tokenHeaders() });
-    if (!response.ok) {
-      setState({ loading: false, error: 'Template download failed.' });
-      return;
-    }
-    const blob = await response.blob();
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
     link.click();
     URL.revokeObjectURL(link.href);
   };
