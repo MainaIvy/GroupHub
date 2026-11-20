@@ -503,7 +503,7 @@ const SignUp = () => {
                     id="university"
                     name="university"
                     required
-                    disabled={uniqueUniversities.length <= 1}
+                    disabled={false}
                     className="w-full rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20 outline-none"
                     value={formData.university}
                     onChange={handleChange}
