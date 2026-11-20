@@ -241,7 +241,7 @@ const TasksTab = ({
             </div>
           </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" disabled={actions.busy} onClick={() => actions.openCreateTaskModal?.()} className={btnSecondary}>Create Task</button>
+              <button type="button" disabled={actions.busy} onClick={onCreateTask} className={btnSecondary}>Create Task</button>
               <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed')} className={btnPrimary}>Ready to submit</button>
             </div>
         </div>
