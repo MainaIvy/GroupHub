@@ -6,10 +6,10 @@ import { ProgressBar } from '../../components/ProgressBar';
 import { childrenOf, formatDue, weightText } from '../taskUtils';
 
 const statuses = ['todo', 'in_progress', 'completed'];
-const personsLabel = 'Group by: Section';
-const groupLabels = { section: 'Section', person: 'Person', status: 'Status' };
+const personsLabel = 'Group by: Task';
+const groupLabels = { task: 'Task', person: 'Person', status: 'Status' };
 
-const sectionStatusChip = (status) => ({
+const taskStatusChip = (status) => ({
   completed: 'bg-[#E3EAF2] text-[#35475C] border-[#D7DEE6]',
   in_progress: 'bg-[#EEF1F4] text-[#2F4A66] border-[#C9D5E2]',
   todo: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
@@ -51,8 +51,8 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h4 className="font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
-            {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final section</span> : null}
-            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${sectionStatusChip(task.board_status)}`}>
+            {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final task</span> : null}
+            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)}`}>
               {statusLabel}
             </span>
             {task.is_overdue && <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700">Overdue</span>}
@@ -91,7 +91,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
                           {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sectionStatusChip(subtask.board_status)}`}>
+                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusChip(subtask.board_status)}`}>
                         {subStatusLabel}
                       </span>
                     </div>
@@ -181,19 +181,19 @@ const TasksTab = ({
   onGoSubmission,
   reload,
 }) => {
-  const [groupBy, setGroupBy] = useState('section');
-  const [openSection, setOpenSection] = useState(undefined);
+  const [groupBy, setGroupBy] = useState('task');
+  const [openTask, setOpenTask] = useState(undefined);
 
   const userId = user?.id;
   const leaderId = workspace.group?.leader_id;
   const rootTasks = tasks.filter((task) => !task.parent_task_id);
-  const sectionOrder = ['Compile and edit', ...rootTasks.filter((task) => task.title.trim().toLowerCase() !== 'compile and edit').sort((a, b) => new Date(a.due_date || '9999') - new Date(b.due_date || '9999'))];
-  const groupedBySection = useMemo(() => {
+  const taskOrder = ['Compile and edit', ...rootTasks.filter((task) => task.title.trim().toLowerCase() !== 'compile and edit').sort((a, b) => new Date(a.due_date || '9999') - new Date(b.due_date || '9999'))];
+  const groupedByTask = useMemo(() => {
     const map = new Map();
-    sectionOrder.forEach((task) => map.set(task.id, [task.id, ...(task.subtask_ids || [])]));
-    const remaining = tasks.filter((task) => !task.parent_task_id && !sectionOrder.some((section) => section.id === task.id));
+    taskOrder.forEach((task) => map.set(task.id, [task.id, ...(task.subtask_ids || [])]));
+    const remaining = tasks.filter((task) => !task.parent_task_id && !taskOrder.some((t) => t.id === task.id));
     remaining.forEach((task) => map.set(task.id, [task.id, ...(task.subtask_ids || [])]));
-    return sectionOrder.concat(remaining).map((task) => ({ section: task, items: map.get(task.id).map((id) => tasks.find((item) => item.id === id)).filter(Boolean) }));
+    return taskOrder.concat(remaining).map((task) => ({ task, items: map.get(task.id).map((id) => tasks.find((item) => item.id === id)).filter(Boolean) }));
   }, [tasks]);
   const groupedByPerson = useMemo(() => {
     const map = new Map(members.map((member) => [member.id, { member, items: [] }]));
@@ -207,11 +207,11 @@ const TasksTab = ({
   }, [tasks, members]);
   const groupedByStatus = useMemo(() => statuses.map((status) => ({ status, items: tasks.filter((task) => task.board_status === status) })), [tasks]);
 
-  const sections = useMemo(() => {
-    if (groupBy === 'section') return groupedBySection.map((group) => ({ title: group.section.title, tasks: group.items, sectionId: group.section.id }));
+  const taskGroups = useMemo(() => {
+    if (groupBy === 'task') return groupedByTask.map((group) => ({ title: group.task.title, tasks: group.items, sectionId: group.task.id }));
     if (groupBy === 'person') return groupedByPerson.map((group) => ({ title: group.member.name, tasks: group.items, sectionId: `person-${group.member.id}`, avatar: group.member.avatar }));
     return groupedByStatus.map((group) => ({ title: group.status.charAt(0).toUpperCase() + group.status.slice(1), tasks: group.items, sectionId: `status-${group.status}` }));
-  }, [groupBy, groupedBySection, groupedByPerson, groupedByStatus]);
+  }, [groupBy, groupedByTask, groupedByPerson, groupedByStatus]);
 
   const openCombine = useCallback(() => {
     actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed', { override_reason: '' });
@@ -262,7 +262,7 @@ const TasksTab = ({
         <section className="rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] p-3">
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-[#2F4A66]" aria-hidden="true" />
-            <p className="text-sm text-[#2F4A66]">Ready to combine â€” all sections complete.</p>
+            <p className="text-sm text-[#2F4A66]">Ready to combine â€” all tasks complete.</p>
           </div>
         </section>
       )}
@@ -288,7 +288,7 @@ const TasksTab = ({
         <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-sm font-bold text-[#1F2D3D]">Plan view</h3>
           <div className="flex gap-1 rounded-lg border border-[#D7DEE6]">
-            {[['section', 'section'], ['person', 'person'], ['status', 'status']].map(([value, label]) => (
+            {[['task', 'task'], ['person', 'person'], ['status', 'status']].map(([value, label]) => (
               <button key={value} type="button" role="radio" aria-checked={groupBy === value} onClick={() => setGroupBy(value)} className={`h-8 px-3 text-xs font-medium transition ${groupBy === value ? 'bg-[#35475C] text-white' : 'text-[#33445A] hover:bg-[#EEF1F4]'}`}>{groupLabels[value]}</button>
             ))}
           </div>
@@ -316,14 +316,14 @@ const TasksTab = ({
             ) : <p className="text-sm text-[#4F5F73]">No unclaimed subtasks right now.</p>}
           </section>
 
-          <section className="space-y-2" aria-labelledby="sections">
-            <h4 className="text-sm font-semibold text-[#1F2D3D] mb-2">Sections</h4>
-            {sections.length ? (
-              sections.map((section) => (
-                <TaskGroup key={section.sectionId} title={section.title} tasks={section.tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={reload} collapsible={groupBy === 'section'} />
+          <section className="space-y-2" aria-labelledby="tasks">
+            <h4 className="text-sm font-semibold text-[#1F2D3D] mb-2">Tasks</h4>
+            {taskGroups.length ? (
+              taskGroups.map((group) => (
+                <TaskGroup key={group.sectionId} title={group.title} tasks={group.tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={reload} collapsible={groupBy === 'task'} />
               ))
             ) : (
-              <p className="text-sm text-[#4F5F73]">No sections yet. Add one to start the plan.</p>
+              <p className="text-sm text-[#4F5F73]">No tasks yet. Add one to start the plan.</p>
             )}
           </section>
         </div>

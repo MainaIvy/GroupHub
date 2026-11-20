@@ -4,7 +4,7 @@ import { WEIGHT_SCALE } from '../../taskWeights';
 
 const field = 'mt-1 h-10 w-full rounded-lg border border-[#CBD5E1] bg-white px-3 text-[15px] text-[#1F2D3D]';
 
-// Proposes a section or subtask. The leader approves it afterwards.
+// Proposes a task or subtask. The leader approves it afterwards.
 const ProposeTaskModal = ({ parent, projects, busy, error, onSubmit, onClose }) => {
   const [form, setForm] = useState({
     title: '',
@@ -28,13 +28,13 @@ const ProposeTaskModal = ({ parent, projects, busy, error, onSubmit, onClose }) 
     if (result?.ok) onClose();
   };
 
-  const heading = parent ? `Add a subtask to “${parent.title}”` : 'Add a section';
+  const heading = parent ? `Add a subtask to “${parent.title}”` : 'Add a task';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1F2D3D]/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <form onSubmit={submit} role="dialog" aria-modal="true" aria-label={heading} className="w-full max-w-md space-y-3 rounded-xl bg-white p-6 shadow-xl">
         <h3 className="text-lg font-bold text-[#1F2D3D]">{heading}</h3>
-        <p className="text-sm text-[#4F5F73]">{parent ? 'Break this section into a concrete piece of work. The leader approves it and sets who does it.' : 'Add a new section to the plan. The leader approves it and it can be split into subtasks.'}</p>
+        <p className="text-sm text-[#4F5F73]">{parent ? 'Break this task into a concrete piece of work. The leader approves it and sets who does it.' : 'Add a new task to the plan. The leader approves it and it can be split into subtasks.'}</p>
         <label className="block text-sm font-medium text-[#33445A]">Title
           <input required autoFocus maxLength={120} value={form.title} onChange={update('title')} className={field} />
         </label>
@@ -59,7 +59,7 @@ const ProposeTaskModal = ({ parent, projects, busy, error, onSubmit, onClose }) 
         {error ? <p role="alert" className="text-sm font-medium text-red-700">{error}</p> : null}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>
-          <button type="submit" disabled={busy || !form.title.trim() || !form.dueDate} className={btnPrimary}>{busy ? 'Saving…' : (parent ? 'Add subtask' : 'Add section')}</button>
+          <button type="submit" disabled={busy || !form.title.trim() || !form.dueDate} className={btnPrimary}>{busy ? 'Saving…' : (parent ? 'Add subtask' : 'Add task')}</button>
         </div>
       </form>
     </div>

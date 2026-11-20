@@ -19,7 +19,7 @@ const SubmissionTab = ({ ctx }) => {
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-[#E3EAF2] bg-[#EEF1F4] px-3 py-2 text-[12px] font-medium text-[#2F4A66]">
           <Clock size={14} aria-hidden="true" />
-          <span>{sectionsDone} of {sectionsTotal} sections complete</span>
+          <span>{sectionsDone} of {sectionsTotal} tasks complete</span>
         </div>
       </div>
 
@@ -28,7 +28,7 @@ const SubmissionTab = ({ ctx }) => {
           <div className="flex items-start gap-2">
             <AlertTriangle size={16} className="mt-0.5 text-[#2F4A66]" aria-hidden="true" />
             <div className="min-w-0">
-              <p className="text-sm text-[#2F4A66]">{compile.lock_reason || 'Compile and edit is locked until all sections are complete.'}</p>
+              <p className="text-sm text-[#2F4A66]">{compile.lock_reason || 'Compile and edit is locked until all tasks are complete.'}</p>
               {compile.ready_to_combine && compile.can_override && <p className="mt-1 text-xs text-[#35475C]">The group leader can override with a reason.</p>}
             </div>
           </div>
@@ -37,7 +37,7 @@ const SubmissionTab = ({ ctx }) => {
         <article className="rounded-lg border border-[#D7DEE6] bg-white p-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 size={16} className="text-[#2F4A66]" aria-hidden="true" />
-            <p className="text-sm text-[#1F2D3D]">All sections are done. “Compile and edit” is unlocked.</p>
+            <p className="text-sm text-[#1F2D3D]">All tasks are done. “Compile and edit” is unlocked.</p>
           </div>
         </article>
       )}
