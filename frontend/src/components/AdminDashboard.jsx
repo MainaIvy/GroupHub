@@ -654,7 +654,6 @@ export default function AdminDashboard() {
 function SettingsManager({ values, onReload }) {
   const [form, setForm] = useState({
     allowed_email_domain: '',
-    default_group_size: '',
     balance_thresholds_warning: '',
     balance_thresholds_critical: '',
     minimum_points: '',
@@ -673,7 +672,6 @@ function SettingsManager({ values, onReload }) {
     if (!values) return;
     const next = {
       allowed_email_domain: values.allowed_email_domain?.value ?? '',
-      default_group_size: String(values.default_group_size?.value ?? ''),
       balance_thresholds_warning: String(values.balance_thresholds?.warning?.value ?? ''),
       balance_thresholds_critical: String(values.balance_thresholds?.critical?.value ?? ''),
       minimum_points: String(values.minimum_points?.value ?? ''),
@@ -699,9 +697,6 @@ function SettingsManager({ values, onReload }) {
     if (!f.allowed_email_domain || !f.allowed_email_domain.includes('@')) {
       newErrors.allowed_email_domain = 'Enter a valid domain (e.g. zetech.ac.ke).';
     }
-
-    const dgs = parseInt(f.default_group_size);
-    if (isNaN(dgs) || dgs < 1 || dgs > 12) newErrors.default_group_size = 'Must be 1–12.';
 
     const btWarn = parseInt(f.balance_thresholds_warning);
     const btCrit = parseInt(f.balance_thresholds_critical);
@@ -734,7 +729,6 @@ function SettingsManager({ values, onReload }) {
     try {
       const payload = {
         allowed_email_domain: form.allowed_email_domain,
-        default_group_size: parseInt(form.default_group_size),
         balance_thresholds: {
           warning: parseInt(form.balance_thresholds_warning),
           critical: parseInt(form.balance_thresholds_critical),
@@ -800,10 +794,8 @@ function SettingsManager({ values, onReload }) {
     {
       id: 'groups',
       title: 'Groups',
-      fields: [
-        { key: 'default_group_size', label: 'Default group size', type: 'number', unit: 'members', min: 1, max: 12, help: 'Default maximum members per new group.' },
-      ],
-      metaKey: 'default_group_size',
+      fields: [],
+      emptyMessage: 'Group size is set per-group when creating or editing a group.',
     },
     {
       id: 'workload',

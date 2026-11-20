@@ -585,7 +585,6 @@ def admin_import_catalog(request):
 
 SETTING_SCHEMA = {
     'allowed_email_domain': {'type': 'str', 'default': 'zetech.ac.ke'},
-    'default_group_size': {'type': 'int', 'min': 1, 'max': 12, 'default': 5},
     'balance_thresholds': {'type': 'dict', 'fields': {
         'warning': {'type': 'int', 'min': 0, 'max': 100, 'default': 15},
         'critical': {'type': 'int', 'min': 0, 'max': 100, 'default': 25},
@@ -598,7 +597,6 @@ SETTING_SCHEMA = {
 
 SETTING_HELP = {
     'allowed_email_domain': 'Only emails ending with this domain can register.',
-    'default_group_size': 'Default maximum members per new group.',
     'balance_thresholds_warning': 'Group balance warning threshold (%).',
     'balance_thresholds_critical': 'Group balance critical threshold (%).',
     'minimum_points': 'Minimum points a student needs to join a group.',
