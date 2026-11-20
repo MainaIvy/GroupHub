@@ -155,7 +155,7 @@ const GroupWorkspace = ({ ctx }) => {
             onCreateTask={() => setProposeFor(null)}
             onEditTask={(task) => setEditingTask(task)}
             onDeleteTask={(task) => actions.deleteTask(task)}
-            onAddSubtask={(section) => setProposeFor(section)}
+            onAddSubtask={(task) => setProposeFor(task)}
             onCreateProject={() => ctx.setProjectModal({})}
             onGoSubmission={() => goTab('submission')}
             reload={data.reload}
