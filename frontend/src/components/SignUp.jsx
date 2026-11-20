@@ -116,7 +116,7 @@ const SignUp = () => {
     studentId: '',
     course: '',
     agreeToTerms: false,
-    securityQuestions: [],
+    securityQuestions: [{ question: '', answer: '' }],
   });
 
   const [formData, setFormData] = useState(emptyForm);
