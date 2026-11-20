@@ -361,83 +361,71 @@ export default function LecturerDashboard() {
     );
 
   return (
-    <div className="lecturer-root min-h-screen bg-[#E4E9EF] text-[#33445A] dark:bg-[#0B1120] dark:text-[#E8EEF9]">
+    <div className="lecturer-root min-h-screen bg-[#E4E9EF] text-[#33445A]">
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside
-          className={`fixed inset-y-0 left-0 z-30 w-[260px] transform border-r border-[#E3E9F2] bg-white p-5 transition-transform dark:border-[#1E2940] dark:bg-[#121A2D] md:static md:translate-x-0 ${mobile ? "translate-x-0" : "-translate-x-full"}`}
-        >
-          <div className="flex h-full flex-col">
-            <div className="mb-8 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6DB6E6] text-white">
-                  <BookOpen size={20} />
-                </div>
-                <b className="text-xl font-bold text-[#0F3D6E] dark:text-white">
-                  GroupHub
-                </b>
-              </div>
-              <button onClick={() => setMobile(false)} className="md:hidden">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-1">
-              {tabs.map(([id, label, icon]) => (
+        <aside className="z-30 flex shrink-0 flex-col bg-[#35475C] px-4 py-2 text-white shadow-[4px_0_24px_rgba(53,71,92,0.10)] lg:fixed lg:inset-y-0 lg:left-0 lg:h-full lg:w-64 lg:p-6">
+          <div className="px-2 py-2 lg:py-4">
+            <div className="text-lg font-bold leading-tight">GroupHub</div>
+            <p className="text-sm text-[#D7DEE6]">Lecturer workspace</p>
+          </div>
+          <nav aria-label="Lecturer navigation" className="mt-2 grid grid-cols-3 gap-1 lg:mt-6 lg:block lg:space-y-1">
+            {tabs.map(([id, label, icon]) => {
+              const active = tab === id;
+              const Icon = icon;
+              return (
                 <button
                   key={id}
+                  type="button"
+                  aria-current={active ? 'page' : undefined}
                   onClick={() => {
                     setTab(id);
                     setMobile(false);
                   }}
-                  className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${tab === id ? "bg-[#6DB6E6] text-white shadow-md" : "text-[#6B7A90] hover:bg-[#EEF3FA] dark:hover:bg-[#1E2940]"}`}
+                  className={`flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold transition-colors lg:justify-between lg:px-4 ${
+                    active ? 'bg-[#DFE6EE] text-[#35475C]' : 'text-[#E2E8F0] hover:bg-white/10 hover:text-white'
+                  }`}
                 >
-                  {React.createElement(icon, { size: 18 })}
-                  {label}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Icon size={18} />
+                    <span className="truncate">{label}</span>
+                  </span>
                 </button>
-              ))}
-            </div>
-          </div>
+              );
+            })}
+          </nav>
         </aside>
 
         {/* Main Content */}
-        <div className="min-w-0 flex-1 flex flex-col h-screen overflow-hidden">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-64">
           {/* Header */}
-          <header className="flex items-center justify-between border-b border-[#E3E9F2] bg-white px-6 py-3 dark:border-[#1E2940] dark:bg-[#121A2D]">
-            <div className="flex items-center gap-4 flex-1">
-              <button onClick={() => setMobile(true)} className="md:hidden">
-                <Menu size={22} />
-              </button>
-              <div className="relative w-full max-w-md hidden md:block">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A97AF]"
-                  size={18}
-                />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search..."
-                  className="w-full rounded-full border border-[#E3E9F2] bg-[#F4F7FC] py-2.5 pl-10 pr-4 text-sm outline-none dark:border-[#1E2940] dark:bg-[#0B1120]"
-                />
-              </div>
+          <header className="sticky top-0 z-20 flex min-h-16 flex-wrap items-center justify-between gap-4 border-b border-[#D7DEE6] bg-white px-4 py-2 sm:px-6 lg:px-8">
+            <div className="relative w-full max-w-sm" data-popover-root>
+              <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#4F5F73]" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search groups, tasks and units"
+                aria-label="Search groups, tasks and units"
+                className="h-10 w-full rounded-lg border border-[#D7DEE6] bg-[#F4F7FA] pl-9 pr-3 text-sm text-[#1F2D3D] outline-none placeholder:text-[#4F5F73] focus:border-[#4A6079]"
+              />
             </div>
-
-            <div className="flex items-center gap-6">
-              {/* Notifications */}
+            <div className="ml-auto flex items-center gap-2">
               <div className="relative" ref={notifRef}>
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative rounded-full p-2 text-[#6B7A90] hover:bg-[#F4F7FC] transition-colors dark:hover:bg-[#1E2940]"
+                  className="relative rounded-full p-2 text-[#6B7A90] hover:bg-[#F4F7FC] transition-colors"
                 >
                   <Bell size={20} />
                   {pending.length > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border-2 border-white dark:border-[#121A2D]"></span>
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
                   )}
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[#E3E9F2] bg-white p-2 shadow-lg dark:border-[#1E2940] dark:bg-[#121A2D] z-50">
-                    <div className="flex justify-between items-center p-3 border-b border-[#E3E9F2] dark:border-[#1E2940]">
+                  <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[#D7DEE6] bg-white p-2 shadow-xl z-50">
+                    <div className="flex justify-between items-center p-3 border-b border-[#D7DEE6]">
                       <h3 className="font-bold text-sm">Notifications</h3>
                       <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
                         {pending.length} new
@@ -452,19 +440,19 @@ export default function LecturerDashboard() {
                               openSubmission(sub);
                               setShowNotifications(false);
                             }}
-                            className="w-full text-left p-3 hover:bg-[#F4F7FC] dark:hover:bg-[#1E2940] border-b border-[#E3E9F2] dark:border-[#1E2940] last:border-0 transition-colors"
+                            className="w-full text-left p-3 hover:bg-[#EEF1F4] border-b border-[#D7DEE6] last:border-0 transition-colors"
                           >
-                            <p className="text-sm font-semibold text-[#0F3D6E] dark:text-white">
+                            <p className="text-sm font-semibold text-[#1F2D3D]">
                               {sub.project_title}
                             </p>
-                            <p className="text-xs text-[#6B7A90] mt-1">
+                            <p className="text-xs text-[#4F5F73] mt-1">
                               Submitted by{" "}
                               {sub.submitted_by || sub.submitted_by_name}
                             </p>
                           </button>
                         ))
                       ) : (
-                        <p className="p-4 text-center text-sm text-[#6B7A90]">
+                        <p className="p-4 text-center text-sm text-[#4F5F73]">
                           No new notifications
                         </p>
                       )}
@@ -473,18 +461,17 @@ export default function LecturerDashboard() {
                 )}
               </div>
 
-              {/* Profile */}
-              <div className="relative flex items-center gap-3 pl-6 border-l border-[#E3E9F2] dark:border-[#1E2940]">
+              <div className="relative flex items-center gap-3 pl-4 border-l border-[#D7DEE6]">
                 <div className="text-right hidden sm:block">
                   <p className="text-xs text-[#4F5F73]">{greeting()}</p>
-                  <p className="text-sm font-bold text-[#0F3D6E] dark:text-white">
+                  <p className="text-sm font-bold text-[#1F2D3D]">
                     {user?.first_name} {user?.last_name}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowProfileMenu((current) => !current)}
-                  className="h-10 w-10 overflow-hidden rounded-full bg-[#E8F3FB] border-2 border-white shadow-sm flex items-center justify-center font-bold text-[#0F3D6E]"
+                  className="h-10 w-10 overflow-hidden rounded-full bg-[#E8F3FB] border-2 border-white shadow-sm flex items-center justify-center font-bold text-[#35475C]"
                   aria-label="Open profile menu"
                   aria-expanded={showProfileMenu}
                 >
