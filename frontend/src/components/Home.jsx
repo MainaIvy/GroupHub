@@ -75,21 +75,13 @@ const Home = () => {
               Organize course units, form project groups, assign tasks, track progress, and submit proof of work — all in one place for students and lecturers.
             </p>
 
-            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-4 items-center justify-center">
+            <div className="mt-8 sm:mt-10 flex justify-center">
               <a
                 href="/signup"
-                className="w-full sm:w-auto inline-flex items-center justify-center bg-[#1F4E79] text-white px-8 py-3.5 rounded-xl text-base sm:text-lg font-semibold hover:bg-[#173d5d] transition-colors duration-200 shadow-none"
+                className="inline-flex items-center justify-center bg-[#1F4E79] text-white px-8 py-3.5 rounded-xl text-base sm:text-lg font-semibold hover:bg-[#173d5d] transition-colors duration-200 shadow-none"
               >
                 Get Started Free
               </a>
-
-              <button
-                type="button"
-                className="w-full sm:w-auto inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#26303B] px-8 py-3.5 rounded-xl text-base sm:text-lg font-semibold hover:bg-[#f3f4f6] transition-colors duration-200 shadow-sm"
-                onClick={() => { window.location.href = '/signup'; }}
-              >
-                Join a Unit
-              </button>
             </div>
           </div>
         </div>
