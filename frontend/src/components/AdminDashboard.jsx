@@ -679,7 +679,12 @@ function AssignmentManager({ data, onAction, onReload }) {
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState('');
+  const [unassignedPage, setUnassignedPage] = useState(1);
+  const [unassignedPageSize, setUnassignedPageSize] = useState(20);
   const units = data.catalog?.units || [];
+  const unassigned = data.unassigned || [];
+  const unassignedStart = (unassignedPage - 1) * unassignedPageSize;
+  const unassignedPageRows = unassigned.slice(unassignedStart, unassignedStart + unassignedPageSize);
   const addAssignment = (event) => {
     event.preventDefault();
     onAction(`${API_BASE}/api/accounts/admin/assignments/`, {
@@ -870,13 +875,82 @@ function AssignmentManager({ data, onAction, onReload }) {
       {renderLoadCards(data.lecturers)}
 
       <Panel title="Units with no lecturer">
-        <div className="flex flex-wrap gap-2">
-          {(data.unassigned || []).map((unit) => (
-            <span key={unit.id} className="rounded-full bg-[#ECF0F1] px-3 py-1 text-xs font-semibold text-[#1A1A1A]">
-              {unit.code} · {unit.course__name}
-            </span>
-          ))}
-          {!(data.unassigned || []).length && <p className="text-sm text-[#666666]">Every unit has a lecturer.</p>}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm font-medium text-[#1A1A1A]">{data.unassigned?.length ?? 0} unassigned unit(s)</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#666666]">Page size:</span>
+              <select
+                value={unassignedPageSize}
+                onChange={(e) => {
+                  setUnassignedPageSize(Number(e.target.value));
+                  setUnassignedPage(1);
+                }}
+                className="rounded-xl border border-[#CCCCCC] bg-white px-3 py-1.5 text-sm text-[#1A1A1A] outline-none focus:border-[#2C3E50]"
+              >
+                <option value="20">20</option>
+                <option value="100">100</option>
+                <option value="500">500</option>
+                <option value="1000">1000</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-[#DDDDDD] bg-white">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
+                  <th className="px-4 py-3">Code</th>
+                  <th className="px-4 py-3">Unit Name</th>
+                  <th className="px-4 py-3">Programme</th>
+                  <th className="px-4 py-3">Year</th>
+                  <th className="px-4 py-3">Semester</th>
+                  <th className="px-4 py-3">Academic Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unassignedPageRows.map((unit) => (
+                  <tr key={unit.id} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
+                    <td className="px-4 py-3 font-mono text-[#1A1A1A]">{unit.code}</td>
+                    <td className="px-4 py-3">{unit.name}</td>
+                    <td className="px-4 py-3">{unit.course__name || '—'}</td>
+                    <td className="px-4 py-3">{unit.year_of_study}</td>
+                    <td className="px-4 py-3">{unit.semester}</td>
+                    <td className="px-4 py-3">{unit.academic_level || '—'}</td>
+                  </tr>
+                ))}
+                {unassigned.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-10 text-center text-[#666666]">Every unit has a lecturer.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {(data.unassigned || []).length > unassignedPageSize && (
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setUnassignedPage((p) => Math.max(p - 1, 1))}
+                disabled={unassignedPage === 1}
+                className="rounded-xl border border-[#CCCCCC] bg-white px-4 py-2 text-sm text-[#1A1A1A] disabled:opacity-50 disabled:pointer-events-none transition hover:bg-[#F5F5F7]"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-[#666666]">
+                Page {unassignedPage} of {Math.ceil((data.unassigned?.length || 0) / unassignedPageSize)}
+              </span>
+              <button
+                type="button"
+                onClick={() => setUnassignedPage((p) => p + 1)}
+                disabled={unassignedPage * unassignedPageSize >= (data.unassigned?.length || 0)}
+                className="rounded-xl border border-[#CCCCCC] bg-white px-4 py-2 text-sm text-[#1A1A1A] disabled:opacity-50 disabled:pointer-events-none transition hover:bg-[#F5F5F7]"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </Panel>
 
