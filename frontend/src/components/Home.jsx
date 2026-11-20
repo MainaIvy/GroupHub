@@ -86,8 +86,9 @@ const Home = () => {
               <button
                 type="button"
                 className="w-full sm:w-auto inline-flex items-center justify-center bg-white border border-[#e5e7eb] text-[#26303B] px-8 py-3.5 rounded-xl text-base sm:text-lg font-semibold hover:bg-[#f3f4f6] transition-colors duration-200 shadow-sm"
+                onClick={() => { window.location.href = '/signup'; }}
               >
-                Watch Demo
+                Join a Unit
               </button>
             </div>
           </div>
