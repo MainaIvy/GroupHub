@@ -78,9 +78,6 @@ const MyTasks = ({ ctx }) => {
   }, [filteredTasks]);
 
   const totalTasks = filteredTasks.length;
-  const completedCount = filteredTasks.filter(t => String(t.status).toLowerCase() === 'completed').length;
-  const pendingCount = filteredTasks.filter(t => String(t.status).toLowerCase() === 'pending').length;
-  const inProgressCount = filteredTasks.filter(t => String(t.status).toLowerCase() === 'in_progress').length;
 
   const groupsWithTasks = useMemo(() => {
     const groupIds = new Set(allTasks.map(t => t.group_id).filter(Boolean));
@@ -176,7 +173,6 @@ const MyTasks = ({ ctx }) => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-bold text-[#1F2D3D]">My tasks</h2>
-          <p className="mt-1 text-sm text-[#4F5F73]">{totalTasks} tasks across {groupsWithTasks.length} groups · {completedCount} done, {inProgressCount} in progress, {pendingCount} pending</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
