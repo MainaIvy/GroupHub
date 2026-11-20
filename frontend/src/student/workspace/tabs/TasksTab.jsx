@@ -52,7 +52,10 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
           <div className="flex items-center gap-2">
             <h4 className="font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
             {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final task</span> : null}
-            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)}`}>
+            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)} cursor-pointer hover:opacity-80 transition-colors`} onClick={(isLeader || isAssignee) && !compileLocked ? () => {
+              const next = task.board_status === 'completed' ? 'todo' : task.board_status === 'todo' ? 'in_progress' : 'completed';
+              actions.setStatus(task, next);
+            } : undefined}>
               {statusLabel}
             </span>
             {task.is_overdue && <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700">Overdue</span>}
@@ -91,7 +94,10 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
                           {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusChip(subtask.board_status)}`}>
+                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusChip(subtask.board_status)} cursor-pointer hover:opacity-80 transition-colors`} onClick={() => {
+                        const next = subtask.board_status === 'completed' ? 'todo' : subtask.board_status === 'todo' ? 'in_progress' : 'completed';
+                        actions.setStatus(subtask, next);
+                      }}>
                         {subStatusLabel}
                       </span>
                     </div>
