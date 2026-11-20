@@ -68,11 +68,11 @@ const Home = () => {
         <div className="relative z-10 w-full py-16">
           <div className="mx-auto max-w-3xl px-4 text-center text-white">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
-              Built for Student Teams
+              Built for Group Projects
             </h1>
 
             <p className="mt-4 sm:mt-5 text-base sm:text-lg md:text-xl text-slate-200 leading-relaxed max-w-2xl mx-auto">
-              From group assignments to final submission—manage projects, track progress, and collaborate effortlessly.
+              Organize course units, form project groups, assign tasks, track progress, and submit proof of work — all in one place for students and lecturers.
             </p>
 
             <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-4 items-center justify-center">
@@ -101,23 +101,23 @@ const Home = () => {
             {[
               {
                 icon: <Users size={40} className="text-[#9A694E]" />,
-                title: 'Organize Projects',
-                description: 'Keep all your group projects in one place'
+                title: 'Form Project Groups',
+                description: 'Create or join groups for your course units and units'
               },
               {
                 icon: <BarChart3 size={40} className="text-[#2C5D7C]" />,
-                title: 'Track Progress',
-                description: 'Monitor tasks and deadlines effortlessly'
+                title: 'Track Task Progress',
+                description: 'Manage tasks, deadlines, and compile gating per group'
               },
               {
                 icon: <MessageCircle size={40} className="text-[#4A7C59]" />,
-                title: 'Collaborate Easily',
-                description: 'Chat and share ideas with your team'
+                title: 'Team Chat',
+                description: 'Discuss and share files with your project group'
               },
               {
                 icon: <Upload size={40} className="text-[#7B5E3A]" />,
-                title: 'Never Miss Deadlines',
-                description: 'Get reminders and stay on track'
+                title: 'Submit Proof of Work',
+                description: 'Attach files and show your contributions to lecturers'
               }
             ].map((feature, index) => (
               <div key={index} className="bg-white p-7 rounded-2xl border border-[#e5e7eb] shadow-sm text-center">
@@ -137,18 +137,18 @@ const Home = () => {
             {[
               {
                 number: '1️⃣',
-                title: 'Create or join a group',
-                description: 'Start collaborating with your classmates'
+                title: 'Join your course unit',
+                description: 'Enroll in your units and see your assigned groups'
               },
               {
                 number: '2️⃣',
-                title: 'Add your projects and tasks',
-                description: 'Organize everything in one place'
+                title: 'Form or join a project group',
+                description: 'Start collaborating with your classmates on group assignments'
               },
               {
                 number: '3️⃣',
-                title: 'Collaborate and track progress',
-                description: 'Work together and stay on top of deadlines'
+                title: 'Assign tasks and submit work',
+                description: 'Track progress and submit proof of work for review'
               }
             ].map((step, index) => (
               <div key={index} className="text-center p-4">
@@ -163,12 +163,12 @@ const Home = () => {
 
       <section className="py-20 bg-[#26303B] text-white border-b border-[#1d2630]/80">
         <div className="container mx-auto px-4 text-center max-w-2xl">
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
-            Ready to streamline your group work?
-          </h2>
-          <p className="text-[#dfe7ef] mb-8 text-base sm:text-lg">
-            Say goodbye to disorganized WhatsApp threads and lost files.
-          </p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
+              Ready to streamline your group work?
+            </h2>
+            <p className="text-[#dfe7ef] mb-8 text-base sm:text-lg">
+              Say goodbye to disorganized WhatsApp threads, lost files, and untracked group contributions.
+            </p>
           <a
             href="/signup"
             className="inline-flex items-center justify-center bg-[#1F4E79] text-white px-8 py-3.5 rounded-xl font-semibold text-lg hover:bg-[#173d5d] transition-colors duration-200 shadow-none"
