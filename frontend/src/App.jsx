@@ -89,6 +89,14 @@ function App() {
           }
         />
         <Route
+          path="/student/tasks"
+          element={
+            <ProtectedStudentRoute>
+              <StudentDashboard />
+            </ProtectedStudentRoute>
+          }
+        />
+        <Route
           path="/student-dashboard"
           element={
             <ProtectedStudentRoute>
