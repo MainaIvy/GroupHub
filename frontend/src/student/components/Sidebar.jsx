@@ -1,5 +1,6 @@
 import React from 'react';
-import { BookOpen, CheckCircle2, LayoutDashboard, MessageSquare, Settings, UsersRound } from 'lucide-react';
+import logo from '../../assets/images/GROUPHUBLOGO.png';
+import { BookOpen, CheckCircle2, LayoutDashboard, LogOut, MessageSquare, Settings, UsersRound } from 'lucide-react';
 
 const TABS = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -13,14 +14,16 @@ const TABS = [
 const Sidebar = ({ ctx }) => {
   const { activeTab, setActiveTab, setChatGroupId, notif } = ctx;
   const current = activeTab === 'group-detail' ? 'groups' : activeTab;
+  const user = ctx.user;
 
   return (
-    <aside className="z-30 flex w-full shrink-0 flex-col bg-[#35475C] px-4 py-2 text-white shadow-[4px_0_24px_rgba(53,71,92,0.10)] lg:fixed lg:inset-y-0 lg:left-0 lg:h-full lg:w-64 lg:p-6">
+    <aside className="z-30 flex w-full shrink-0 flex-col bg-[#35475C] text-white shadow-[4px_0_24px_rgba(53,71,92,0.10)] lg:fixed lg:inset-y-0 lg:left-0 lg:h-full lg:w-64 lg:p-6">
       <div className="px-2 py-2 lg:py-4">
-        <div className="text-lg font-bold leading-tight">GroupHub</div>
+        <img src={logo} alt="GroupHub Logo" className="h-8 w-auto mb-1" />
         <p className="text-sm text-[#D7DEE6]">Student workspace</p>
       </div>
-      <nav aria-label="Student navigation" className="mt-2 grid grid-cols-3 gap-1 lg:mt-6 lg:block lg:space-y-1">
+
+      <nav aria-label="Student navigation" className="mt-2 flex-1 grid grid-cols-3 gap-1 lg:mt-6 lg:block lg:space-y-1 overflow-y-auto">
         {TABS.map((tab) => {
           const badge = tab.id === 'chat' ? notif?.messageUnread : 0;
           const active = current === tab.id;
@@ -50,6 +53,33 @@ const Sidebar = ({ ctx }) => {
           );
         })}
       </nav>
+
+      <div className="mt-auto border-t border-[#5A7188] pt-4">
+        <div className="px-2 lg:px-4 pb-2">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-8 w-8 rounded-full bg-[#DFE6EE] flex items-center justify-center text-[#35475C] font-bold text-xs">
+              {user?.firstName?.[0] || user?.email?.[0] || 'U'}{user?.lastName?.[0] || ''}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-white truncate">{user?.firstName || ''} {user?.lastName || ''}</p>
+              <p className="text-[10px] text-[#B8C6D6] truncate">{user?.email || ''}</p>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.removeItem('user');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/login';
+          }}
+          className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#FCA5A5] hover:bg-red-500/10 transition-colors"
+        >
+          <LogOut size={16} strokeWidth={1.8} />
+          <span>Sign out</span>
+        </button>
+      </div>
     </aside>
   );
 };

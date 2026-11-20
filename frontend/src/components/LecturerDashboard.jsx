@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState, useRef } from "react";
+import logo from "../assets/images/GROUPHUBLOGO.png";
 import dayjs from 'dayjs';
 import axios from "axios";
 import { API_BASE } from "../apiConfig";
@@ -365,11 +366,11 @@ export default function LecturerDashboard() {
       <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside className="z-30 flex shrink-0 flex-col bg-[#35475C] px-4 py-2 text-white shadow-[4px_0_24px_rgba(53,71,92,0.10)] lg:fixed lg:inset-y-0 lg:left-0 lg:h-full lg:w-64 lg:p-6">
-          <div className="px-2 py-2 lg:py-4">
-            <div className="text-lg font-bold leading-tight">GroupHub</div>
-            <p className="text-sm text-[#D7DEE6]">Lecturer workspace</p>
-          </div>
-          <nav aria-label="Lecturer navigation" className="mt-2 grid grid-cols-3 gap-1 lg:mt-6 lg:block lg:space-y-1">
+            <div className="px-2 py-2 lg:py-4">
+              <img src={logo} alt="GroupHub Logo" className="h-8 w-auto mb-1" />
+              <p className="text-sm text-[#D7DEE6]">Lecturer workspace</p>
+            </div>
+          <nav aria-label="Lecturer navigation" className="mt-2 flex-1 grid grid-cols-3 gap-1 lg:mt-6 lg:block lg:space-y-1 overflow-y-auto">
             {tabs.map(([id, label, icon]) => {
               const active = tab === id;
               const Icon = icon;
@@ -394,6 +395,28 @@ export default function LecturerDashboard() {
               );
             })}
           </nav>
+
+          <div className="mt-auto border-t border-[#5A7188] pt-4">
+            <div className="px-2 lg:px-4 pb-2">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-8 w-8 rounded-full bg-[#DFE6EE] flex items-center justify-center text-[#35475C] font-bold text-xs">
+                  {user?.first_name?.[0] || user?.email?.[0] || 'L'}{user?.last_name?.[0] || ''}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-white truncate">{user?.first_name || ''} {user?.last_name || ''}</p>
+                  <p className="text-[10px] text-[#B8C6D6] truncate">{user?.email || ''}</p>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#FCA5A5] hover:bg-red-500/10 transition-colors"
+            >
+              <LogOut size={16} strokeWidth={1.8} />
+              <span>Sign out</span>
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}
