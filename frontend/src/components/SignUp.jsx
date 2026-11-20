@@ -701,7 +701,7 @@ const SignUp = () => {
             <>
               <h2 className="text-base font-semibold text-[#1F2D3D] mb-4">Security questions</h2>
               <p className="text-sm text-[#4F5F73] mb-6">
-                Choose security questions and answers. You will need to answer these to reset your password if you forget it.
+                Choose at least 2 security questions and answers. You will need these to reset your password if you forget it.
               </p>
               <div className="space-y-3">
                 {(formData.securityQuestions || []).map((sq, idx) => (
