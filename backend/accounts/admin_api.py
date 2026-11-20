@@ -1007,12 +1007,18 @@ def lecturer_setup(request):
 @permission_classes(admin_permissions)
 def admin_roster_template(request):
     """Download CSV template for lecturer roster import."""
+    include_existing = request.query_params.get('include_existing', 'false').lower() == 'true'
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="lecturer_roster_template.csv"'
     writer = csv.writer(response)
-    writer.writerow(['lecturer_email', 'full_name', 'department', 'programme_code', 'unit_code', 'staff_id'])
-    writer.writerow(['john.doe@zetech.ac.ke', 'John Doe', 'Computer Science', 'BSCS', 'BCU101', 'CS1234'])
-    writer.writerow(['jane.smith@zetech.ac.ke', 'Jane Smith', 'Engineering', 'BSE', 'BEE201', 'ENG5678'])
+    writer.writerow(['lecturer_email', 'full_name', 'staff_id'])
+    if include_existing:
+        existing = LecturerRoster.objects.all()
+        for entry in existing:
+            writer.writerow([entry.email, entry.full_name, entry.staff_id or ''])
+    else:
+        writer.writerow(['john.doe@zetech.ac.ke', 'John Doe', 'CS1234'])
+        writer.writerow(['jane.smith@zetech.ac.ke', 'Jane Smith', 'ENG5678'])
     return response
 
 
@@ -1182,32 +1188,26 @@ def admin_roster_import_preview(request):
     else:
         return Response({'error': 'File must be CSV or XLSX.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    required_columns = ['lecturer_email', 'full_name', 'department', 'programme_code']
+    required_columns = ['lecturer_email', 'full_name', 'staff_id']
     missing_cols = [col for col in required_columns if col not in (rows[0] if rows else {})]
     if missing_cols:
         return Response({'error': f'Missing required columns: {", ".join(missing_cols)}'}, status=status.HTTP_400_BAD_REQUEST)
 
     matched_rows = []
     errors = []
-    unknown_programmes = set()
-    unknown_units = set()
     duplicates = []
     new_lecturers = []
     existing_lecturers = []
-    rows_without_programme = []
 
     seen_emails = set()
     for idx, row in enumerate(rows):
         row_num = idx + 2
         email = str(row.get('lecturer_email', '')).strip().lower()
         full_name = str(row.get('full_name', '')).strip()
-        department = str(row.get('department', '')).strip()
-        programme_code = str(row.get('programme_code', '')).strip().upper()
-        unit_code = str(row.get('unit_code', '')).strip().upper() if row.get('unit_code') else ''
         staff_id = str(row.get('staff_id', '')).strip().upper() if row.get('staff_id') else ''
 
-        if not email or not full_name or not department:
-            errors.append({'row': row_num, 'error': 'Missing required fields: lecturer_email, full_name, department'})
+        if not email or not full_name:
+            errors.append({'row': row_num, 'error': 'Missing required fields: lecturer_email, full_name'})
             continue
 
         if email in seen_emails:
@@ -1215,46 +1215,16 @@ def admin_roster_import_preview(request):
             continue
         seen_emails.add(email)
 
-        if not programme_code:
-            rows_without_programme.append({'row': row_num, 'email': email})
-            errors.append({'row': row_num, 'error': 'Missing programme_code'})
-            continue
-
-        course = Course.objects.filter(code__iexact=programme_code).first()
-        if not course:
-            unknown_programmes.add(programme_code)
-            errors.append({'row': row_num, 'error': f'Unknown programme code: {programme_code}'})
-            continue
-
-        unit = None
-        if unit_code:
-            unit = Unit.objects.filter(code__iexact=unit_code, course=course).first()
-            if not unit:
-                unknown_units.add(f'{programme_code}:{unit_code}')
-                errors.append({'row': row_num, 'error': f'Unknown unit code: {unit_code} for programme {programme_code}'})
-                continue
-
         roster_entry = LecturerRoster.objects.filter(email=email).first()
         is_new = roster_entry is None
-
-        if unit:
-            units_for_programme = 1
-        else:
-            units_for_programme = Unit.objects.filter(course=course).count()
 
         matched_rows.append({
             'row': row_num,
             'email': email,
             'full_name': full_name,
-            'department': department,
-            'programme_code': programme_code,
-            'programme_name': course.name,
-            'unit_code': unit_code,
-            'unit_name': unit.name if unit else 'All units in programme',
             'staff_id': staff_id,
             'is_new_lecturer': is_new,
             'existing_roster_status': roster_entry.status if roster_entry else None,
-            'units_affected': units_for_programme,
         })
 
         if is_new:
@@ -1271,12 +1241,9 @@ def admin_roster_import_preview(request):
             'total': len(rows),
             'valid': len(matched_rows),
             'errors': len(errors),
-            'unknown_programmes': list(unknown_programmes),
-            'unknown_units': list(unknown_units),
             'duplicates': duplicates,
             'new_lecturers': len(new_lecturers),
             'existing_lecturers': len(existing_lecturers),
-            'rows_without_programme': len(rows_without_programme),
         }
     })
 
@@ -1288,7 +1255,6 @@ def admin_roster_import_commit(request):
     import csv
     import io
     from openpyxl import load_workbook
-    from django.utils import timezone
 
     file = request.FILES.get('file')
     if not file:
@@ -1297,10 +1263,6 @@ def admin_roster_import_commit(request):
     mode = request.data.get('mode', 'add')
     if mode not in ('add', 'replace'):
         return Response({'error': 'Mode must be "add" or "replace".'}, status=status.HTTP_400_BAD_REQUEST)
-
-    term = current_term()
-    if not term:
-        return Response({'error': 'No current academic term set.'}, status=status.HTTP_400_BAD_REQUEST)
 
     filename = file.name.lower()
     rows = []
@@ -1317,7 +1279,7 @@ def admin_roster_import_commit(request):
     else:
         return Response({'error': 'File must be CSV or XLSX.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    required_columns = ['lecturer_email', 'full_name', 'department', 'programme_code']
+    required_columns = ['lecturer_email', 'full_name', 'staff_id']
     missing_cols = [col for col in required_columns if col not in (rows[0] if rows else {})]
     if missing_cols:
         return Response({'error': f'Missing required columns: {", ".join(missing_cols)}'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1325,9 +1287,6 @@ def admin_roster_import_commit(request):
     summary = {
         'created_rosters': 0,
         'updated_rosters': 0,
-        'created_assignments': 0,
-        'updated_assignments': 0,
-        'ended_assignments': 0,
         'errors': 0,
     }
 
@@ -1345,12 +1304,9 @@ def admin_roster_import_commit(request):
         for row in rows:
             email = str(row.get('lecturer_email', '')).strip().lower()
             full_name = str(row.get('full_name', '')).strip()
-            department = str(row.get('department', '')).strip()
-            programme_code = str(row.get('programme_code', '')).strip().upper()
-            unit_code = str(row.get('unit_code', '')).strip().upper() if row.get('unit_code') else ''
             staff_id = str(row.get('staff_id', '')).strip().upper() if row.get('staff_id') else ''
 
-            if not email or not full_name or not department or not programme_code:
+            if not email or not full_name:
                 summary['errors'] += 1
                 continue
 
@@ -1359,23 +1315,10 @@ def admin_roster_import_commit(request):
                 continue
             seen_emails.add(email)
 
-            course = Course.objects.filter(code__iexact=programme_code).first()
-            if not course:
-                summary['errors'] += 1
-                continue
-
-            unit = None
-            if unit_code:
-                unit = Unit.objects.filter(code__iexact=unit_code, course=course).first()
-                if not unit:
-                    summary['errors'] += 1
-                    continue
-
             roster_entry, created = LecturerRoster.objects.update_or_create(
                 email=email,
                 defaults={
                     'full_name': full_name,
-                    'department': department,
                     'staff_id': staff_id or None,
                     'status': 'active',
                 }
@@ -1392,7 +1335,6 @@ def admin_roster_import_commit(request):
                     'user_type': 'lecturer',
                     'first_name': full_name.split(' ')[0] if full_name else '',
                     'last_name': ' '.join(full_name.split(' ')[1:]) if len(full_name.split(' ')) > 1 else '',
-                    'department': department,
                     'staff_id': staff_id or '',
                     'email_verified': True,
                     'is_active': True,
@@ -1400,57 +1342,12 @@ def admin_roster_import_commit(request):
             )
             if user.user_type != 'lecturer':
                 user.user_type = 'lecturer'
-            user.department = department
             user.staff_id = staff_id or ''
             if full_name:
                 name_parts = full_name.split(' ', 1)
                 user.first_name = name_parts[0]
                 user.last_name = name_parts[1] if len(name_parts) > 1 else ''
             user.save()
-
-            units_to_assign = [unit] if unit else list(Unit.objects.filter(course=course))
-
-            for u in units_to_assign:
-                assignment, created = UnitAssignment.objects.get_or_create(
-                    lecturer=user, unit=u, term=term,
-                    defaults={
-                        'status': 'approved',
-                        'requested_by': user,
-                        'approved_by': request.user,
-                        'approved_at': timezone.now(),
-                        'import_batch': import_batch,
-                        'start_date': term.start_date,
-                        'end_date': None,
-                    }
-                )
-                if not created:
-                    if mode == 'replace':
-                        if assignment.status != 'approved':
-                            assignment.status = 'approved'
-                            assignment.approved_by = request.user
-                            assignment.approved_at = timezone.now()
-                        assignment.import_batch = import_batch
-                        assignment.start_date = term.start_date
-                        assignment.end_date = None
-                        assignment.save(update_fields=['status', 'approved_by', 'approved_at', 'import_batch', 'start_date', 'end_date'])
-                        summary['updated_assignments'] += 1
-                else:
-                    summary['created_assignments'] += 1
-
-                u.assigned_lecturer = user
-                u.save(update_fields=['assigned_lecturer'])
-
-        if mode == 'replace':
-            existing_active = UnitAssignment.objects.filter(
-                term=term, status='approved'
-            ).exclude(import_batch=import_batch)
-            for old_assignment in existing_active:
-                if not UnitAssignment.objects.filter(
-                    lecturer=old_assignment.lecturer, unit=old_assignment.unit, term=term, import_batch=import_batch
-                ).exists():
-                    old_assignment.end_date = timezone.now().date()
-                    old_assignment.save(update_fields=['end_date'])
-                    summary['ended_assignments'] += 1
 
         import_batch.summary = summary
         import_batch.save(update_fields=['summary'])

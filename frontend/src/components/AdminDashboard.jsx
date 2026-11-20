@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import logo from '../assets/images/GROUPHUBLOGO.png';
 import {
   AppstoreOutlined,
   ArrowRightOutlined,
@@ -570,9 +571,7 @@ export default function AdminDashboard() {
         <aside className="sticky top-0 z-30 flex h-screen w-64 flex-col border-r border-[#DDDDDD] bg-white text-[#1A1A1A]">
           <div className="px-6 py-6 border-b border-[#DDDDDD]">
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#2C3E50] text-white">
-                <TeamOutlined />
-              </div>
+              <img src={logo} alt="GroupHub Logo" className="h-8 w-auto" />
               <h2 className="text-lg font-bold tracking-tight">GroupHub Admin</h2>
             </div>
           </div>
@@ -1992,6 +1991,7 @@ function ImportManager({ onReload }) {
   const [commitLoading, setCommitLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
 
   const isUnits = importType === 'units';
   const templateUrl = isUnits ? `${API_BASE}/api/accounts/admin/units/template/` : `${API_BASE}/api/accounts/admin/roster/template/`;
@@ -2069,7 +2069,13 @@ function ImportManager({ onReload }) {
             Units
           </button>
         </div>
-        <button type="button" onClick={() => downloadTemplate(templateUrl, `${importType}_template.csv`)} className={ui.ghost}>Download CSV template</button>
+        <button type="button" onClick={() => {
+          if (isUnits) {
+            downloadTemplate(templateUrl, `${importType}_template.csv`);
+          } else {
+            setShowDownloadConfirm(true);
+          }
+        }} className={ui.ghost}>Download CSV template</button>
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm">
@@ -2145,12 +2151,8 @@ function ImportManager({ onReload }) {
                           <th className="px-3 py-2">Row</th>
                           <th className="px-3 py-2">Email</th>
                           <th className="px-3 py-2">Name</th>
-                          <th className="px-3 py-2">Department</th>
-                          <th className="px-3 py-2">Programme</th>
-                          <th className="px-3 py-2">Unit</th>
                           <th className="px-3 py-2">Staff ID</th>
                           <th className="px-3 py-2">New?</th>
-                          <th className="px-3 py-2">Units</th>
                         </>
                       )}
                     </tr>
@@ -2169,17 +2171,13 @@ function ImportManager({ onReload }) {
                             <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#666666]">Existing</span>}</td>
                           </>
                         ) : (
-                          <>
-                            <td className="px-3 py-2">{row.row}</td>
-                            <td className="px-3 py-2">{row.email}</td>
-                            <td className="px-3 py-2">{row.full_name}</td>
-                            <td className="px-3 py-2">{row.department}</td>
-                            <td className="px-3 py-2">{row.programme_name}</td>
-                            <td className="px-3 py-2">{row.unit_name}</td>
-                            <td className="px-3 py-2">{row.staff_id || '—'}</td>
-                            <td className="px-3 py-2">{row.is_new_lecturer ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#666666]">Existing</span>}</td>
-                            <td className="px-3 py-2">{row.units_affected}</td>
-                          </>
+                        <>
+                          <td className="px-3 py-2">{row.row}</td>
+                          <td className="px-3 py-2">{row.email}</td>
+                          <td className="px-3 py-2">{row.full_name}</td>
+                          <td className="px-3 py-2">{row.staff_id || '—'}</td>
+                          <td className="px-3 py-2">{row.is_new_lecturer ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#666666]">Existing</span>}</td>
+                        </>
                         )}
                       </tr>
                     ))}
@@ -2190,6 +2188,40 @@ function ImportManager({ onReload }) {
           </div>
         )}
       </div>
+
+      {showDownloadConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDownloadConfirm(false)} />
+          <div className="bg-white rounded-2xl p-6 shadow-xl max-w-md w-full border border-[#CCCCCC]">
+            <h3 className="text-lg font-bold text-[#1A1A1A] mb-3">Download lecturer template</h3>
+            <p className="text-sm text-[#4F5F73] mb-6">
+              Do you want to include existing roster data in the template, or download an empty template?
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDownloadConfirm(false);
+                  downloadTemplate(`${templateUrl}?include_existing=true`, 'lecturer_roster_template.csv');
+                }}
+                className={ui.primary}
+              >
+                Include existing data
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDownloadConfirm(false);
+                  downloadTemplate(`${templateUrl}?include_existing=false`, 'lecturer_roster_template.csv');
+                }}
+                className={ui.ghost}
+              >
+                Empty template only
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
