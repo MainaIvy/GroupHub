@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState, useRef } from "react";
+import dayjs from 'dayjs';
 import axios from "axios";
 import { API_BASE } from "../apiConfig";
 import * as XLSX from "xlsx";
@@ -21,6 +22,8 @@ import {
   X,
   Plus,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CheckCircle2,
   Camera,
@@ -1809,110 +1812,97 @@ function Messages({
 }
 
 function TeachingCalendar({ month, setMonth, units }) {
-  const year = month.getFullYear();
-  const monthIndex = month.getMonth();
-  const days = new Date(year, monthIndex + 1, 0).getDate();
-  const first = new Date(year, monthIndex, 1).getDay();
-  const weekdays = ["S", "M", "T", "W", "T", "F", "S"];
-  const today = new Date();
-  const todayIsTeaching = today.getDay() > 0 && today.getDay() < 6;
+  const m = dayjs(month).startOf('month');
+  const [selected, setSelected] = useState(() => dayjs().format('YYYY-MM-DD'));
+
+  const days = React.useMemo(() => {
+    const start = m.startOf('month');
+    const end = m.endOf('month');
+    const offset = (start.day() + 6) % 7;
+    const first = start.subtract(offset, 'day');
+    const lastDay = end.day() === 0 ? 6 : end.day() - 1;
+    const last = end.add(6 - lastDay, 'day');
+    const totalDays = last.diff(first, 'day') + 1;
+    return Array.from({ length: totalDays }, (_, i) => first.add(i, 'day'));
+  }, [m]);
+
+  const today = dayjs().format('YYYY-MM-DD');
+  const todayObj = dayjs();
+
+  const weekdays = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+
+  const unitsByDay = React.useMemo(() => {
+    const map = new Map();
+    units.forEach((unit) => {
+      const k = dayjs(unit.due_date || unit.start_date || unit.end_date || today).format('YYYY-MM-DD');
+      map.set(k, [...(map.get(k) || []), unit]);
+    });
+    return map;
+  }, [units]);
 
   return (
-    <Panel title="Calendar" className="!p-5">
-      <div className="mb-4 flex items-center justify-between">
+    <section className="flex min-w-0 flex-col gap-2 rounded-xl border border-[#D7DEE6] bg-white p-3 shadow-sm" style={{ maxWidth: '360px' }}>
+      <div className="flex items-center justify-between gap-2 border-b border-[#EEF1F4] pb-2">
         <button
-          onClick={() => setMonth(new Date(year, monthIndex - 1, 1))}
-          className="h-8 w-8 rounded-lg text-lg font-bold text-[#6B7A90] transition-colors hover:bg-[#F4F7FC] hover:text-[#0F3D6E] dark:hover:bg-[#1E2940]"
+          type="button"
+          onClick={() => setMonth(m.subtract(1, 'month').toDate())}
+          aria-label="Previous month"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#D7DEE6] bg-white text-[#35475C] hover:bg-[#EEF1F4]"
         >
-          ‹
+          <ChevronLeft size={14} aria-hidden="true" />
         </button>
-        <b className="text-sm text-[#0F3D6E] dark:text-white">
-          {month.toLocaleString(undefined, { month: "long", year: "numeric" })}
-        </b>
+        <span className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#E8F3FB] px-2 py-1.5 text-xs font-bold text-[#35475C] whitespace-nowrap">
+          <CalendarDays size={14} aria-hidden="true" />
+          {m.format('MMMM YYYY')}
+        </span>
         <button
-          onClick={() => setMonth(new Date(year, monthIndex + 1, 1))}
-          className="h-8 w-8 rounded-lg text-lg font-bold text-[#6B7A90] transition-colors hover:bg-[#F4F7FC] hover:text-[#0F3D6E] dark:hover:bg-[#1E2940]"
+          type="button"
+          onClick={() => setMonth(m.add(1, 'month').toDate())}
+          aria-label="Next month"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#D7DEE6] bg-white text-[#35475C] hover:bg-[#EEF1F4]"
         >
-          ›
+          <ChevronRight size={14} aria-hidden="true" />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {weekdays.map((d, i) => (
-          <div
-            key={i}
-            className="py-1 text-[11px] font-bold uppercase text-[#8A97AF]"
-          >
-            {d}
-          </div>
-        ))}
-        {Array.from({ length: first }).map((_, i) => (
-          <div key={`e-${i}`} />
-        ))}
-        {Array.from({ length: days }, (_, i) => {
-          const date = i + 1;
-          const d = new Date(year, monthIndex, date);
-          const isTeaching = d.getDay() > 0 && d.getDay() < 6;
-          const isToday = today.toDateString() === d.toDateString();
-          return (
-            <div
-              key={date}
-              className={`relative flex aspect-square items-center justify-center rounded-lg text-xs font-semibold transition-colors
-                ${
-                  isToday
-                    ? "bg-[#6DB6E6] text-white shadow-sm"
-                    : isTeaching
-                      ? "text-[#0F3D6E] hover:bg-[#E8F3FB] dark:text-gray-200 dark:hover:bg-[#1E2940]"
-                      : "text-[#B3BDCC] dark:text-[#4A5878]"
-                }`}
-            >
-              {date}
-              {isTeaching && !isToday && units.length > 0 && (
-                <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#6DB6E6]" />
-              )}
+      <div>
+        <div className="mb-1 grid grid-cols-7 gap-1">
+          {weekdays.map((d) => (
+            <div key={d} className="flex h-5 items-center justify-center rounded-md bg-[#E2E8F0] px-1 text-[10px] font-semibold text-[#4A6079] uppercase">
+              {d}
             </div>
-          );
-        })}
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day) => {
+            const k = day.format('YYYY-MM-DD');
+            const inMonth = day.month() === m.month();
+            const isSelected = k === selected;
+            const isToday = k === today;
+            const cellUnits = (unitsByDay.get(k) || []).length > 0;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSelected(k)}
+                aria-label={day.format('D MMMM YYYY')}
+                className={`flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-lg border p-0.5 text-left transition-colors hover:border-[#7189A3] hover:bg-[#F4F7FA] ${isSelected ? 'border-[#35475C] bg-[#E8F3FB] shadow-sm' : cellUnits ? 'border-amber-300 bg-amber-50/40' : 'border-transparent bg-transparent'} ${!inMonth ? 'opacity-40' : ''} ${isToday ? 'ring-2 ring-[#7189A3]' : ''}`}
+              >
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${isToday ? 'bg-[#35475C] text-white' : isSelected ? 'bg-white text-[#35475C]' : 'text-[#1F2D33]'}`}>
+                  {day.date()}
+                </span>
+                {cellUnits && <span className="h-1 w-1 rounded-full bg-amber-500" />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mt-5 border-t border-[#E3E9F2] pt-4 dark:border-[#1E2940]">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#6B7A90]">
-          Today ·{" "}
-          {today.toLocaleDateString(undefined, {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          })}
-        </p>
-        {todayIsTeaching && units.length ? (
-          <div className="space-y-2">
-            {units.slice(0, 4).map((unit) => (
-              <div
-                key={unit.id}
-                className="flex items-center gap-3 rounded-xl bg-[#F4F7FC] p-3 dark:bg-[#0B1120]"
-              >
-                <span className="h-8 w-1 rounded-full bg-[#6DB6E6]" />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-bold text-[#0F3D6E] dark:text-white">
-                    {unit.code}
-                  </p>
-                  <p className="truncate text-[11px] text-[#6B7A90]">
-                    {unit.name}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {units.length > 4 && (
-              <p className="pl-1 text-[11px] text-[#6B7A90]">
-                +{units.length - 4} more
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-xs text-[#6B7A90]">No classes today.</p>
-        )}
+      <div className="rounded-lg bg-[#F8FAFC] p-2">
+        <p className="text-xs font-semibold text-[#1F2D3D]">{dayjs(selected).format('D MMMM')}</p>
+        <p className="mt-1 text-xs text-[#4A6079]">Classes scheduled today.</p>
       </div>
-    </Panel>
+    </section>
   );
 }
 
