@@ -151,7 +151,7 @@ const GroupWorkspace = ({ ctx }) => {
             isLeader={isLeader}
             selectedTaskId={selectedTaskId}
             onSelectTask={openTask}
-            onProposeSection={() => setProposeFor(null)}
+            onCreateTask={() => setProposeFor(undefined)}
             onAddSubtask={(section) => setProposeFor(section)}
             onCreateProject={() => ctx.setProjectModal({})}
             onGoSubmission={() => goTab('submission')}

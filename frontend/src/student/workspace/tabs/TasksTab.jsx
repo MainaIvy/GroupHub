@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, FileText, Plus, Users } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, FileText, Users } from 'lucide-react';
 import Avatar from '../../components/Avatar';
 import { btnPrimary, btnSecondary } from '../../design';
 import { ProgressBar } from '../../components/ProgressBar';
@@ -176,8 +176,7 @@ const TasksTab = ({
   isLeader,
   selectedTaskId,
   onSelectTask,
-  onProposeSection,
-  onAddSubtask,
+  onCreateTask,
   onCreateProject,
   onGoSubmission,
   reload,
@@ -238,19 +237,13 @@ const TasksTab = ({
             <div className="mt-3 flex items-center gap-2 text-sm text-[#4F5F73]">
               <CalendarDays size={14} aria-hidden="true" />
               <span>{workspace.group?.project_deadline || project.deadline ? formatDue(project.deadline) : 'No deadline'}</span>
-              <button
-                type="button"
-                onClick={onProposeSection}
-                className="ml-2 flex items-center gap-1 text-xs font-semibold text-[#35475C] underline hover:text-[#1F2D3D]"
-              >
-                <Plus size={12} /> Create Group Task
-              </button>
+              <span className="hidden sm:inline">Â· {members.length || workspace.group?.members_count || 0} members</span>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={onProposeSection} className={btnSecondary}>Add section</button>
-            <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed')} className={btnPrimary}>Ready to submit</button>
-          </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" disabled={actions.busy} onClick={() => actions.openCreateTaskModal?.()} className={btnSecondary}>Create Task</button>
+              <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed')} className={btnPrimary}>Ready to submit</button>
+            </div>
         </div>
       </header>
 
