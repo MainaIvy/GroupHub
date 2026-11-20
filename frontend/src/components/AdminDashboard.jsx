@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   AppstoreOutlined,
+  ArrowRightOutlined,
   AuditOutlined,
   CheckCircleOutlined,
   CheckSquareOutlined,
@@ -382,7 +383,7 @@ export default function AdminDashboard() {
                       {item.icon}
                     </span>
                     <span className="flex-1 font-medium">{item.label}</span>
-                    <ArrowRightOutlined className="text-xs text-[#C9A227]" />
+                    <ArrowRightOutlined className="text-xs text-[#666666]" />
                   </button>
                 </li>
               ))}
