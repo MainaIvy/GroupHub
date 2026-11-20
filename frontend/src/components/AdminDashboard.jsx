@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   AppstoreOutlined,
-  ArrowLeftOutlined,
-  ArrowRightOutlined,
   AuditOutlined,
   CheckCircleOutlined,
   CheckSquareOutlined,
@@ -28,17 +26,17 @@ import {
 import { API_BASE } from '../apiConfig';
 
 /*
-  Palette (modern indigo/slate):
-    bg      #F8FAFC   page background
+  Palette (neutral gray/slate):
+    bg      #F5F5F7   page background
     card    #FFFFFF   panels and stat cards
-    ink     #0F172A   text, rail, primary buttons
-    indigo  #4F46E5   primary actions, active rail icon
-    indigoL #E0E7FF   soft fills
-    line    #E2E8F0   borders
-    muted   #64748B   secondary text
-    success #10B981   success states
+    ink     #1A1A1A   text, rail, primary buttons
+    slate   #2C3E50   primary actions, active sidebar link
+    slateL  #ECF0F1   soft fills
+    line    #DDDDDD   borders
+    muted   #666666   secondary text
+    success #2E7D32   success states
     warning #F59E0B   warning states
-    danger  #EF4444   danger states
+    danger  #C62828   danger states
 */
 
 const tokenHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
@@ -89,20 +87,20 @@ const endpoints = {
 
 const ui = {
   input:
-    'rounded-xl border border-[#CBD5E1] bg-white p-3 text-sm text-[#0F172A] placeholder:text-[#94A3B8] outline-none focus:border-[#4F46E5] focus:ring-2 focus-ring-[#4F46E5]/15',
+    'rounded-xl border border-[#CCCCCC] bg-white p-3 text-sm text-[#1A1A1A] placeholder:text-[#999999] outline-none focus:border-[#2C3E50] focus:ring-2 focus:ring-[#2C3E50]/15',
   primary:
-    'rounded-xl bg-[#4F46E5] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4338CA] disabled:opacity-50',
+    'rounded-xl bg-[#2C3E50] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#34495E] disabled:opacity-50',
   ghost:
-    'rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9]',
+    'rounded-xl border border-[#CCCCCC] bg-white px-4 py-2.5 text-sm font-semibold text-[#1A1A1A] transition hover:bg-[#F5F5F7]',
 };
 
-const STATUS_COLORS = { active: '#10B981', approved: '#10B981', pending: '#F59E0B', suspended: '#EF4444' };
+const STATUS_COLORS = { active: '#2E7D32', approved: '#2E7D32', pending: '#F59E0B', suspended: '#C62828' };
 
 function StatusDot({ value }) {
   const key = String(value ?? '').toLowerCase();
   return (
     <span className="inline-flex items-center gap-2 capitalize">
-      <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLORS[key] || '#94A3B8' }} />
+      <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLORS[key] || '#999999' }} />
       {value ?? '—'}
     </span>
   );
@@ -112,16 +110,16 @@ function Stat({ label, value, icon, highlight }) {
   return (
     <div
       className={`flex items-center justify-between rounded-3xl p-5 shadow-sm ${
-        highlight ? 'bg-[#0F172A] text-white' : 'bg-white text-[#0F172A]'
+        highlight ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#1A1A1A]'
       }`}
     >
       <div>
         <p className="text-3xl font-bold">{value ?? '—'}</p>
-        <p className={`mt-1 text-sm ${highlight ? 'text-white/60' : 'text-[#64748B]'}`}>{label}</p>
+        <p className={`mt-1 text-sm ${highlight ? 'text-white/60' : 'text-[#666666]'}`}>{label}</p>
       </div>
       <span
         className={`flex h-12 w-12 items-center justify-center rounded-full text-2xl ${
-          highlight ? 'bg-[#4F46E5] text-[#0F172A]' : 'bg-[#E0E7FF] text-[#0F172A]'
+          highlight ? 'bg-[#2C3E50] text-[#1A1A1A]' : 'bg-[#ECF0F1] text-[#1A1A1A]'
         }`}
       >
         {icon}
@@ -134,7 +132,7 @@ function Panel({ title, action, children }) {
   return (
     <section className="rounded-3xl bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#0F172A]">{title}</h3>
+        <h3 className="font-semibold text-[#1A1A1A]">{title}</h3>
         {action}
       </div>
       {children}
@@ -147,7 +145,7 @@ function SeeAll({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg bg-[#0F172A] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#4338CA]"
+      className="rounded-lg bg-[#1A1A1A] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#4338CA]"
     >
       See all <ArrowRightOutlined />
     </button>
@@ -174,7 +172,6 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('');
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [state, setState] = useState({ loading: true, error: '' });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [greeting, setGreeting] = useState('');
 
   const hour = new Date().getHours();
@@ -283,7 +280,7 @@ export default function AdminDashboard() {
     <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+          <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
             {columns.map((column) => (
               <th key={column.key} className="px-5 py-4">
                 {column.label}
@@ -293,7 +290,7 @@ export default function AdminDashboard() {
         </thead>
         <tbody>
           {rows?.map((row) => (
-            <tr key={row.id} className="border-b border-[#E2E8F0] text-[#0F172A] last:border-0 hover:bg-[#F1F5F9]">
+            <tr key={row.id} className="border-b border-[#DDDDDD] text-[#1A1A1A] last:border-0 hover:bg-[#F5F5F7]">
               {columns.map((column) => (
                 <td key={column.key} className="px-5 py-3.5">
                   {column.render ? column.render(row) : (row[column.key] ?? '—')}
@@ -303,7 +300,7 @@ export default function AdminDashboard() {
           ))}
         </tbody>
       </table>
-      {!rows?.length && <p className="p-10 text-center text-[#64748B]">No records found.</p>}
+      {!rows?.length && <p className="p-10 text-center text-[#666666]">No records found.</p>}
     </div>
   );
 
@@ -319,7 +316,7 @@ export default function AdminDashboard() {
   let content = null;
   if (waiting) {
     content = (
-      <div className="rounded-3xl bg-white p-12 text-center text-[#64748B] shadow-sm">
+      <div className="rounded-3xl bg-white p-12 text-center text-[#666666] shadow-sm">
         Loading {tab.toLowerCase()}...
       </div>
     );
@@ -352,10 +349,10 @@ export default function AdminDashboard() {
           <div className="lg:col-span-2">
             <Panel title="At-risk groups" action={<SeeAll onClick={() => goTo('Groups')} />}>
               {data.at_risk_groups?.length ? (
-                <ul className="divide-y divide-[#E2E8F0]">
+                <ul className="divide-y divide-[#DDDDDD]">
                   {data.at_risk_groups.map((group) => (
                     <li key={group.id} className="flex items-center justify-between py-3 text-sm">
-                      <span className="font-medium text-[#0F172A]">{group.name}</span>
+                      <span className="font-medium text-[#1A1A1A]">{group.name}</span>
                       <span className="inline-flex items-center gap-2 rounded-full bg-[#FEE2E2] px-3 py-1 text-xs font-semibold text-[#EF4444]">
                         <span className="h-2 w-2 rounded-full bg-[#EF4444]" />
                         At risk
@@ -364,7 +361,7 @@ export default function AdminDashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-[#64748B]">
+                <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-[#666666]">
                   <CheckCircleOutlined className="text-3xl text-[#10B981]" />
                   No at-risk groups. Every group is on track.
                 </div>
@@ -379,9 +376,9 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={item.run}
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-sm text-[#0F172A] transition hover:bg-[#F1F5F9]"
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-sm text-[#1A1A1A] transition hover:bg-[#F5F5F7]"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E0E7FF] text-[#0F172A]">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ECF0F1] text-[#1A1A1A]">
                       {item.icon}
                     </span>
                     <span className="flex-1 font-medium">{item.label}</span>
@@ -463,7 +460,7 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={() => action(`${API_BASE}/api/accounts/admin/users/${row.id}/approve/`, { method: 'POST' })}
-                    className="rounded-lg bg-[#E0E7FF] px-3 py-1.5 text-xs font-semibold text-[#0F172A] hover:bg-[#FCD34D]"
+                    className="rounded-lg bg-[#ECF0F1] px-3 py-1.5 text-xs font-semibold text-[#1A1A1A] hover:bg-[#FCD34D]"
                   >
                     Approve
                   </button>
@@ -515,36 +512,20 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A]">
       <div className="flex min-h-screen">
-        {/* Collapsible sidebar */}
-        <aside
-          className={`sticky top-2 z-30 m-2 flex h-[calc(100vh-1rem)] flex-col items-center self-start rounded-[28px] bg-[#0F172A] py-4 text-white sm:top-3 sm:m-3 sm:h-[calc(100vh-1.5rem)] transition-all duration-300 ${
-            sidebarOpen ? 'w-64' : 'w-14'
-          }`}
-        >
-          <div className="mb-6 flex items-center justify-between px-3">
-            <div className="flex h-10 w-10 items-center justify-center text-2xl text-[#4F46E5]">
-              <TeamOutlined />
+        {/* Full-height sidebar */}
+        <aside className="sticky top-0 z-30 flex h-screen w-64 flex-col border-r border-[#DDDDDD] bg-white text-[#1A1A1A]">
+          <div className="px-6 py-6 border-b border-[#DDDDDD]">
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#2C3E50] text-white">
+                <TeamOutlined />
+              </div>
+              <h2 className="text-lg font-bold tracking-tight">GroupHub Admin</h2>
             </div>
-            {!sidebarOpen && (
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(true)}
-                className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition"
-              >
-                <ArrowRightOutlined className="text-sm" />
-              </button>
-            )}
           </div>
 
-          {sidebarOpen && (
-            <div className="px-2">
-              <h2 className="px-3 mb-4 text-sm font-semibold text-[#4F46E5] tracking-wider uppercase">GroupHub Admin</h2>
-            </div>
-          )}
-
-          <nav className="flex flex-1 flex-col items-center gap-1">
+          <nav className="flex-1 flex-col gap-1 px-3 py-4 overflow-y-auto">
             {tabs.map((item) => {
               const active = tab === item;
               return (
@@ -554,52 +535,34 @@ export default function AdminDashboard() {
                     aria-label={item}
                     aria-current={active ? 'page' : undefined}
                     onClick={() => goTo(item)}
-                    className={`flex w-full items-center justify-center gap-3 rounded-xl px-3 py-2.5 text-lg transition ${
+                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
                       active
-                        ? 'bg-[#4F46E5]/10 text-[#4F46E5]'
-                        : 'text-[#94A3B8] hover:bg-white/10 hover:text-white'
+                        ? 'bg-[#2C3E50]/10 text-[#2C3E50] border border-[#2C3E50]/20'
+                        : 'text-[#666666] hover:bg-[#F5F5F7] hover:text-[#1A1A1A]'
                     }`}
                   >
                     {tabIcons[item]}
-                    {sidebarOpen && <span className="flex-1 text-sm font-medium">{item}</span>}
+                    <span className="flex-1">{item}</span>
                   </button>
-                  {sidebarOpen && (
-                    <span className="pointer-events-none absolute left-full top-1/2 z-40 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#0F172A] px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100">
-                      {item}
-                    </span>
-                  )}
                 </div>
               );
             })}
           </nav>
 
-          {sidebarOpen && (
-            <div className="mt-auto px-3 pb-4">
-              <p className="text-xs text-[#94A3B8] mb-3">{greeting}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.clear();
-                  window.location.href = '/login';
-                }}
-                className="w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
-              >
-                <LogoutOutlined className="w-4 h-4" />
-                Sign out
-              </button>
-            </div>
-          )}
-
-          {!sidebarOpen && (
+          <div className="px-6 py-6 border-t border-[#DDDDDD]">
+            <p className="text-xs text-[#666666] mb-4">{greeting}</p>
             <button
               type="button"
-              onClick={() => setSidebarOpen(false)}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition"
-              title="Collapse sidebar"
+              onClick={() => {
+                localStorage.clear();
+                window.location.href = '/login';
+              }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition bg-[#2C3E50] hover:bg-[#34495E]"
             >
-              <ArrowLeftOutlined className="text-sm" />
+              <LogoutOutlined className="w-4 h-4" />
+              Sign out
             </button>
-          )}
+          </div>
         </aside>
 
         {/* Main */}
@@ -607,24 +570,24 @@ export default function AdminDashboard() {
           <header className="flex items-center gap-4 px-3 py-5 sm:px-4 md:px-8">
             <h2 className="text-xl font-bold md:text-2xl">{tab === 'Overview' ? 'Dashboard' : tab}</h2>
 
-            <div className="mx-auto hidden w-full max-w-sm items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-4 py-2 sm:flex">
-              <SearchOutlined className="text-[#64748B]" />
+            <div className="mx-auto hidden w-full max-w-sm items-center gap-2 rounded-full border border-[#DDDDDD] bg-white px-4 py-2 sm:flex">
+              <SearchOutlined className="text-[#666666]" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => event.key === 'Enter' && runSearch()}
                 placeholder="Search users"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-[#B3ADA5]"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-[#999999]"
               />
             </div>
 
             <div className="ml-auto flex items-center gap-3 sm:ml-0">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0F172A] text-sm font-bold text-[#4F46E5]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1A1A1A] text-sm font-bold text-[#2C3E50]">
                 A
               </span>
               <div className="hidden leading-tight lg:block">
                 <p className="text-sm font-semibold">{greeting || 'Administrator'}</p>
-                <p className="text-xs text-[#64748B]">Zetech University</p>
+                <p className="text-xs text-[#666666]">Zetech University</p>
               </div>
             </div>
           </header>
@@ -652,7 +615,7 @@ function SettingsForm({ values, onSave }) {
     <div className="max-w-xl rounded-3xl bg-white p-6 shadow-sm">
       <div className="grid gap-4">
         {fields.map(([key, label]) => (
-          <label key={key} className="text-sm font-medium text-[#0F172A]">
+          <label key={key} className="text-sm font-medium text-[#1A1A1A]">
             {label}
             <input
               type={key === 'file_size_limit' ? 'number' : 'text'}
@@ -783,7 +746,7 @@ function AssignmentManager({ data, onAction, onReload }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-[#0F172A]">Bulk Import Units</h3>
+          <h3 className="font-semibold text-[#1A1A1A]">Bulk Import Units</h3>
         </div>
         <button type="button" onClick={() => downloadTemplate(`${API_BASE}/api/accounts/admin/units/template/`, 'units_template.csv')} className={ui.ghost}>Download CSV template</button>
       </div>
@@ -791,7 +754,7 @@ function AssignmentManager({ data, onAction, onReload }) {
       <div className="rounded-3xl bg-white p-5 shadow-sm">
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div>
-            <label className="block text-xs font-semibold text-[#4F46E5] mb-1">CSV / XLSX file</label>
+            <label className="block text-xs font-semibold text-[#2C3E50] mb-1">CSV / XLSX file</label>
             <input type="file" accept=".csv,.xlsx" onChange={handleImportFileChange} className={ui.input} />
           </div>
         </div>
@@ -810,9 +773,9 @@ function AssignmentManager({ data, onAction, onReload }) {
         {importPreview && (
           <div className="mt-5 space-y-4">
             <div className="grid gap-2 text-sm">
-              <div className="rounded-lg bg-[#E0E7FF] p-3"><span className="font-semibold text-[#0F172A]">Created:</span> {importPreview.summary.created}</div>
-              <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#0F172A]">Updated:</span> {importPreview.summary.updated}</div>
-              <div className="rounded-lg bg-[#EF4444]/10 p-3"><span className="font-semibold text-[#0F172A]">Errors:</span> {importPreview.summary.errors}</div>
+              <div className="rounded-lg bg-[#ECF0F1] p-3"><span className="font-semibold text-[#1A1A1A]">Created:</span> {importPreview.summary.created}</div>
+              <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#1A1A1A]">Updated:</span> {importPreview.summary.updated}</div>
+              <div className="rounded-lg bg-[#EF4444]/10 p-3"><span className="font-semibold text-[#1A1A1A]">Errors:</span> {importPreview.summary.errors}</div>
             </div>
 
             {importPreview.errors.length && (
@@ -826,10 +789,10 @@ function AssignmentManager({ data, onAction, onReload }) {
             )}
 
             {importPreview.matched_rows.length && (
-              <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
+              <div className="overflow-x-auto rounded-xl border border-[#DDDDDD]">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                    <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
                       <th className="px-3 py-2">Row</th>
                       <th className="px-3 py-2">Unit Code</th>
                       <th className="px-3 py-2">Unit Name</th>
@@ -841,14 +804,14 @@ function AssignmentManager({ data, onAction, onReload }) {
                   </thead>
                   <tbody>
                     {importPreview.matched_rows.map((row) => (
-                      <tr key={row.row} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+                      <tr key={row.row} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
                         <td className="px-3 py-2">{row.row}</td>
-                        <td className="px-3 py-2 font-mono text-[#0F172A]">{row.unit_code}</td>
+                        <td className="px-3 py-2 font-mono text-[#1A1A1A]">{row.unit_code}</td>
                         <td className="px-3 py-2">{row.unit_name}</td>
                         <td className="px-3 py-2">{row.course_code}</td>
                         <td className="px-3 py-2">{row.lecturer_email || '—'}</td>
                         <td className="px-3 py-2">{row.lecturer_name || '—'}</td>
-                        <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
+                        <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#666666]">Existing</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -909,21 +872,21 @@ function AssignmentManager({ data, onAction, onReload }) {
       <Panel title="Units with no lecturer">
         <div className="flex flex-wrap gap-2">
           {(data.unassigned || []).map((unit) => (
-            <span key={unit.id} className="rounded-full bg-[#E0E7FF] px-3 py-1 text-xs font-semibold text-[#0F172A]">
+            <span key={unit.id} className="rounded-full bg-[#ECF0F1] px-3 py-1 text-xs font-semibold text-[#1A1A1A]">
               {unit.code} · {unit.course__name}
             </span>
           ))}
-          {!(data.unassigned || []).length && <p className="text-sm text-[#64748B]">Every unit has a lecturer.</p>}
+          {!(data.unassigned || []).length && <p className="text-sm text-[#666666]">Every unit has a lecturer.</p>}
         </div>
       </Panel>
 
       <Panel title="Academic terms">
         <div className="space-y-2">
           {(data.terms || []).map((term) => (
-            <div key={term.id} className="flex items-center justify-between gap-2 rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm">
-              <span className="font-semibold text-[#0F172A]">{term.name} {term.is_current && <span className="ml-2 rounded-full bg-[#10B981] px-2 py-0.5 text-[10px] text-white">Current</span>}</span>
+            <div key={term.id} className="flex items-center justify-between gap-2 rounded-xl border border-[#DDDDDD] px-3 py-2 text-sm">
+              <span className="font-semibold text-[#1A1A1A]">{term.name} {term.is_current && <span className="ml-2 rounded-full bg-[#10B981] px-2 py-0.5 text-[10px] text-white">Current</span>}</span>
               {!term.is_current && (
-                <button type="button" onClick={() => onAction(`${API_BASE}/api/accounts/admin/terms/${term.id}/make_current/`, { method: 'POST' })} className="rounded-lg border border-[#CBD5E1] px-3 py-1 text-xs font-semibold">Make current</button>
+                <button type="button" onClick={() => onAction(`${API_BASE}/api/accounts/admin/terms/${term.id}/make_current/`, { method: 'POST' })} className="rounded-lg border border-[#CCCCCC] px-3 py-1 text-xs font-semibold">Make current</button>
               )}
             </div>
           ))}
@@ -940,7 +903,7 @@ function AssignmentManager({ data, onAction, onReload }) {
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+            <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
               <th className="px-5 py-4">Lecturer</th>
               <th className="px-5 py-4">Unit</th>
               <th className="px-5 py-4">Term</th>
@@ -950,10 +913,10 @@ function AssignmentManager({ data, onAction, onReload }) {
           </thead>
           <tbody>
             {(data.assignments || []).map((row) => (
-              <tr key={row.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+              <tr key={row.id} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
                 <td className="px-5 py-3.5">
                   {row.lecturer?.name}
-                  <span className="block text-xs text-[#64748B]">{row.lecturer?.staff_id}</span>
+                  <span className="block text-xs text-[#666666]">{row.lecturer?.staff_id}</span>
                 </td>
                 <td className="px-5 py-3.5">
                   {row.unit_code} · {row.unit}
@@ -978,7 +941,7 @@ function AssignmentManager({ data, onAction, onReload }) {
             ))}
           </tbody>
         </table>
-        {!(data.assignments || []).length && <p className="p-10 text-center text-[#64748B]">No lecturer assignments yet.</p>}
+        {!(data.assignments || []).length && <p className="p-10 text-center text-[#666666]">No lecturer assignments yet.</p>}
       </div>
 
       <button type="button" onClick={onReload} className={ui.ghost}>
@@ -993,10 +956,10 @@ function renderLoadCards(lecturers = []) {
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {lecturers.map((lecturer) => (
         <div key={lecturer.id} className="rounded-3xl bg-white p-4 shadow-sm">
-          <p className="font-semibold text-[#0F172A]">{lecturer.name}</p>
-          <p className="text-xs text-[#64748B]">{lecturer.staff_id || lecturer.email}</p>
-          <p className="mt-3 text-2xl font-bold text-[#0F172A]">
-            {lecturer.load_count ?? '—'} <span className="text-sm font-normal text-[#64748B]">assigned units</span>
+          <p className="font-semibold text-[#1A1A1A]">{lecturer.name}</p>
+          <p className="text-xs text-[#666666]">{lecturer.staff_id || lecturer.email}</p>
+          <p className="mt-3 text-2xl font-bold text-[#1A1A1A]">
+            {lecturer.load_count ?? '—'} <span className="text-sm font-normal text-[#666666]">assigned units</span>
           </p>
         </div>
       ))}
@@ -1104,8 +1067,8 @@ function UserCreateForm({ onCreated }) {
     <form onSubmit={submit} className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-[#0F172A]">Create account</h3>
-          <p className="text-sm text-[#64748B]">Use the catalogue to assign the correct academic structure.</p>
+          <h3 className="font-semibold text-[#1A1A1A]">Create account</h3>
+          <p className="text-sm text-[#666666]">Use the catalogue to assign the correct academic structure.</p>
         </div>
         <select
           value={role}
@@ -1221,10 +1184,10 @@ function UserCreateForm({ onCreated }) {
       </div>
 
       {role === 'lecturer' && (
-        <div className="mt-4 rounded-xl bg-[#F1F5F9] p-3 text-sm">
+        <div className="mt-4 rounded-xl bg-[#F5F5F7] p-3 text-sm">
           {assignments.length ? (
             assignments.map((assignment) => (
-              <div key={`${assignment.unit_id}-${assignment.term_id}`} className="flex items-center justify-between border-b border-[#E2E8F0] py-2 last:border-0">
+              <div key={`${assignment.unit_id}-${assignment.term_id}`} className="flex items-center justify-between border-b border-[#DDDDDD] py-2 last:border-0">
                 <span>{assignment.label}</span>
                 <button
                   type="button"
@@ -1236,7 +1199,7 @@ function UserCreateForm({ onCreated }) {
               </div>
             ))
           ) : (
-            <span className="text-[#64748B]">No units assigned yet. You can create the lecturer now and assign units later.</span>
+            <span className="text-[#666666]">No units assigned yet. You can create the lecturer now and assign units later.</span>
           )}
         </div>
       )}
@@ -1326,7 +1289,7 @@ function LecturersManager({ onReload }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#0F172A]">Lecturer Roster</h3>
+        <h3 className="font-semibold text-[#1A1A1A]">Lecturer Roster</h3>
         <button onClick={() => { setForm({ email: '', full_name: '', department: '', staff_id: '', status: 'invited' }); setEditingId(null); setShowAdd(true); }} className={ui.primary}>
           ＋ Add lecturer
         </button>
@@ -1335,7 +1298,7 @@ function LecturersManager({ onReload }) {
       {showAdd && (
         <form onSubmit={handleSubmit} className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h4 className="font-semibold text-[#0F172A]">{editingId ? 'Edit lecturer' : 'Add lecturer'}</h4>
+            <h4 className="font-semibold text-[#1A1A1A]">{editingId ? 'Edit lecturer' : 'Add lecturer'}</h4>
             <button type="button" onClick={() => { setShowAdd(false); setEditingId(null); setForm({ email: '', full_name: '', department: '', staff_id: '', status: 'invited' }); }} className="text-slate-500 hover:text-slate-800">✕</button>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -1360,7 +1323,7 @@ function LecturersManager({ onReload }) {
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+            <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
               <th className="px-5 py-4">Name</th>
               <th className="px-5 py-4">Email</th>
               <th className="px-5 py-4">Department</th>
@@ -1371,8 +1334,8 @@ function LecturersManager({ onReload }) {
           </thead>
           <tbody>
             {roster.map((item) => (
-              <tr key={item.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
-                <td className="px-5 py-3.5 font-medium text-[#0F172A]">{item.full_name}</td>
+              <tr key={item.id} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
+                <td className="px-5 py-3.5 font-medium text-[#1A1A1A]">{item.full_name}</td>
                 <td className="px-5 py-3.5 text-slate-600">{item.email}</td>
                 <td className="px-5 py-3.5">{item.department || '—'}</td>
                 <td className="px-5 py-3.5">{item.staff_id || '—'}</td>
@@ -1394,7 +1357,7 @@ function LecturersManager({ onReload }) {
                 </td>
               </tr>
             ))}
-            {!roster.length && <tr><td colSpan={6} className="p-10 text-center text-[#64748B]">No lecturers in roster yet.</td></tr>}
+            {!roster.length && <tr><td colSpan={6} className="p-10 text-center text-[#666666]">No lecturers in roster yet.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1435,8 +1398,8 @@ function GroupsManager({ data, onAction }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-[#0F172A]">Groups</h3>
-          <p className="text-sm text-[#64748B]">{rows.length} group(s)</p>
+          <h3 className="font-semibold text-[#1A1A1A]">Groups</h3>
+          <p className="text-sm text-[#666666]">{rows.length} group(s)</p>
         </div>
         <button
           type="button"
@@ -1469,7 +1432,7 @@ function GroupsManager({ data, onAction }) {
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+            <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
               <th className="px-5 py-4 cursor-pointer">Group</th>
               <th className="px-5 py-4">Unit</th>
               <th className="px-5 py-4">Supervising lecturers</th>
@@ -1483,18 +1446,18 @@ function GroupsManager({ data, onAction }) {
             {rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9] group"
+                className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7] group"
                 onClick={() => openDrawer(row)}
               >
-                <td className="px-5 py-3.5 font-medium text-[#0F172A]">{row.name}</td>
+                <td className="px-5 py-3.5 font-medium text-[#1A1A1A]">{row.name}</td>
                 <td className="px-5 py-3.5">{row.unit}</td>
                 <td className="px-5 py-3.5 text-sm">
                   {row.supervising_lecturers.length ? (
                     row.supervising_lecturers.map((s, i) => (
-                      <span key={i} className="inline-block mb-1 rounded-full bg-[#E0E7FF] px-2 py-0.5 text-xs text-[#0F172A]">{s}</span>
+                      <span key={i} className="inline-block mb-1 rounded-full bg-[#ECF0F1] px-2 py-0.5 text-xs text-[#1A1A1A]">{s}</span>
                     ))
                   ) : (
-                    <span className="text-xs text-[#64748B]">—</span>
+                    <span className="text-xs text-[#666666]">—</span>
                   )}
                 </td>
                 <td className="px-5 py-3.5">{row.leader || '—'}</td>
@@ -1502,7 +1465,7 @@ function GroupsManager({ data, onAction }) {
                   <td className="px-5 py-3.5">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
                     row.health?.status === 'at_risk' ? 'bg-[#FEE2E2] text-[#EF4444]' :
-                    row.health?.status === 'quiet' ? 'bg-[#E0E7FF] text-[#F59E0B]' :
+                    row.health?.status === 'quiet' ? 'bg-[#ECF0F1] text-[#F59E0B]' :
                     'bg-[#D1FAE5] text-[#047857]'
                   }`}>
                     {String(row.health?.status || '').replace('_', ' ')}
@@ -1538,7 +1501,7 @@ function GroupsManager({ data, onAction }) {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setOpenGroup(row) }}
-                      className="rounded-lg border border-[#CBD5E1] px-3 py-1.5 text-xs font-semibold text-[#0F172A] hover:bg-[#E0E7FF]"
+                      className="rounded-lg border border-[#CCCCCC] px-3 py-1.5 text-xs font-semibold text-[#1A1A1A] hover:bg-[#ECF0F1]"
                     >
                       Open
                     </button>
@@ -1548,7 +1511,7 @@ function GroupsManager({ data, onAction }) {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={7} className="p-10 text-center text-[#64748B]">No groups found.</td>
+                <td colSpan={7} className="p-10 text-center text-[#666666]">No groups found.</td>
               </tr>
             )}
           </tbody>
@@ -1559,36 +1522,36 @@ function GroupsManager({ data, onAction }) {
       {openGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-[#0F172A]/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#1A1A1A]/60 backdrop-blur-sm"
             onClick={closeDrawer}
           />
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-[#CBD5E1]">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-[#CCCCCC]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-[#0F172A]">Group details — {openGroup.name}</h3>
-              <button type="button" onClick={closeDrawer} className="text-[#64748B] hover:text-[#0F172A]">✕</button>
+              <h3 className="font-semibold text-[#1A1A1A]">Group details — {openGroup.name}</h3>
+              <button type="button" onClick={closeDrawer} className="text-[#666666] hover:text-[#1A1A1A]">✕</button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-[#E2E8F0] p-4">
-                <h4 className="font-semibold text-[#0F172A] mb-3">Members</h4>
-                <div className="text-sm text-[#64748B] text-center py-8">Loading members…</div>
+              <div className="rounded-2xl border border-[#DDDDDD] p-4">
+                <h4 className="font-semibold text-[#1A1A1A] mb-3">Members</h4>
+                <div className="text-sm text-[#666666] text-center py-8">Loading members…</div>
               </div>
-              <div className="rounded-2xl border border-[#E2E8F0] p-4">
-                <h4 className="font-semibold text-[#0F172A] mb-3">Health & activity</h4>
-                <p className="text-sm text-[#64748B] mb-2">Health: <span className="font-medium text-[#0F172A]">{String(openGroup.health?.status || '').replace('_', ' ')}</span></p>
-                <p className="text-sm text-[#64748B] mb-2">At risk: {openGroup.at_risk ? 'Yes' : 'No'}</p>
-                <p className="text-sm text-[#64748B]">Members: {openGroup.members}</p>
+              <div className="rounded-2xl border border-[#DDDDDD] p-4">
+                <h4 className="font-semibold text-[#1A1A1A] mb-3">Health & activity</h4>
+                <p className="text-sm text-[#666666] mb-2">Health: <span className="font-medium text-[#1A1A1A]">{String(openGroup.health?.status || '').replace('_', ' ')}</span></p>
+                <p className="text-sm text-[#666666] mb-2">At risk: {openGroup.at_risk ? 'Yes' : 'No'}</p>
+                <p className="text-sm text-[#666666]">Members: {openGroup.members}</p>
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-[#E2E8F0] p-4">
-              <h4 className="font-semibold text-[#0F172A] mb-3">Join code</h4>
+            <div className="mt-4 rounded-2xl border border-[#DDDDDD] p-4">
+              <h4 className="font-semibold text-[#1A1A1A] mb-3">Join code</h4>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[#0F172A]">{openGroup.join_code}</span>
+                <span className="font-mono text-[#1A1A1A]">{openGroup.join_code}</span>
                 <button
                   type="button"
                   onClick={() => onAction(`${API_BASE}/api/accounts/admin/groups/${openGroup.id}/regenerate-code/`, { method: 'POST' })}
-                  className="rounded-lg bg-[#0F172A] px-3 py-1 text-xs font-semibold text-white"
+                  className="rounded-lg bg-[#1A1A1A] px-3 py-1 text-xs font-semibold text-white"
                 >
                   Regenerate
                 </button>
@@ -1686,20 +1649,20 @@ function ImportManager({ onReload }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-[#0F172A]">Import {isUnits ? 'Units' : 'Lecturer Roster'}</h3>
+          <h3 className="font-semibold text-[#1A1A1A]">Import {isUnits ? 'Units' : 'Lecturer Roster'}</h3>
         </div>
-        <div className="flex gap-1 rounded-lg border border-[#CBD5E1] bg-white">
+        <div className="flex gap-1 rounded-lg border border-[#CCCCCC] bg-white">
           <button
             type="button"
             onClick={() => setImportType('lecturer')}
-            className={`px-4 py-1.5 text-xs font-medium transition ${importType === 'lecturer' ? 'bg-[#4F46E5] text-white' : 'text-[#64748B] hover:bg-[#F1F5F9]'}`}
+            className={`px-4 py-1.5 text-xs font-medium transition ${importType === 'lecturer' ? 'bg-[#2C3E50] text-white' : 'text-[#666666] hover:bg-[#F5F5F7]'}`}
           >
             Lecturers
           </button>
           <button
             type="button"
             onClick={() => setImportType('units')}
-            className={`px-4 py-1.5 text-xs font-medium transition ${importType === 'units' ? 'bg-[#4F46E5] text-white' : 'text-[#64748B] hover:bg-[#F1F5F9]'}`}
+            className={`px-4 py-1.5 text-xs font-medium transition ${importType === 'units' ? 'bg-[#2C3E50] text-white' : 'text-[#666666] hover:bg-[#F5F5F7]'}`}
           >
             Units
           </button>
@@ -1710,15 +1673,15 @@ function ImportManager({ onReload }) {
       <div className="rounded-3xl bg-white p-5 shadow-sm">
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div>
-            <label className="block text-xs font-semibold text-[#4F46E5] mb-1">Mode</label>
+            <label className="block text-xs font-semibold text-[#2C3E50] mb-1">Mode</label>
             <select value={mode} onChange={(e) => setMode(e.target.value)} className={ui.input}>
               <option value="add">Add (create new records)</option>
               <option value="replace">Replace existing records</option>
             </select>
-            <p className="mt-1 text-xs text-[#64748B]">{isUnits ? 'Replace will update existing units by code+course.' : 'Replace will end-date old active assignments for this term.'}</p>
+            <p className="mt-1 text-xs text-[#666666]">{isUnits ? 'Replace will update existing units by code+course.' : 'Replace will end-date old active assignments for this term.'}</p>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#4F46E5] mb-1">CSV / XLSX file</label>
+            <label className="block text-xs font-semibold text-[#2C3E50] mb-1">CSV / XLSX file</label>
             <input type="file" accept=".csv,.xlsx" onChange={handleFileChange} className={ui.input} />
           </div>
         </div>
@@ -1733,21 +1696,21 @@ function ImportManager({ onReload }) {
         {preview && (
           <div className="mt-5 space-y-4">
             <div className="grid gap-2 text-sm">
-              <div className="rounded-lg bg-[#E0E7FF] p-3"><span className="font-semibold text-[#0F172A]">Total rows:</span> {preview.summary.total ?? preview.summary.created + preview.summary.updated + preview.summary.errors}</div>
+              <div className="rounded-lg bg-[#ECF0F1] p-3"><span className="font-semibold text-[#1A1A1A]">Total rows:</span> {preview.summary.total ?? preview.summary.created + preview.summary.updated + preview.summary.errors}</div>
               {isUnits ? (
                 <>
-                  <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#0F172A]">Created:</span> {preview.summary.created}</div>
-                  <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#0F172A]">Updated:</span> {preview.summary.updated}</div>
+                  <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#1A1A1A]">Created:</span> {preview.summary.created}</div>
+                  <div className="rounded-lg bg-[#10B981]/10 p-3"><span className="font-semibold text-[#1A1A1A]">Updated:</span> {preview.summary.updated}</div>
                 </>
               ) : (
                 <>
-                  <div className="rounded-lg bg-green-50 p-3"><span className="font-semibold text-[#0F172A]">Valid:</span> {preview.summary.valid}</div>
-                  <div className="rounded-lg bg-red-50 p-3"><span className="font-semibold text-[#0F172A]">Errors:</span> {preview.summary.errors}</div>
-                  <div className="rounded-lg bg-blue-50 p-3"><span className="font-semibold text-[#0F172A]">New lecturers:</span> {preview.summary.new_lecturers}</div>
-                  <div className="rounded-lg bg-violet-50 p-3"><span className="font-semibold text-[#0F172A]">Existing lecturers:</span> {preview.summary.existing_lecturers}</div>
+                  <div className="rounded-lg bg-green-50 p-3"><span className="font-semibold text-[#1A1A1A]">Valid:</span> {preview.summary.valid}</div>
+                  <div className="rounded-lg bg-red-50 p-3"><span className="font-semibold text-[#1A1A1A]">Errors:</span> {preview.summary.errors}</div>
+                  <div className="rounded-lg bg-blue-50 p-3"><span className="font-semibold text-[#1A1A1A]">New lecturers:</span> {preview.summary.new_lecturers}</div>
+                  <div className="rounded-lg bg-violet-50 p-3"><span className="font-semibold text-[#1A1A1A]">Existing lecturers:</span> {preview.summary.existing_lecturers}</div>
                 </>
               )}
-              <div className="rounded-lg bg-[#EF4444]/10 p-3"><span className="font-semibold text-[#0F172A]">Errors:</span> {preview.summary.errors}</div>
+              <div className="rounded-lg bg-[#EF4444]/10 p-3"><span className="font-semibold text-[#1A1A1A]">Errors:</span> {preview.summary.errors}</div>
             </div>
 
             {preview.errors.length && (
@@ -1761,10 +1724,10 @@ function ImportManager({ onReload }) {
             )}
 
             {preview.matched_rows.length && (
-              <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
+              <div className="overflow-x-auto rounded-xl border border-[#DDDDDD]">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                    <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
                       {isUnits ? (
                         <>
                           <th className="px-3 py-2">Row</th>
@@ -1792,16 +1755,16 @@ function ImportManager({ onReload }) {
                   </thead>
                   <tbody>
                     {preview.matched_rows.map((row) => (
-                      <tr key={row.row} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
+                      <tr key={row.row} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
                         {isUnits ? (
                           <>
                             <td className="px-3 py-2">{row.row}</td>
-                            <td className="px-3 py-2 font-mono text-[#0F172A]">{row.unit_code}</td>
+                            <td className="px-3 py-2 font-mono text-[#1A1A1A]">{row.unit_code}</td>
                             <td className="px-3 py-2">{row.unit_name}</td>
                             <td className="px-3 py-2">{row.course_code}</td>
                             <td className="px-3 py-2">{row.lecturer_email || '—'}</td>
                             <td className="px-3 py-2">{row.lecturer_name || '—'}</td>
-                            <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
+                            <td className="px-3 py-2">{row.is_new_unit ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#666666]">Existing</span>}</td>
                           </>
                         ) : (
                           <>
@@ -1812,7 +1775,7 @@ function ImportManager({ onReload }) {
                             <td className="px-3 py-2">{row.programme_name}</td>
                             <td className="px-3 py-2">{row.unit_name}</td>
                             <td className="px-3 py-2">{row.staff_id || '—'}</td>
-                            <td className="px-3 py-2">{row.is_new_lecturer ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#64748B]">Existing</span>}</td>
+                            <td className="px-3 py-2">{row.is_new_lecturer ? <span className="text-green-600 font-medium">New</span> : <span className="text-[#666666]">Existing</span>}</td>
                             <td className="px-3 py-2">{row.units_affected}</td>
                           </>
                         )}
@@ -1851,15 +1814,15 @@ function ImportHistoryManager({ onReload }) {
     }
   };
 
-  if (loading) return <div className="text-center text-[#64748B] py-10">Loading history...</div>;
+  if (loading) return <div className="text-center text-[#666666] py-10">Loading history...</div>;
 
   return (
     <div className="space-y-5">
-      <h3 className="font-semibold text-[#0F172A]">Import History</h3>
+      <h3 className="font-semibold text-[#1A1A1A]">Import History</h3>
       <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+            <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
               <th className="px-5 py-4">File</th>
               <th className="px-5 py-4">Mode</th>
               <th className="px-5 py-4">Created by</th>
@@ -1871,12 +1834,12 @@ function ImportHistoryManager({ onReload }) {
           </thead>
           <tbody>
             {history.map((batch) => (
-              <tr key={batch.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
-                <td className="px-5 py-3.5 font-medium text-[#0F172A]">{batch.file_name}</td>
+              <tr key={batch.id} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
+                <td className="px-5 py-3.5 font-medium text-[#1A1A1A]">{batch.file_name}</td>
                 <td className="px-5 py-3.5">{batch.mode}</td>
                 <td className="px-5 py-3.5">{batch.created_by}</td>
                 <td className="px-5 py-3.5">{new Date(batch.created_at).toLocaleString()}</td>
-                <td className="px-5 py-3.5 text-sm text-[#64748B]">
+                <td className="px-5 py-3.5 text-sm text-[#666666]">
                   {batch.summary.created_rosters} rosters, {batch.summary.created_assignments} assignments
                 </td>
                 <td className="px-5 py-3.5">
@@ -1893,7 +1856,7 @@ function ImportHistoryManager({ onReload }) {
                 </td>
               </tr>
             ))}
-            {!history.length && <tr><td colSpan={7} className="p-10 text-center text-[#64748B]">No imports yet.</td></tr>}
+            {!history.length && <tr><td colSpan={7} className="p-10 text-center text-[#666666]">No imports yet.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1913,24 +1876,24 @@ function UnitsManager() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-center text-[#64748B] py-10">Loading units...</div>;
+  if (loading) return <div className="text-center text-[#666666] py-10">Loading units...</div>;
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#0F172A]">Units with no lecturer (current term)</h3>
+        <h3 className="font-semibold text-[#1A1A1A]">Units with no lecturer (current term)</h3>
         <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-800">{unassigned.length} unassigned</span>
       </div>
       {unassigned.length === 0 ? (
-        <div className="rounded-3xl bg-white p-10 text-center text-[#64748B] shadow-sm">
+        <div className="rounded-3xl bg-white p-10 text-center text-[#666666] shadow-sm">
           <CheckCircleOutlined className="mx-auto h-12 w-12 text-green-600" />
-          <p className="mt-4 text-lg font-medium text-[#0F172A]">Every unit has a lecturer</p>
+          <p className="mt-4 text-lg font-medium text-[#1A1A1A]">Every unit has a lecturer</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E2E8F0] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+              <tr className="border-b border-[#DDDDDD] text-xs font-semibold uppercase tracking-wide text-[#666666]">
                 <th className="px-5 py-4">Code</th>
                 <th className="px-5 py-4">Unit</th>
                 <th className="px-5 py-4">Programme</th>
@@ -1940,8 +1903,8 @@ function UnitsManager() {
             </thead>
             <tbody>
               {unassigned.map((unit) => (
-                <tr key={unit.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F1F5F9]">
-                  <td className="px-5 py-3.5 font-mono text-[#0F172A]">{unit.code}</td>
+                <tr key={unit.id} className="border-b border-[#DDDDDD] last:border-0 hover:bg-[#F5F5F7]">
+                  <td className="px-5 py-3.5 font-mono text-[#1A1A1A]">{unit.code}</td>
                   <td className="px-5 py-3.5">{unit.name}</td>
                   <td className="px-5 py-3.5">{unit.course__name}</td>
                   <td className="px-5 py-3.5">Year {unit.year_of_study}</td>
