@@ -265,6 +265,20 @@ export default function AdminDashboard() {
     URL.revokeObjectURL(link.href);
   };
 
+  const downloadTemplate = async (url, filename) => {
+    const response = await fetch(url, { headers: tokenHeaders() });
+    if (!response.ok) {
+      setState({ loading: false, error: 'Template download failed.' });
+      return;
+    }
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   const renderTable = (rows, columns) => (
     <div className="overflow-x-auto rounded-3xl bg-white shadow-sm">
       <table className="w-full text-left text-sm">
@@ -771,7 +785,7 @@ function AssignmentManager({ data, onAction, onReload }) {
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-[#0F172A]">Bulk Import Units</h3>
         </div>
-        <a href={`${API_BASE}/api/accounts/admin/units/template/`} className={ui.ghost} download>Download CSV template</a>
+        <button type="button" onClick={() => downloadTemplate(`${API_BASE}/api/accounts/admin/units/template/`, 'units_template.csv')} className={ui.ghost}>Download CSV template</button>
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm">
@@ -1694,7 +1708,7 @@ function ImportManager({ onReload }) {
             Units
           </button>
         </div>
-        <a href={templateUrl} className={ui.ghost} download>Download CSV template</a>
+        <button type="button" onClick={() => downloadTemplate(templateUrl, `${importType}_template.csv`)} className={ui.ghost}>Download CSV template</button>
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-sm">
