@@ -126,9 +126,6 @@ export default function LecturerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [dark, setDark] = useState(
-    () => localStorage.getItem("darkMode") === "true",
-  );
   const [mobile, setMobile] = useState(false);
   const [query, setQuery] = useState("");
   const [unitId, setUnitId] = useState("");
@@ -200,10 +197,6 @@ export default function LecturerDashboard() {
   useEffect(() => {
     load();
   }, []);
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("darkMode", String(dark));
-  }, [dark]);
   useEffect(() => {
     if (tab === "messages")
       axios
@@ -401,16 +394,6 @@ export default function LecturerDashboard() {
                 </button>
               ))}
             </div>
-
-            <div className="mt-auto border-t border-[#E3E9F2] pt-6 dark:border-[#1E2940]">
-              <button
-                onClick={() => setDark((value) => !value)}
-                className="flex w-full items-center gap-3 text-sm font-semibold text-[#6B7A90] transition-colors hover:text-[#0F3D6E] dark:hover:text-white"
-              >
-                {dark ? <Sun size={18} /> : <Moon size={18} />}
-                {dark ? "Light Mode" : "Dark Mode"}
-              </button>
-            </div>
           </div>
         </aside>
 
@@ -547,13 +530,9 @@ export default function LecturerDashboard() {
                 {/* LEFT: main dashboard content */}
                 <div className="min-w-0 space-y-6">
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <h1 className="text-2xl font-bold text-[#0F3D6E] dark:text-white">
+                    <h1 className="text-2xl font-bold text-[#0F3D6E]">
                       {greeting()}, {user?.first_name || "there"}
                     </h1>
-                    <button className="flex items-center gap-2 rounded-xl bg-[#0F3D6E] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:bg-[#154e8a] transition-colors">
-                      <Plus size={18} /> Add Course{" "}
-                      <ChevronDown size={16} className="ml-1 opacity-70" />
-                    </button>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
@@ -811,8 +790,6 @@ export default function LecturerDashboard() {
             {tab === "settings" && (
               <SettingsTab
                 user={user}
-                dark={dark}
-                setDark={setDark}
                 demo={demo}
                 logout={logout}
                 setNotice={setNotice}
@@ -945,8 +922,6 @@ function PasswordField({ label, value, onChange, autoComplete }) {
 
 function SettingsTab({
   user,
-  dark,
-  setDark,
   demo,
   logout,
   setNotice,
@@ -1458,39 +1433,6 @@ function SettingsTab({
                 <option value="weekly">Weekly summary</option>
                 <option value="off">Don't send emails</option>
               </SelectBox>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard icon={Palette} title="Appearance">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold">Dark mode</p>
-                <p className="text-xs text-[#6B7A90]">
-                  Easier on the eyes when marking late.
-                </p>
-              </div>
-              <Toggle checked={dark} onChange={setDark} label="Dark mode" />
-            </div>
-          </SettingsCard>
-
-          <SettingsCard
-            icon={Database}
-            title="Demo data"
-            description="Preview students, groups, assessments, charts and messages with sample data."
-          >
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => demo("post")}
-                className="rounded-xl bg-[#0F3D6E] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#154e8a]"
-              >
-                Create demo data
-              </button>
-              <button
-                onClick={() => demo("delete")}
-                className="rounded-xl border border-[#E5484D] px-4 py-2.5 text-sm font-bold text-[#E5484D] transition-colors hover:bg-[#FFF1F1] dark:hover:bg-[#2a1518]"
-              >
-                Delete demo data
-              </button>
             </div>
           </SettingsCard>
 

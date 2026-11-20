@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Eye, EyeOff, Loader2, Bell, Mail, Shield, User, Calendar, BookOpen, MessageCircle } from 'lucide-react';
+import { Camera, Loader2, Bell, Mail, Shield, User, Calendar, BookOpen, MessageCircle } from 'lucide-react';
 import { btnPrimary, btnSecondary } from '../design';
 import axios from '../../api';
 import { API_BASE } from '../../apiConfig';
@@ -30,9 +30,6 @@ const Settings = ({ ctx }) => {
     setUser,
   } = ctx;
 
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
@@ -423,17 +420,14 @@ const Settings = ({ ctx }) => {
               <form onSubmit={handlePasswordSubmit} className="space-y-3 mt-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {[
-                    ['current_password', 'Current password', showCurrentPassword, setShowCurrentPassword],
-                    ['new_password', 'New password', showNewPassword, setShowNewPassword],
-                    ['confirm_password', 'Confirm new password', showConfirmPassword, setShowConfirmPassword],
-                  ].map(([field, label, show, setShow]) => (
+                    ['current_password', 'Current password'],
+                    ['new_password', 'New password'],
+                    ['confirm_password', 'Confirm new password'],
+                  ].map(([field, label]) => (
                     <label key={field} className="block text-xs font-semibold text-[#435B76]">
                       {label}
                       <div className="mt-1 relative">
-                        <input type={show ? 'text' : 'password'} required autoComplete="new-password" value={passwordForm[field]} onChange={(event) => setPasswordForm((current) => ({ ...current, [field]: event.target.value }))} className="w-full rounded-md border border-[#CBD5E1] bg-white px-2.5 py-2 text-sm text-[#29384A] outline-none focus:border-[#7189A3] pr-9" />
-                        <button type="button" onClick={() => setShow(!show)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#4F5F73] hover:text-[#1F2D3D]">
-                          {show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-                        </button>
+                        <input type="password" required autoComplete="new-password" value={passwordForm[field]} onChange={(event) => setPasswordForm((current) => ({ ...current, [field]: event.target.value }))} className="w-full rounded-md border border-[#CBD5E1] bg-white px-2.5 py-2 text-sm text-[#29384A] outline-none focus:border-[#7189A3] pr-9" />
                       </div>
                     </label>
                   ))}
