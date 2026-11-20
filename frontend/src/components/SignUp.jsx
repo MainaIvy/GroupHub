@@ -223,8 +223,13 @@ const SignUp = () => {
   }, []);
 
   useEffect(() => {
-    if (uniqueUniversities.length === 1 && !formData.university) {
-      setField('university', uniqueUniversities[0]);
+    if (!formData.university) {
+      const defaultUni = uniqueUniversities.includes('Zetech University')
+        ? 'Zetech University'
+        : uniqueUniversities.length === 1
+          ? uniqueUniversities[0]
+          : '';
+      if (defaultUni) setField('university', defaultUni);
     }
   }, [uniqueUniversities, formData.university, setField]);
 
