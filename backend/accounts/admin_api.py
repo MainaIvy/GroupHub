@@ -825,6 +825,10 @@ def admin_export(request, export_type):
         for assignment in UnitAssignment.objects.select_related('unit'):
             for student in User.objects.filter(enrollments__unit=assignment.unit).distinct():
                 writer.writerow([assignment.unit.code, _name(student), Task.objects.filter(project__group__unit=assignment.unit, assigned_to=student).count(), Submission.objects.filter(submitted_by=student, project__group__unit=assignment.unit).count()])
+    elif export_type == 'units':
+        writer.writerow(['code', 'name', 'programme', 'year', 'semester', 'academic_level'])
+        for unit in Unit.objects.select_related('course').all():
+            writer.writerow([unit.code, unit.name, unit.course.name, unit.year_of_study, unit.semester, unit.academic_level or ''])
     else:
         return Response({'error': 'Unknown export.'}, status=status.HTTP_400_BAD_REQUEST)
     _audit(request, f'export_{export_type}', 'Export')
