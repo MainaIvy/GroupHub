@@ -2191,7 +2191,7 @@ function ImportManager({ onReload }) {
 
       {showDownloadConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDownloadConfirm(false)} />
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowDownloadConfirm(false)} />
           <div className="bg-white rounded-2xl p-6 shadow-xl max-w-md w-full border border-[#CCCCCC]">
             <h3 className="text-lg font-bold text-[#1A1A1A] mb-3">Download lecturer template</h3>
             <p className="text-sm text-[#4F5F73] mb-6">
