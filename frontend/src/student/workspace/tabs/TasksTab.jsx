@@ -51,6 +51,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h4 className="font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
+            {!task.parent_task_id && <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[10px] font-semibold text-[#35475C]">Parent task</span>}
             {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final task</span> : null}
             <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)} cursor-pointer hover:opacity-80 transition-colors`} onClick={(isLeader || isAssignee) && !compileLocked ? () => {
               const next = task.board_status === 'completed' ? 'pending' : task.board_status === 'pending' ? 'in_progress' : 'completed';
@@ -74,7 +75,9 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
 
       <div className="mt-2.5 space-y-2">
         {task.has_subtasks ? (
-          <ul className="space-y-1">
+          <div className="mt-2 space-y-1">
+            <p className="text-[10px] uppercase tracking-wider text-[#4F5F73] font-semibold px-2">Subtasks of “{task.title}”</p>
+            <ul className="space-y-1">
             {subtasks.map((subtask) => {
               const subMember = members.find((item) => item.id === subtask.assigned_to_id);
               const subStatusLabel = { pending: 'Pending', in_progress: 'In progress', completed: 'Done' }[subtask.board_status] || subtask.board_status;
@@ -88,8 +91,9 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <h5 className="font-medium text-[#1F2D3D] truncate">{subtask.title}</h5>
-                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#4F5F73]">
-                          {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
+                    <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#4F5F73]">
+                      <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-1.5 py-0.5 font-semibold text-[#6B7280]">Subtask</span>
+                      {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
                           {subtask.weight ? <span>Â· {weightText(subtask.weight)} pts</span> : ''}
                           {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
                         </div>
@@ -119,6 +123,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
               );
             })}
           </ul>
+          </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
