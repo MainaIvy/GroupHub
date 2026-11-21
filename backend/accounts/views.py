@@ -1390,8 +1390,16 @@ def lecturer_dashboard(request):
             active_term = Semester.objects.create(
                 name='Year 1 Semester 1', year=1, semester=1, is_current=True,
             )
-        lecturer_units = approved_units_for_lecturer(user, active_term)
-        logger.info(f"User {user.id} has {lecturer_units.count()} approved units for current term")
+        # Show ALL approved units for the lecturer across all terms, not just
+        # the current term. A lecturer may have units assigned in previous or
+        # future terms that should still be visible on their dashboard.
+        lecturer_unit_assignments = UnitAssignment.objects.filter(
+            lecturer=user, status='approved',
+        ).select_related('unit', 'term')
+        lecturer_units = Unit.objects.filter(
+            id__in=lecturer_unit_assignments.values_list('unit_id', flat=True),
+        ).distinct()
+        logger.info(f"User {user.id} has {lecturer_units.count()} approved units (all terms)")
         if not lecturer_units.exists():
             return Response({
                 'status': 'no_assignments',
@@ -3190,7 +3198,15 @@ def get_chat_contacts(request):
 def get_chat_rooms(request):
     try:
         user = request.user
-        groups = Group.objects.filter(lecturer=user) if user.user_type == 'lecturer' else Group.objects.filter(memberships__student=user)
+        if user.user_type == 'lecturer':
+            # Lecturers see chat rooms for groups of units they are assigned to
+            # teach (any approved UnitAssignment, any term).
+            lecturer_unit_ids = UnitAssignment.objects.filter(
+                lecturer=user, status='approved',
+            ).values_list('unit_id', flat=True)
+            groups = Group.objects.filter(unit_id__in=lecturer_unit_ids)
+        else:
+            groups = Group.objects.filter(memberships__student=user)
         group_chat_rooms = []
         for group in groups.distinct():
             room, _ = ChatRoom.objects.get_or_create(group=group, defaults={'chat_type': 'group'})
@@ -3328,7 +3344,16 @@ def send_message(request, room_id):
 
         if chat_room.chat_type == 'group':
             if not can_view_group(user, chat_room.group):
-                return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+                # Lecturers can also send if they have any approved UnitAssignment
+                # for the group's unit (any term), not just the current term.
+                if user.user_type == 'lecturer' and chat_room.group.unit_id:
+                    has_assignment = UnitAssignment.objects.filter(
+                        lecturer=user, unit_id=chat_room.group.unit_id, status='approved',
+                    ).exists()
+                    if not has_assignment:
+                        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+                else:
+                    return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         else:  
             if not (chat_room.user1 == user or chat_room.user2 == user):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
