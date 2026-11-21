@@ -77,7 +77,7 @@ const Login = () => {
       if (user.is_staff) {
         targetPath = '/admin/dashboard';
       } else if (user.user_type === 'lecturer') {
-        targetPath = user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard';
+        targetPath = '/lecturer/dashboard';
       } else {
         targetPath = '/student/dashboard';
       }
@@ -181,7 +181,7 @@ const Login = () => {
           if (profile.must_change_password || data.must_change_password) {
             targetPath = '/lecturer/change-password';
           } else {
-            targetPath = (profile.lecturer_setup_required || data.lecturer_setup_required) ? '/lecturer/setup' : '/lecturer/dashboard';
+            targetPath = '/lecturer/dashboard';
           }
         } else if (userType === 'student') {
           targetPath = '/student/dashboard';
