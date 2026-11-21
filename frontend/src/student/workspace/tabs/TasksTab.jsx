@@ -54,7 +54,7 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
     const formData = new FormData();
     formData.append('note', proofText.trim());
     formData.append('url', proofUrl.trim());
-    if (proofFile) formData.append('file', proofFile);
+    if (proofFile) formData.append('files', proofFile);
     const result = await actions.addWork(subtask, formData);
     if (result?.ok) {
       setProofText('');
