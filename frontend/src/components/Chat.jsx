@@ -1006,7 +1006,7 @@ const Chat = ({
                         const own = isMine(message);
                         const userColor = getUserColor(message.sender?.id, allUsers);
                         return (
-                          <article key={message.id} className="relative flex group ${own ? 'justify-end' : 'justify-start'}">
+                          <article key={message.id} className={`relative flex group ${own ? 'justify-end' : 'justify-start'}`}>
                             {/* Message actions menu - on left side, outside bubble, shown on hover (Instagram style) */}
                             <div className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1">
                               <button
