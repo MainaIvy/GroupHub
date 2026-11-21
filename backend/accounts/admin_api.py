@@ -157,15 +157,11 @@ def admin_users(request):
         if user.is_staff or user.is_superuser:
             row['role'] = 'Admin'
         if user.user_type == 'lecturer' and not user.is_staff and not user.is_superuser:
-            term = current_term()
-            if term:
-                row['load_count'] = UnitAssignment.objects.filter(
-                    lecturer=user, term=term, status='approved',
-                ).filter(
-                    models.Q(end_date__isnull=True) | models.Q(end_date__gte=timezone.now().date())
-                ).count()
-            else:
-                row['load_count'] = 0
+            # Count ALL approved units across all terms, matching what the
+            # lecturer dashboard and the modal show.
+            row['load_count'] = UnitAssignment.objects.filter(
+                lecturer=user, status='approved',
+            ).count()
         rows.append(row)
     return Response(rows)
 
