@@ -1099,8 +1099,7 @@ const Chat = ({
                                   )}
                                 </>
                               )}
-                              {message.poll && renderPollCard(message.poll, activeRoom?.group_id)}
-                              {/* Voice note playback - custom player */}
+                                {/* Voice note playback - custom player */}
                               {message.voice_note_url && (
                                 <VoiceNotePlayer
                                   audioUrl={message.voice_note_url}
