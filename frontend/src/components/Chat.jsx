@@ -1006,57 +1006,58 @@ const Chat = ({
                         const own = isMine(message);
                         const userColor = getUserColor(message.sender?.id, allUsers);
                         return (
-                          <article key={message.id} className={`relative flex group ${own ? 'justify-end' : 'justify-start'}`}>
-                            {/* Message actions menu - on left side, outside bubble, shown on hover (Instagram style) */}
-                            <div className="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setMessageActionsOpen(messageActionsOpen === message.id ? null : message.id); }}
-                                aria-label="More options"
-                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs ${own ? 'text-[#35475C] bg-[#E2E8F0]' : 'text-[#6B7A8C]'} hover:bg-[#EEF1F4]`}
-                              >
-                                <MoreVertical size={14} aria-hidden="true" />
-                              </button>
-                              {messageActionsOpen === message.id && (
-                                <div data-msg-actions={messageActionsOpen} className="absolute mt-1 left-0 z-50 w-48 rounded-lg border border-[#D7DEE6] bg-white shadow-lg py-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleReplyMessage(message)}
-                                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
-                                  >
-                                    <Reply size={14} aria-hidden="true" /> Reply
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleReactMessage(message.id, '👍')}
-                                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
-                                  >
-                                    <span className="text-lg">👍</span> React
-                                  </button>
-                                  {own && (
-                                    <>
-                                      <div className="h-px bg-[#EEF1F4] my-1" />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleEditMessage(message)}
-                                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
-                                      >
-                                        <Pencil size={14} aria-hidden="true" /> Edit
-                                      </button>
-                                      <div className="h-px bg-[#EEF1F4] my-1" />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteMessage(message.id)}
-                                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                                      >
-                                        <Trash2 size={14} aria-hidden="true" /> Delete
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div className={"max-w-[80%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] " + (own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]')}>
+                          <article key={message.id} className={`flex group ${own ? 'justify-end' : 'justify-start'}`}>
+                            <div className="relative">
+                              {/* Message actions menu - just outside left edge of bubble, shown on hover */}
+                              <div className="absolute -left-8 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setMessageActionsOpen(messageActionsOpen === message.id ? null : message.id); }}
+                                  aria-label="More options"
+                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs ${own ? 'text-[#35475C] bg-[#E2E8F0]' : 'text-[#6B7A8C]'} hover:bg-[#EEF1F4]`}
+                                >
+                                  <MoreVertical size={14} aria-hidden="true" />
+                                </button>
+                                {messageActionsOpen === message.id && (
+                                  <div data-msg-actions={messageActionsOpen} className="absolute mt-1 left-0 z-50 w-48 rounded-lg border border-[#D7DEE6] bg-white shadow-lg py-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReplyMessage(message)}
+                                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                    >
+                                      <Reply size={14} aria-hidden="true" /> Reply
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReactMessage(message.id, '👍')}
+                                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                    >
+                                      <span className="text-lg">👍</span> React
+                                    </button>
+                                    {own && (
+                                      <>
+                                        <div className="h-px bg-[#EEF1F4] my-1" />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleEditMessage(message)}
+                                          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                        >
+                                          <Pencil size={14} aria-hidden="true" /> Edit
+                                        </button>
+                                        <div className="h-px bg-[#EEF1F4] my-1" />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteMessage(message.id)}
+                                          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                        >
+                                          <Trash2 size={14} aria-hidden="true" /> Delete
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <div className={"max-w-[80%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] " + (own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]')}>
                               {!own && (
                                 <div className="mb-1.5 flex items-center gap-2">
                                   <span className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{ backgroundColor: userColor }}>
@@ -1116,6 +1117,7 @@ const Chat = ({
                                 </button>
                               )}
                             </div>
+                          </div>
                           </article>
                         );
                       })}
