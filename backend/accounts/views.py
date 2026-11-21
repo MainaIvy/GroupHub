@@ -1551,19 +1551,23 @@ def lecturer_dashboard(request):
                 'at_risk_groups': [g for g in at_risk_groups if g['unit_id'] == unit.id],
             })
 
+        # Fall back to LecturerRoster data if User fields are empty
+        roster_entry = LecturerRoster.objects.filter(email__iexact=user.email).first()
+        roster_first = roster_entry.full_name.split(' ', 1) if roster_entry and roster_entry.full_name else ['', '']
+
         data = {
             'user': {
                 'id': user.id,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
+                'first_name': user.first_name or roster_first[0] or '',
+                'last_name': user.last_name or (roster_first[1] if len(roster_first) > 1 else '') or '',
                 'salutation': user.salutation or '',
                 'email': user.email,
                 'avatar': avatar_url(user),
                 'user_type': user.user_type,
                 'course': user.course,
                 'year_of_study': user.year_of_study,
-                'department': user.department or '',
-                'staff_id': user.staff_id or '',
+                'department': user.department or (roster_entry.department if roster_entry else '') or '',
+                'staff_id': user.staff_id or (roster_entry.staff_id if roster_entry else '') or '',
                 'phone': '',
                 'office': '',
                 'office_hours': '',
