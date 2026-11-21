@@ -23,7 +23,7 @@ const CreateJoinModal = ({ ctx }) => {
               <input type="text" required placeholder="e.g., Network Alpha Space" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="mt-1.5 w-full bg-white border border-[#D7DEE6] rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7189A3] text-[#1F2D3D] font-medium"/>
             </div>
             <div>
-              <label className="block text-[10px] font-black text-[#4A6079] uppercase tracking-wider">Associated Curriculum Unit</label>
+              <label className="block text-[10px] font-black text-[#4A6079] uppercase tracking-wider">Programme</label>
               <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} className="mt-1.5 w-full bg-white border border-[#D7DEE6] rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7189A3] text-[#1F2D3D] font-medium">
                 {courseOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>

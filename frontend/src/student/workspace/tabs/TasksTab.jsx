@@ -5,6 +5,23 @@ import { btnPrimary, btnSecondary } from '../../design';
 import { ProgressBar } from '../../components/ProgressBar';
 import { childrenOf, formatDue, weightText } from '../taskUtils';
 
+const isLeaf = (task) => !task.has_subtasks && !task.is_compile_task;
+const isApproved = (task) => task.board_status !== 'proposed';
+
+const computeProgress = (allTasks) => {
+  const leafTasks = allTasks.filter((t) => isLeaf(t) && isApproved(t));
+  if (leafTasks.length === 0) return 0;
+  const totalWeight = leafTasks.reduce((sum, t) => sum + Math.max(1, t.weight || 1), 0);
+  const weightedProgress = leafTasks.reduce((sum, t) => sum + (t.progress_percentage || 0) * Math.max(1, t.weight || 1), 0);
+  return Math.round(weightedProgress / totalWeight);
+};
+
+const allApprovedLeafCompleted = (allTasks) => {
+  const leafTasks = allTasks.filter((t) => isLeaf(t) && isApproved(t));
+  if (leafTasks.length === 0) return false;
+  return leafTasks.every((t) => t.board_status === 'done' || (t.progress_percentage || 0) >= 100);
+};
+
 const statuses = ['todo', 'in_progress', 'done'];
 const personsLabel = 'Group by: Task';
 const groupLabels = { task: 'Task', person: 'Person', status: 'Status' };
@@ -40,7 +57,7 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
   const isAssignee = subtask.assigned_to_id === userId;
   const isLeader = userId === leaderId;
   const canClaim = subtask.board_status === 'open_to_claim' && !subtask.has_subtasks;
-  const canFinish = isAssignee && subtask.board_status !== 'done';
+  const canFinish = isAssignee && isApproved(subtask) && subtask.board_status !== 'done';
   const compileLocked = compile.is_locked && subtask.is_compile_task;
   const statusLabel = statusLabelFor(subtask.board_status);
   const proofCount = (subtask.work_items || []).length;
@@ -75,7 +92,7 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
           <div className="flex items-center gap-2">
             <h5 className="font-medium text-[#1F2D3D] truncate">{subtask.title}</h5>
             <span className="rounded-full border border-[#C9D5E2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#6B7280]">Subtask</span>
-            <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${taskStatusChip(subtask.board_status)}${isAssignee && !compileLocked ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={isAssignee && !compileLocked ? () => {
+            <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${taskStatusChip(subtask.board_status)}${((isLeader || isAssignee) && subtask.board_status !== 'proposed' && !compileLocked) ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={((isLeader || isAssignee) && subtask.board_status !== 'proposed' && !compileLocked) ? () => {
               actions.setStatus(subtask, cycleNext(subtask.board_status));
             } : undefined}>
               {statusLabel}
@@ -84,7 +101,7 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-[#4F5F73]">
             {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
-            {subtask.weight ? <span>Â· {weightText(subtask.weight)}</span> : ''}
+            {subtask.weight ? <span>· {weightText(subtask.weight)}</span> : ''}
             {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
           </div>
         </div>
@@ -101,13 +118,22 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
             {subMember ? <span className="text-[10px] text-[#4F5F73]">{subMember.name}</span> : <span className="text-[10px] text-[#4F5F73]">Unassigned</span>}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {canClaim && !compileLocked ? (
-              <button type="button" disabled={actions.busy} onClick={() => actions.claim(subtask, false)} className={btnSecondary}>Claim</button>
-            ) : null}
-            {canFinish && !compileLocked ? (
-              <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'completed')} className={btnPrimary}>Done</button>
-            ) : null}
-            {compileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
+            {subtask.board_status === 'proposed' && isLeader ? (
+              <>
+                <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'open_to_claim')} className={btnSecondary}>Approve</button>
+                <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'todo')} className="rounded-md border border-[#E3EAF2] bg-[#EEF1F4] px-3 py-1.5 text-xs font-semibold text-[#35475C] hover:bg-[#E3EAF2]">Reject</button>
+              </>
+            ) : (
+              <>
+                {canClaim && !compileLocked ? (
+                  <button type="button" disabled={actions.busy} onClick={() => actions.claim(subtask, false)} className={btnSecondary}>Claim</button>
+                ) : null}
+                {canFinish && !compileLocked ? (
+                  <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'completed')} className={btnPrimary}>Done</button>
+                ) : null}
+                {compileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
+              </>
+            )}
           </div>
         </div>
 
@@ -167,7 +193,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
   const member = members.find((item) => item.id === task.assigned_to_id);
   const isLeader = userId === leaderId;
   const isAssignee = task.assigned_to_id === userId;
-  const canFinish = isAssignee && task.board_status !== 'done' && !task.has_subtasks;
+  const canFinish = isAssignee && isApproved(task) && task.board_status !== 'done' && !task.has_subtasks;
   const canClaim = task.board_status === 'open_to_claim' && !task.has_subtasks;
   const statusLabel = statusLabelFor(task.board_status);
   const proofCount = (task.work_items || []).length;
@@ -199,7 +225,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
             <h4 className="font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
             {!task.parent_task_id && <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[10px] font-semibold text-[#35475C]">Parent task</span>}
             {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final task</span> : null}
-            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)}${((isLeader || isAssignee) && !compileLocked && !task.has_subtasks) ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={(isLeader || isAssignee) && !compileLocked && !task.has_subtasks ? () => {
+            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)}${((isLeader || isAssignee) && !compileLocked && !task.has_subtasks && task.board_status !== 'proposed') ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={((isLeader || isAssignee) && !compileLocked && !task.has_subtasks && task.board_status !== 'proposed') ? () => {
               actions.setStatus(task, cycleNext(task.board_status));
             } : undefined}>
               {statusLabel}
@@ -208,7 +234,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
           </div>
           {task.due_date && (
             <div className="mt-1 flex items-center gap-1 text-[11px] text-[#4F5F73]">
-              <CalendarDays size={12} aria-hidden="true" /> {formatDue(task.due_date)}{task.weight ? ` Â· ${weightText(task.weight)}` : ''}
+              <CalendarDays size={12} aria-hidden="true" /> {formatDue(task.due_date)}{task.weight ? ` · ${weightText(task.weight)}` : ''}
             </div>
           )}
         </div>
@@ -235,34 +261,43 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
               {proofCount > 0 && <FileText size={10} className="text-[#4A6079]" title="Proof attached" />}
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              {canClaim && !compileLocked ? (
-                <button type="button" disabled={actions.busy} onClick={() => claimTask()} className={btnSecondary}>Claim</button>
-              ) : null}
-              {canFinish && !compileLocked ? (
-                <button type="button" disabled={actions.busy} onClick={() => finishTask()} className={btnPrimary}>Done</button>
-              ) : null}
-              {!member && canEditCompile && isCompile && compileLocked ? (
-                <button type="button" disabled={actions.busy} onClick={() => openGroupTasks()} className={btnSecondary}>Combine</button>
-              ) : null}
-              {member && !compileLocked ? (
-                <button type="button" disabled={actions.busy} onClick={() => reassignTask(member.id)} className={btnSecondary}>Reassign</button>
-              ) : null}
-              {(isLeader || isAssignee) && !compileLocked && task.board_status !== 'done' ? (
-                <button type="button" onClick={() => onEditTask(task)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Edit task">
-                  <Edit2 size={12} />
-                </button>
-              ) : null}
-              {!task.has_subtasks && (isLeader || isAssignee) && !compileLocked ? (
-                <button type="button" onClick={() => onAddSubtask(task)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Add subtask">
-                  <Plus size={12} />
-                </button>
-              ) : null}
-              {isLeader && !compileLocked ? (
-                <button type="button" onClick={() => { if (window.confirm('Delete this task?')) onDeleteTask(task); }} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors" title="Delete task">
-                  <Trash2 size={12} />
-                </button>
-              ) : null}
-              {compileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
+              {task.board_status === 'proposed' && isLeader ? (
+                <>
+                  <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(task, 'open_to_claim')} className={btnSecondary}>Approve</button>
+                  <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(task, 'todo')} className="rounded-md border border-[#E3EAF2] bg-[#EEF1F4] px-3 py-1.5 text-xs font-semibold text-[#35475C] hover:bg-[#E3EAF2]">Reject</button>
+                </>
+              ) : (
+                <>
+                  {canClaim && !compileLocked ? (
+                    <button type="button" disabled={actions.busy} onClick={() => claimTask()} className={btnSecondary}>Claim</button>
+                  ) : null}
+                  {canFinish && !compileLocked ? (
+                    <button type="button" disabled={actions.busy} onClick={() => finishTask()} className={btnPrimary}>Done</button>
+                  ) : null}
+                  {!member && canEditCompile && isCompile && compileLocked ? (
+                    <button type="button" disabled={actions.busy} onClick={() => openGroupTasks()} className={btnSecondary}>Combine</button>
+                  ) : null}
+                  {member && !compileLocked ? (
+                    <button type="button" disabled={actions.busy} onClick={() => reassignTask(member.id)} className={btnSecondary}>Reassign</button>
+                  ) : null}
+                  {(isLeader || isAssignee) && !compileLocked && task.board_status !== 'done' ? (
+                    <button type="button" onClick={() => onEditTask(task)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Edit task">
+                      <Edit2 size={12} />
+                    </button>
+                  ) : null}
+                  {!task.has_subtasks && (isLeader || isAssignee) && !compileLocked ? (
+                    <button type="button" onClick={() => onAddSubtask(task)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Add subtask">
+                      <Plus size={12} />
+                    </button>
+                  ) : null}
+                  {isLeader && !compileLocked ? (
+                    <button type="button" onClick={() => { if (window.confirm('Delete this task?')) onDeleteTask(task); }} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors" title="Delete task">
+                      <Trash2 size={12} />
+                    </button>
+                  ) : null}
+                  {compileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
+                </>
+              )}
             </div>
           </div>
         )}
@@ -283,7 +318,9 @@ const TaskGroup = ({ title, tasks, members, actions, userId, leaderId, compile, 
         className="flex items-center justify-between gap-2 rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-left hover:bg-[#EEF1F4]"
       >
         <span className="flex items-center gap-1 shrink-0 font-semibold text-[#1F2D3D]">{headerLabel}{title}</span>
-        <span className="shrink-0 text-[12px] font-semibold text-[#4F5F73]">{tasks.length}</span>
+        {tasks.length > 0 && (
+          <span className="shrink-0 text-[12px] font-semibold text-[#4F5F73]">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</span>
+        )}
       </button>
       {(!collapsible || open) && (
         <div className="space-y-2">
@@ -331,6 +368,7 @@ const TasksTab = ({
   const groupedByPerson = useMemo(() => {
     const map = new Map(members.map((member) => [member.id, { member, items: [] }]));
     tasks.forEach((task) => {
+      if (task.parent_task_id) return;
       if (task.assigned_to_id) {
         const entry = map.get(task.assigned_to_id);
         if (entry) entry.items.push(task);
@@ -338,7 +376,7 @@ const TasksTab = ({
     });
     return Array.from(map.values()).filter((entry) => entry.items.length > 0);
   }, [tasks, members]);
-  const groupedByStatus = useMemo(() => statuses.map((status) => ({ status, items: tasks.filter((task) => toDisplayStatus(task.board_status) === status) })), [tasks]);
+  const groupedByStatus = useMemo(() => statuses.map((status) => ({ status, items: tasks.filter((task) => !task.parent_task_id && toDisplayStatus(task.board_status) === status) })), [tasks]);
 
   const taskGroups = useMemo(() => {
     if (groupBy === 'task') return groupedByTask.map((group) => ({ title: group.task.title, tasks: group.items, sectionId: group.task.id }));
@@ -351,7 +389,7 @@ const TasksTab = ({
   }, [actions, tasks]);
 
   const project = projects?.[0] || workspace.project || {};
-  const overallProgress = workspace.project_progress ?? 0;
+  const overallProgress = computeProgress(tasks);
   const openToClaim = tasks.filter((task) => task.board_status === 'open_to_claim' && !task.has_subtasks && task.section);
 
   const taskCardForOpen = selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) : null;
@@ -370,12 +408,12 @@ const TasksTab = ({
             <div className="mt-3 flex items-center gap-2 text-sm text-[#4F5F73]">
               <CalendarDays size={14} aria-hidden="true" />
               <span>{(workspace.group?.project_deadline || project.deadline) ? formatDue(workspace.group?.project_deadline || project.deadline) : (tasks.find((t) => t.due_date) ? formatDue(tasks.find((t) => t.due_date).due_date) : 'No deadline')}</span>
-              <span className="hidden sm:inline">Â· {members.length || workspace.group?.members_count || 0} members</span>
+              <span className="hidden sm:inline">· {members.length || workspace.group?.members_count || 0} member{(members.length || workspace.group?.members_count || 0) !== 1 ? 's' : ''}</span>
             </div>
           </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" disabled={actions.busy} onClick={onCreateTask} className={btnSecondary}>Create Task</button>
-              <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed')} className={btnPrimary}>Ready to submit</button>
+              <button type="button" disabled={actions.busy || !allApprovedLeafCompleted(tasks)} onClick={() => actions.setStatus(tasks.find((task) => task.is_compile_task), 'completed')} className={btnPrimary}>Ready to submit</button>
             </div>
         </div>
       </header>
@@ -395,7 +433,7 @@ const TasksTab = ({
         <section className="rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] p-3">
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-[#2F4A66]" aria-hidden="true" />
-            <p className="text-sm text-[#2F4A66]">Ready to combine â€” all tasks complete.</p>
+            <p className="text-sm text-[#2F4A66]">All approved tasks complete — compile and edit unlocked.</p>
           </div>
         </section>
       )}
@@ -422,7 +460,7 @@ const TasksTab = ({
                       <h5 className="font-medium text-[#1F2D3D] truncate">{task.title}</h5>
                       <div className="mt-1 flex items-center gap-1 text-xs text-[#4F5F73]">
                         {task.due_date && <span>{formatDue(task.due_date)}</span>}
-                        {task.weight ? <span>Â· {weightText(task.weight)}</span> : ''}
+                        {task.weight ? <span>· {weightText(task.weight)}</span> : ''}
                       </div>
                       <button type="button" disabled={actions.busy} onClick={() => actions.claim(task, false)} className="mt-2 rounded-lg bg-[#35475C] w-full px-3 py-1.5 text-xs font-bold text-white hover:bg-[#4A6079] disabled:opacity-50">Claim</button>
                     </article>
@@ -456,7 +494,7 @@ const TasksTab = ({
                   {member.is_leader && <span className="rounded bg-[#E3EAF2] px-1.5 py-0.5 text-[10px] font-bold text-[#2F4A66]">Leader</span>}
                 </div>
                 <ProgressBar value={Math.min(100, member.share_percent || 0)} label={`${member.name} share`} />
-                <p className="mt-1 text-xs text-[#4F5F73]">{member.points_assigned || 0} pts Â· {(member.share_percent || 0).toFixed(1)}%</p>
+                <p className="mt-1 text-xs text-[#4F5F73]">{member.points_assigned || 0} pts · {(member.share_percent || 0).toFixed(1)}%</p>
               </div>
             ))}
           </div>

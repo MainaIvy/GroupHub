@@ -20,17 +20,21 @@ const OverviewTab = ({ workspace, balance, activity, polls, pollsLoading, onOpen
       .map((project) => ({ key: `p-${project.id}`, title: project.title, due: project.deadline, kind: 'Project' })),
   ].sort((a, b) => new Date(a.due) - new Date(b.due)).slice(0, 3);
 
-  const openPolls = polls.filter((poll) => poll.status === 'open');
-  const totalPoints = balance?.total_points ?? 0;
-  const members = balance?.members || [];
+const openPolls = polls.filter((poll) => poll.status === 'open');
+const totalPoints = balance?.total_points ?? 0;
+const members = balance?.members || [];
+
+const leafTasks = tasks.filter((t) => !t.has_subtasks && !t.is_compile_task && t.board_status !== 'proposed');
+const progress = leafTasks.length ? Math.round(leafTasks.reduce((sum, t) => sum + (t.progress_percentage || 0) * Math.max(1, t.weight || 1), 0) / leafTasks.reduce((sum, t) => sum + Math.max(1, t.weight || 1), 0)) : 0;
+const doneCount = tasks.filter((t) => t.board_status === 'done').length;
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section className={card} aria-labelledby="ov-progress">
         <h3 id="ov-progress" className={heading}>Project progress</h3>
-        <div className="mb-1 flex items-baseline justify-between"><span className="text-3xl font-bold text-[#1F2D3D]">{workspace.project_progress}%</span><span className="text-sm capitalize text-[#4F5F73]">{String(workspace.project_status || 'planning').replaceAll('_', ' ')}</span></div>
-        <ProgressBar value={workspace.project_progress} label="Project progress" />
-        <p className="mt-2 text-sm text-[#4F5F73]">{tasks.filter((task) => task.board_status === 'done').length} of {tasks.length} tasks done</p>
+        <div className="mb-1 flex items-baseline justify-between"><span className="text-3xl font-bold text-[#1F2D3D]">{progress}%</span><span className="text-sm capitalize text-[#4F5F73]">{String(workspace.project_status || 'planning').replaceAll('_', ' ')}</span></div>
+        <ProgressBar value={progress} label="Project progress" />
+        <p className="mt-2 text-sm text-[#4F5F73]">{doneCount} of {tasks.length} task{tasks.length !== 1 ? 's' : ''} done</p>
       </section>
 
       <section className={card} aria-labelledby="ov-deadlines">

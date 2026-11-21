@@ -1,6 +1,6 @@
 import React from 'react';
 import { safeArray } from '../../utils';
-import { Clock, AlertTriangle, CheckCircle2, Copy, FileText, Trash2 } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle2, FileText, Trash2 } from 'lucide-react';
 import Avatar from '../../components/Avatar';
 
 const SubmissionTab = ({ ctx }) => {
@@ -49,7 +49,7 @@ const SubmissionTab = ({ ctx }) => {
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-[#E3EAF2] bg-[#EEF1F4] px-3 py-2 text-[12px] font-medium text-[#2F4A66]">
           <Clock size={14} aria-hidden="true" />
-          <span>{sectionsDone} of {sectionsTotal} tasks complete</span>
+          <span>{sectionsDone} of {sectionsTotal} task{sectionsTotal !== 1 ? 's' : ''} complete</span>
         </div>
       </div>
 
@@ -71,16 +71,6 @@ const SubmissionTab = ({ ctx }) => {
           </div>
         </article>
       )}
-
-      <article className="rounded-lg border border-[#D7DEE6] bg-white p-4">
-        <div className="flex items-center gap-2">
-          <Copy size={16} className="text-[#4A6079]" aria-hidden="true" />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#1F2D3D]">Where to submit</p>
-            <p className="mt-1 text-xs text-[#4F5F73]">Use the Submissions tab in your group workspace to hand in the final combined file.</p>
-          </div>
-        </div>
-      </article>
 
       <article className="rounded-lg border border-[#D7DEE6] bg-white p-4">
         <div className="flex items-center justify-between mb-3">

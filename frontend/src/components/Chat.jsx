@@ -984,7 +984,7 @@ const Chat = ({
             <header className="flex items-center justify-between border-b border-[#D7DEE6] px-4 py-3 sm:px-5">
               <div className="flex min-w-0 items-center gap-3">
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${activeRoom.type === 'direct' ? 'bg-[#D7DEE6] text-[#35475C]' : 'bg-[#D7DEE6] text-[#35475C]'}`}>{activeRoom.type === 'direct' ? <UserRound size={17} aria-hidden="true" /> : <UsersRound size={17} aria-hidden="true" />}</span>
-                <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-[#1F2D3D]">{activeRoom.name}</h3><p className="text-xs text-[#4F5F73]">{activeRoom.type === 'direct' ? 'Private conversation' : `${members.length || 1} members · Group chat`}</p></div>
+                <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-[#1F2D3D]">{activeRoom.name}</h3><p className="text-xs text-[#4F5F73]">{activeRoom.type === 'direct' ? 'Private conversation' : `${members.length || 1} member{(members.length || 1) !== 1 ? 's' : ''} · Group chat`}</p></div>
               </div>
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5 text-xs text-[#4F5F73]"><span className={`h-1.5 w-1.5 rounded-full ${connectionState === 'connected' ? 'bg-[#35475C]' : 'bg-[#B45309]'}`} />{connectionState === 'connected' ? 'Live' : 'Reconnecting'}</span>
@@ -1069,7 +1069,7 @@ const Chat = ({
                                 <>
                                   <p className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${editingMessageId === message.id ? 'hidden' : ''}`}>{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>
                                   {message.edited_at && editingMessageId !== message.id && (
-                                    <span className="text-[10px] text-[#4F5F73] mt-0.5">Edited</span>
+                                    <span className="text-[10px] text-[#33445A] mt-0.5 font-semibold">Edited</span>
                                   )}
                                   {editingMessageId === message.id && (
                                     <div className="mt-2">

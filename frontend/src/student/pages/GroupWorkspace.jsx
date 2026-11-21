@@ -113,7 +113,7 @@ const GroupWorkspace = ({ ctx }) => {
             {insight ? <HealthBadge status={insight.health.status} reason={insight.health.reason} /> : null}
           </div>
           <p className="mt-1 text-sm text-[#4F5F73]">{unitLine}</p>
-          <div className="mt-3 flex items-center -space-x-2" aria-label={`${members.length || group.members_count || 0} members`}>
+          <div className="mt-3 flex items-center -space-x-2" aria-label={`${members.length || group.members_count || 0} member{(members.length || group.members_count || 0) !== 1 ? 's' : ''}`}>
             {members.slice(0, 6).map((member) => <Avatar key={member.id} name={member.name} avatar={member.avatar} />)}
             {members.length > 6 ? <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[13px] font-bold text-[#4F5F73] ring-2 ring-white">+{members.length - 6}</span> : null}
           </div>

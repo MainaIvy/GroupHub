@@ -66,7 +66,7 @@ const Overview = ({ ctx }) => {
 
   const myShare = useMemo(() => {
     const workloads = groups.map((g) => insights.byGroup[g.id]?.workload).filter(Boolean);
-    if (!workloads.length) return { label: '—', hint: 'Workload details loading' };
+    if (!workloads.length) return { label: '—', hint: 'Join or create a group to see your share' };
     const totalPoints = workloads.reduce((s, w) => s + Number(w.total_points || 0), 0);
     const myPoints = workloads.reduce((s, w) => s + Number(w.points || 0), 0);
     if (totalPoints < MIN_BALANCE_POINTS) return { label: `${Math.max(0, totalPoints)} of 6`, hint: 'Points to start balancing' };

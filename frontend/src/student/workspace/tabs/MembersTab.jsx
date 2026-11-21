@@ -53,7 +53,7 @@ const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLe
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <section className={card} aria-labelledby="mem-list">
-        <h3 id="mem-list" className={heading}>Members ({members.length}{group.max_members ? ` / ${group.max_members}` : ''})</h3>
+        <h3 id="mem-list" className={heading}>{members.length} member{members.length !== 1 ? 's' : ''}{group.max_members ? ` / ${group.max_members}` : ''}</h3>
         <ul className="space-y-2">
           {members.map((member) => (
             <li key={member.id} className="flex items-center justify-between gap-3 rounded-lg bg-[#EEF1F4] px-3 py-2">
@@ -73,7 +73,7 @@ const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLe
           </div>
         ) : null}
         <div className="mt-4 border-t border-[#E3EAF2] pt-4">
-          {isLeader ? <p className="text-sm text-[#4F5F73]">You lead this group, so you canâ€™t leave it. Delete it from the Groups page instead.</p> : (
+          {isLeader ? <p className="text-sm text-[#4F5F73]">You lead this group, so you can't leave it. Delete it from the Groups page instead.</p> : (
             <button type="button" onClick={() => setConfirmOpen(true)} className={btnSecondary}><LogOut size={16} aria-hidden="true" /> Leave group</button>
           )}
         </div>

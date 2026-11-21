@@ -58,7 +58,8 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
   const workItems = task.work_items || [];
   const isCompile = task.is_compile_task || task.title.trim().toLowerCase() === 'compile and edit';
   const compileLocked = compile?.is_locked || false;
-  const canFinish = isAssignee && ['assigned', 'in_progress'].includes(task.board_status) && !task.has_subtasks && !(isCompile && compileLocked);
+  const canApprove = isLeader && task.board_status === 'proposed' && !task.has_subtasks;
+  const canFinish = isAssignee && task.board_status !== 'done' && task.board_status !== 'proposed' && !task.has_subtasks && !(isCompile && compileLocked);
   const canStart = isAssignee && task.board_status === 'todo' && !task.has_subtasks && !(isCompile && compileLocked);
 
   const exec = async (call) => {
@@ -102,7 +103,7 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
       <aside role="dialog" aria-modal="true" aria-label={`Task: ${task.title}`} className="flex h-full w-full max-w-md flex-col overflow-y-auto bg-white p-5 shadow-xl">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            {parent ? <button type="button" onClick={() => onSelectTask(parent.id)} className="mb-1 text-sm font-semibold text-[#4A6079] underline">â† {parent.title}</button> : null}
+            {parent ? <button type="button" onClick={() => onSelectTask(parent.id)} className="mb-1 text-sm font-semibold text-[#4A6079] underline">← {parent.title}</button> : null}
             <h3 className="text-lg font-bold text-[#1F2D3D]">{task.title}</h3>
             <div className="mt-2 flex flex-wrap items-center gap-2"><StatusChip status={task.board_status} />{task.is_overdue ? <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[13px] font-semibold text-red-700">Overdue</span> : null}</div>
           </div>
@@ -159,7 +160,7 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
               {canClaim ? <button type="button" disabled={actions.busy} onClick={() => exec((confirm) => actions.claim(task, confirm))} className={btnPrimary}>Claim task</button> : null}
               {canApprove ? <button type="button" onClick={() => setSection(section === 'approve' ? '' : 'approve')} className={btnPrimary}>Approve</button> : null}
               {canStart ? <button type="button" disabled={actions.busy} onClick={() => exec(() => actions.setStatus(task, 'in_progress'))} className={btnSecondary}>Start work</button> : null}
-              {canFinish ? <button type="button" disabled={actions.busy} onClick={() => finishTask()} className={btnPrimary}>Mark done</button> : null}
+              {canFinish ? <button type="button" disabled={actions.busy} onClick={() => finishTask()} className={btnPrimary}>Done</button> : null}
               {canReassign ? <button type="button" onClick={() => setSection(section === 'reassign' ? '' : 'reassign')} className={btnSecondary}>Reassign</button> : null}
               {!task.parent_task_id ? <button type="button" onClick={() => onAddSubtask(task)} className={btnSecondary}>Add subtask</button> : null}
             </div>
@@ -206,25 +207,25 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
           ) : null}
 
           <Section title="Weight">
-            <p className="text-sm"><span className="font-semibold">{weightText(task.weight)}</span> Â· {task.weight_confirmed ? 'Confirmed' : 'Not confirmed yet'}</p>
+            <p className="text-sm"><span className="font-semibold">{weightText(task.weight)}</span> · {task.weight_confirmed ? 'Confirmed' : 'Not confirmed yet'}</p>
             {task.can_change_weight ? (
               <div className="mt-2 flex gap-2">
                 <select aria-label="Change weight" value={weight} onChange={(event) => setWeight(Number(event.target.value))} className={selectClass}>
-                  {WEIGHT_SCALE.map((item) => <option key={item.value} value={item.value}>{item.value} Â· {item.label}</option>)}
+                  {WEIGHT_SCALE.map((item) => <option key={item.value} value={item.value}>{item.value} · {item.label}</option>)}
                 </select>
                 <button type="button" disabled={actions.busy || Number(weight) === Number(task.weight)} onClick={() => exec(() => actions.changeWeight(task, weight))} className={btnSecondary}>Change</button>
               </div>
             ) : null}
             {!task.weight_confirmed && task.can_confirm_weight ? <button type="button" disabled={actions.busy} onClick={() => exec(() => actions.confirmWeight(task))} className={`${btnPrimary} mt-2`}>Confirm weight</button> : null}
-            {!task.weight_confirmed && !task.can_confirm_weight && leaderOwnsTask ? <p className="mt-2 text-sm text-[#4F5F73]">You canâ€™t confirm the weight of your own task. Another member needs to confirm it.</p> : null}
+            {!task.weight_confirmed && !task.can_confirm_weight && leaderOwnsTask ? <p className="mt-2 text-sm text-[#4F5F73]">You can't confirm the weight of your own task. Another member needs to confirm it.</p> : null}
             {weightHistory.length ? (
               <ul className="mt-3 space-y-1 text-sm text-[#4F5F73]">
-                {weightHistory.map((item) => <li key={item.id}>{item.old_weight != null ? `${item.old_weight} â†’ ${item.new_weight}` : `Set to ${item.new_weight}`} Â· {item.actor_name} Â· {timeAgo(item.created_at)}</li>)}
+                {weightHistory.map((item) => <li key={item.id}>{item.old_weight != null ? `${item.old_weight} → ${item.new_weight}` : `Set to ${item.new_weight}`} · {item.actor_name} · {timeAgo(item.created_at)}</li>)}
               </ul>
             ) : <p className="mt-2 text-sm text-[#4F5F73]">No weight changes yet.</p>}
           </Section>
 
-          <Section title={`Subtasks (${subtasks.length})`}>
+          <Section title={`Subtasks (${subtasks.length} subtask${subtasks.length !== 1 ? 's' : ''})`}>
             {subtasks.length ? (
               <ul className="space-y-2">
                 {subtasks.map((item) => (
@@ -238,14 +239,14 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
             ) : <p className="text-sm text-[#4F5F73]">No subtasks.</p>}
           </Section>
 
-          <Section title={`Comments (${comments.length})`}>
+          <Section title={`Comments (${comments.length} comment${comments.length !== 1 ? 's' : ''})`}>
             {comments.length ? (
               <ol className="space-y-2">
-                {comments.map((item) => <li key={item.id} className="rounded-lg bg-[#EEF1F4] px-3 py-2 text-sm"><p className="whitespace-pre-wrap">{item.content}</p><p className="mt-1 text-[13px] text-[#4F5F73]">{item.author_name} Â· {timeAgo(item.created_at)}</p></li>)}
+                {comments.map((item) => <li key={item.id} className="rounded-lg bg-[#EEF1F4] px-3 py-2 text-sm"><p className="whitespace-pre-wrap">{item.content}</p><p className="mt-1 text-[13px] text-[#4F5F73]">{item.author_name} · {timeAgo(item.created_at)}</p></li>)}
               </ol>
             ) : <p className="text-sm text-[#4F5F73]">No comments yet.</p>}
             <form onSubmit={submitComment} className="mt-2 flex gap-2">
-              <input value={comment} onChange={(event) => setComment(event.target.value)} aria-label="Add a comment" placeholder="Add a commentâ€¦" maxLength={500} className="h-10 min-w-0 flex-1 rounded-lg border border-[#CBD5E1] px-3 text-[15px]" />
+              <input value={comment} onChange={(event) => setComment(event.target.value)} aria-label="Add a comment" placeholder="Add a comment…" maxLength={500} className="h-10 min-w-0 flex-1 rounded-lg border border-[#CBD5E1] px-3 text-[15px]" />
               <button type="submit" disabled={actions.busy || !comment.trim()} className={btnSecondary}>Post</button>
             </form>
           </Section>
