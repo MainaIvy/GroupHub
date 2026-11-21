@@ -29,13 +29,138 @@ const statusLabelFor = (boardStatus) => {
   return { todo: 'To do', in_progress: 'In progress', done: 'Done' }[s];
 };
 
+const cycleNext = (boardStatus) => {
+  if (boardStatus === 'done') return 'pending';
+  if (boardStatus === 'in_progress') return 'completed';
+  return 'in_progress';
+};
+
+const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compile, onSelectTask, onEditTask, onDeleteTask }) => {
+  const subMember = members.find((item) => item.id === subtask.assigned_to_id);
+  const isAssignee = subtask.assigned_to_id === userId;
+  const isLeader = userId === leaderId;
+  const canClaim = subtask.board_status === 'open_to_claim' && !subtask.has_subtasks;
+  const canFinish = isAssignee && subtask.board_status !== 'done';
+  const compileLocked = compile.is_locked && subtask.is_compile_task;
+  const statusLabel = statusLabelFor(subtask.board_status);
+  const proofCount = (subtask.work_items || []).length;
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [proofText, setProofText] = useState('');
+  const [proofUrl, setProofUrl] = useState('');
+
+  const addWork = async (event) => {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.append('note', proofText.trim());
+    formData.append('url', proofUrl.trim());
+    const result = await actions.addWork(subtask, formData);
+    if (result?.ok) {
+      setProofText('');
+      setProofUrl('');
+      setAttachOpen(false);
+    }
+  };
+
+  return (
+    <article
+      key={subtask.id}
+      className={`rounded-xl border border-[#D7DEE6] bg-white p-3 text-[13px] transition-all hover:border-[#35475C] hover:shadow-sm cursor-pointer${onSelectTask ? ' hover:bg-[#FAFCFD]' : ''}`}
+      onClick={onSelectTask ? () => onSelectTask(subtask.id) : undefined}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h5 className="font-medium text-[#1F2D3D] truncate">{subtask.title}</h5>
+            <span className="rounded-full border border-[#C9D5E2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#6B7280]">Subtask</span>
+            <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${taskStatusChip(subtask.board_status)}${isAssignee && !compileLocked ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={isAssignee && !compileLocked ? () => {
+              actions.setStatus(subtask, cycleNext(subtask.board_status));
+            } : undefined}>
+              {statusLabel}
+            </span>
+            {subtask.is_overdue && <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[9px] font-bold text-red-700">Overdue</span>}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-[#4F5F73]">
+            {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
+            {subtask.weight ? <span>Â· {weightText(subtask.weight)}</span> : ''}
+            {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {subMember ? <Avatar name={subMember.name} avatar={subMember.avatar} size={18} className="text-[9px]" /> : <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-[#8A97A8] text-[9px] text-[#4F5F73]">?</span>}
+          {proofCount > 0 && <FileText size={10} className="text-[#4A6079]" title="Proof attached" />}
+        </div>
+      </div>
+
+      <div className="mt-2 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            {subMember ? <Avatar name={subMember.name} avatar={subMember.avatar} size={16} className="text-[8px]" /> : <span className="inline-flex h-3 w-3 items-center justify-center rounded-full border border-dashed border-[#8A97A8] text-[8px] text-[#4F5F73]">?</span>}
+            {subMember ? <span className="text-[10px] text-[#4F5F73]">{subMember.name}</span> : <span className="text-[10px] text-[#4F5F73]">Unassigned</span>}
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {canClaim && !compileLocked ? (
+              <button type="button" disabled={actions.busy} onClick={() => actions.claim(subtask, false)} className={btnSecondary}>Claim</button>
+            ) : null}
+            {canFinish && !compileLocked ? (
+              <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'completed')} className={btnPrimary}>Done</button>
+            ) : null}
+            {compileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
+          </div>
+        </div>
+
+        <div className="mt-2 rounded-lg border border-[#E3EAF2] bg-[#FAFCFD] p-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-semibold text-[#4F5F73]">Proof of work ({proofCount})</span>
+            <button type="button" onClick={() => setAttachOpen((prev) => !prev)} className="text-[10px] text-[#35475C] underline hover:text-[#435B76]">
+              {attachOpen ? 'Hide' : 'Attach'}
+            </button>
+          </div>
+          {attachOpen && (
+            <form onSubmit={addWork} className="flex flex-col gap-1.5">
+              <textarea value={proofText} onChange={(e) => setProofText(e.target.value)} placeholder="Note or link…" rows={1} className="w-full rounded-lg border border-[#CBD5E1] px-2.5 py-1.5 text-[11px] focus:ring-0 focus:border-[#35475C]" />
+              <input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} placeholder="https://docs.google.com/document/…" className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-2.5 py-1.5 text-[11px] focus:ring-0 focus:border-[#35475C]" />
+              <button type="submit" disabled={actions.busy || (!proofText.trim() && !proofUrl.trim())} className={btnSecondary}>Submit</button>
+            </form>
+          )}
+          {proofCount > 0 && !attachOpen && (
+            <div className="space-y-1 mt-1">
+              {(subtask.work_items || []).slice(0, 2).map((item) => (
+                <div key={item.id} className="flex items-center gap-1 text-[10px]">
+                  <FileText size={10} className="text-[#4A6079]" />
+                  <span className="truncate max-w-[140px] text-[#4F5F73]">{item.note || item.url || item.file_name || 'Proof attached'}</span>
+                </div>
+              ))}
+              {proofCount > 2 && <span className="text-[10px] text-[#4F5F73] italic">+{proofCount - 2} more</span>}
+            </div>
+          )}
+        </div>
+
+        {(isLeader || isAssignee) && !compileLocked && subtask.board_status !== 'done' && (
+          <button type="button" onClick={() => onEditTask(subtask)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Edit task">
+            <Edit2 size={12} />
+          </button>
+        )}
+        {!subtask.has_subtasks && (isLeader || isAssignee) && !compileLocked && (
+          <button type="button" onClick={() => onAddSubtask(subtask)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Add subtask">
+            <Plus size={12} />
+          </button>
+        )}
+        {isLeader && !compileLocked && (
+          <button type="button" onClick={() => { if (window.confirm('Delete this subtask?')) onDeleteTask(subtask); }} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors" title="Delete task">
+            <Trash2 size={12} />
+          </button>
+        )}
+      </div>
+    </article>
+  );
+};
+
 const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, openGroupTasks, onEditTask, onDeleteTask, onAddSubtask }) => {
   const subtasks = task.subtask_ids.map((id) => tasks.find((item) => item.id === id)).filter(Boolean);
   const member = members.find((item) => item.id === task.assigned_to_id);
   const isLeader = userId === leaderId;
   const isAssignee = task.assigned_to_id === userId;
   const canFinish = isAssignee && task.board_status !== 'done' && !task.has_subtasks;
-  const canStart = isAssignee && task.board_status !== 'done' && task.board_status !== 'in_progress';
   const canClaim = task.board_status === 'open_to_claim' && !task.has_subtasks;
   const statusLabel = statusLabelFor(task.board_status);
   const proofCount = (task.work_items || []).length;
@@ -68,8 +193,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
             {!task.parent_task_id && <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[10px] font-semibold text-[#35475C]">Parent task</span>}
             {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final task</span> : null}
             <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)}${((isLeader || isAssignee) && !compileLocked && !task.has_subtasks) ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={(isLeader || isAssignee) && !compileLocked && !task.has_subtasks ? () => {
-              const next = task.board_status === 'done' ? 'pending' : task.board_status === 'in_progress' ? 'completed' : 'in_progress';
-              actions.setStatus(task, next);
+              actions.setStatus(task, cycleNext(task.board_status));
             } : undefined}>
               {statusLabel}
             </span>
@@ -91,54 +215,11 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
         {task.has_subtasks ? (
           <div className="mt-2 space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-[#4F5F73] font-semibold px-2">Subtasks of “{task.title}”</p>
-            <ul className="space-y-1">
-            {subtasks.map((subtask) => {
-              const subMember = members.find((item) => item.id === subtask.assigned_to_id);
-              const subStatusLabel = statusLabelFor(subtask.board_status);
-              const canClaimSub = subtask.board_status === 'open_to_claim' && !subtask.has_subtasks;
-              const canFinishSub = subtask.assigned_to_id === userId && subtask.board_status !== 'done';
-              const subProofCount = (subtask.work_items || []).length;
-              const subCompileLocked = compileLocked && subtask.is_compile_task;
-              return (
-                <li key={subtask.id} className="flex items-center justify-between gap-2 rounded-lg border border-[#E3EAF2] bg-[#EEF1F4] px-2.5 py-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1">
-                          <h5 className="font-medium text-[#1F2D3D] truncate">{subtask.title}</h5>
-                          <span className="rounded-full border border-[#C9D5E2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#6B7280]">Subtask</span>
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#4F5F73]">
-                          {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
-                          {subtask.weight ? <span>Â· {weightText(subtask.weight)}</span> : ''}
-                          {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
-                        </div>
-                      </div>
-                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusChip(subtask.board_status)}${subtask.assigned_to_id === userId && !subCompileLocked ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={subtask.assigned_to_id === userId && !subCompileLocked ? () => {
-                        const next = subtask.board_status === 'done' ? 'pending' : subtask.board_status === 'in_progress' ? 'completed' : 'in_progress';
-                        actions.setStatus(subtask, next);
-                      } : undefined}>
-                        {subStatusLabel}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      {subMember ? <Avatar name={subMember.name} avatar={subMember.avatar} size={18} className="text-[9px]" /> : <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-[#8A97A8] text-[9px] text-[#4F5F73]">?</span>}
-                      {subProofCount > 0 && <FileText size={10} className="text-[#4A6079]" title="Proof attached" />}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {canClaimSub && !subCompileLocked ? (
-                      <button type="button" disabled={actions.busy} onClick={() => actions.claim(subtask, false)} className={btnSecondary}>Claim</button>
-                    ) : null}
-                    {canFinishSub && !subCompileLocked ? (
-                      <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'completed')} className={btnPrimary}>Done</button>
-                    ) : null}
-                    {subCompileLocked && <span className="shrink-0 rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#2F4A66]">Locked</span>}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {subtasks.map((subtask) => (
+                <SubtaskCard key={subtask.id} subtask={subtask} tasks={tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} onEditTask={onEditTask} onDeleteTask={onDeleteTask} onAddSubtask={onAddSubtask} />
+              ))}
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
