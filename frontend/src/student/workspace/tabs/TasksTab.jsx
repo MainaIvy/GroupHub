@@ -47,16 +47,19 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
   const [attachOpen, setAttachOpen] = useState(false);
   const [proofText, setProofText] = useState('');
   const [proofUrl, setProofUrl] = useState('');
+  const [proofFile, setProofFile] = useState(null);
 
   const addWork = async (event) => {
     event.preventDefault();
     const formData = new FormData();
     formData.append('note', proofText.trim());
     formData.append('url', proofUrl.trim());
+    if (proofFile) formData.append('file', proofFile);
     const result = await actions.addWork(subtask, formData);
     if (result?.ok) {
       setProofText('');
       setProofUrl('');
+      setProofFile(null);
       setAttachOpen(false);
     }
   };
@@ -119,7 +122,8 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
             <form onSubmit={addWork} className="flex flex-col gap-1.5">
               <textarea value={proofText} onChange={(e) => setProofText(e.target.value)} placeholder="Note or link…" rows={1} className="w-full rounded-lg border border-[#CBD5E1] px-2.5 py-1.5 text-[11px] focus:ring-0 focus:border-[#35475C]" />
               <input value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} placeholder="https://docs.google.com/document/…" className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-2.5 py-1.5 text-[11px] focus:ring-0 focus:border-[#35475C]" />
-              <button type="submit" disabled={actions.busy || (!proofText.trim() && !proofUrl.trim())} className={btnSecondary}>Submit</button>
+              <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onChange={(e) => setProofFile(e.target.files?.[0] || null)} className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-2.5 py-1.5 text-xs focus:ring-0 focus:border-[#35475C]" />
+              <button type="submit" disabled={actions.busy || (!proofText.trim() && !proofUrl.trim() && !proofFile)} className={btnSecondary}>Submit</button>
             </form>
           )}
           {proofCount > 0 && !attachOpen && (
