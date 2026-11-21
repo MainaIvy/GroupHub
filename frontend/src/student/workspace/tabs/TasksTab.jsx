@@ -267,7 +267,7 @@ const TasksTab = ({
             </div>
             <div className="mt-3 flex items-center gap-2 text-sm text-[#4F5F73]">
               <CalendarDays size={14} aria-hidden="true" />
-              <span>{workspace.group?.project_deadline || project.deadline ? formatDue(project.deadline) : 'No deadline'}</span>
+              <span>{(workspace.group?.project_deadline || project.deadline) ? formatDue(workspace.group?.project_deadline || project.deadline) : (tasks.find((t) => t.due_date) ? formatDue(tasks.find((t) => t.due_date).due_date) : 'No deadline')}</span>
               <span className="hidden sm:inline">Â· {members.length || workspace.group?.members_count || 0} members</span>
             </div>
           </div>
