@@ -3,7 +3,7 @@ import json
 from datetime import timedelta
 
 from django.core.management import call_command
-from django.db import transaction
+from django.db import models, transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
@@ -157,7 +157,15 @@ def admin_users(request):
         if user.is_staff or user.is_superuser:
             row['role'] = 'Admin'
         if user.user_type == 'lecturer' and not user.is_staff and not user.is_superuser:
-            row['load_count'] = UnitAssignment.objects.filter(lecturer=user).count()
+            term = current_term()
+            if term:
+                row['load_count'] = UnitAssignment.objects.filter(
+                    lecturer=user, term=term, status='approved',
+                ).filter(
+                    models.Q(end_date__isnull=True) | models.Q(end_date__gte=timezone.now().date())
+                ).count()
+            else:
+                row['load_count'] = 0
         rows.append(row)
     return Response(rows)
 

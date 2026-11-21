@@ -165,6 +165,9 @@ export default function AdminDashboard() {
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [state, setState] = useState({ loading: true, error: '' });
   const [greeting, setGreeting] = useState('');
+  const [selectedLecturer, setSelectedLecturer] = useState(null);
+  const [lecturerUnits, setLecturerUnits] = useState([]);
+  const [showLecturerModal, setShowLecturerModal] = useState(false);
 
   const hour = new Date().getHours();
   const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -218,6 +221,25 @@ export default function AdminDashboard() {
       return;
     }
     setState({ loading: false, error: '' });
+  };
+
+  const viewLecturerUnits = async (lecturer) => {
+    setSelectedLecturer(lecturer);
+    setLecturerUnits([]);
+    setShowLecturerModal(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/accounts/admin/lecturers/${lecturer.id}/load/`, {
+        headers: tokenHeaders(),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setLecturerUnits(result.assignments || []);
+      } else {
+        setLecturerUnits([]);
+      }
+    } catch {
+      setLecturerUnits([]);
+    }
   };
 
   useEffect(() => {
@@ -638,6 +660,53 @@ export default function AdminDashboard() {
           </header>
 
           <main className="p-3 pt-1 sm:p-4 sm:pt-1 md:p-8 md:pt-1">{content}</main>
+
+          {showLecturerModal && selectedLecturer && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowLecturerModal(false)}>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-6 border border-[#DDDDDD]" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-[#1A1A1A]">Assigned Units — {selectedLecturer.name}</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowLecturerModal(false)}
+                    className="rounded-lg p-2 text-[#666666] hover:bg-[#F5F5F7] hover:text-[#1A1A1A] transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-sm text-[#666666] mb-4">{selectedLecturer.staff_id || selectedLecturer.email}</p>
+                {lecturerUnits.length === 0 ? (
+                  <div className="py-8 text-center text-[#666666]">
+                    <p>No assigned units found.</p>
+                    <p className="text-xs mt-2 text-[#4F5F73]">Approved units in the current term will appear here.</p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-[#DDDDDD]">
+                    {lecturerUnits.map((unit) => (
+                      <li key={unit.id} className="py-3 flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-[#1A1A1A]">{unit.unit || unit.name}</p>
+                          <p className="text-xs text-[#666666]">{unit.code || ''} · {unit.term || 'Current term'} · {unit.status || 'Approved'}</p>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold bg-green-100 text-green-800">
+                          Approved
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowLecturerModal(false)}
+                    className={ui.primary}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1193,7 +1262,7 @@ function AssignmentManager({ data, onAction, onReload }) {
         </button>
       </form>
 
-      {renderLoadCards(data.lecturers)}
+      {renderLoadCards(data.lecturers, viewLecturerUnits)}
 
       <Panel title="Units with no lecturer">
         <div className="space-y-4">
@@ -1346,16 +1415,21 @@ function AssignmentManager({ data, onAction, onReload }) {
   );
 }
 
-function renderLoadCards(lecturers = []) {
+function renderLoadCards(lecturers = [], onViewUnits) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {lecturers.map((lecturer) => (
-        <div key={lecturer.id} className="rounded-3xl bg-white p-4 shadow-sm">
+        <div
+          key={lecturer.id}
+          onClick={() => onViewUnits && onViewUnits(lecturer)}
+          className="rounded-3xl bg-white p-4 shadow-sm cursor-pointer hover:bg-[#F5F5F7] hover:shadow-md transition-colors border border-transparent hover:border-[#2C3E50]"
+        >
           <p className="font-semibold text-[#1A1A1A]">{lecturer.name}</p>
           <p className="text-xs text-[#666666]">{lecturer.staff_id || lecturer.email}</p>
           <p className="mt-3 text-2xl font-bold text-[#1A1A1A]">
             {lecturer.load_count ?? '—'} <span className="text-sm font-normal text-[#666666]">assigned units</span>
           </p>
+          <p className="mt-2 text-xs text-[#2C3E50] font-semibold">Click to view units</p>
         </div>
       ))}
     </div>
