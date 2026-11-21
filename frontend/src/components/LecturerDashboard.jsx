@@ -1676,17 +1676,17 @@ function Groups({ groups, onOpen, units, onCreateGroup }) {
                   <div className="flex items-center gap-2">
                     <span
                       className={`px-2 py-1 rounded text-[10px] font-bold ${
-                        group.health === "at_risk"
+                        group.health?.status === "at_risk"
                           ? "bg-red-100 text-red-700"
-                          : group.health === "quiet"
+                          : group.health?.status === "quiet"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-green-100 text-green-700"
                       }`}
                     >
-                      {group.health || "on_track"}
+                      {group.health?.status || "on_track"}
                     </span>
                     <span className="text-xs font-bold text-[#33445A]">
-                      {group.progress || 0}%
+                      {group.progress?.status || group.progress || 0}%
                     </span>
                   </div>
                 </div>
