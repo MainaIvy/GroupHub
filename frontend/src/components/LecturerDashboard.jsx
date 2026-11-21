@@ -1969,28 +1969,39 @@ function Assessments({
       )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {rows.map((submission) => (
-          <button
+          <div
             key={submission.id}
-            onClick={() => openSubmission(submission)}
             className="rounded-xl border border-[#E3E9F2] p-5 text-left dark:border-[#1E2940] hover:bg-[#F4F7FC] dark:hover:bg-[#1E2940] transition-colors"
           >
             <div className="flex justify-between items-start">
-              <b className="text-[#0F3D6E] dark:text-white pr-4">
-                {submission.project_title}
-              </b>
+              <div>
+                <b className="text-[#0F3D6E] dark:text-white pr-4">
+                  {submission.project_title}
+                </b>
+                <p className="mt-2 text-sm text-[#6B7A90]">
+                  {submission.submitted_by || submission.submitted_by_name}
+                </p>
+              </div>
               <span
                 className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md ${submission.status === "submitted" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}
               >
                 {submission.status}
               </span>
             </div>
-            <p className="mt-2 text-sm text-[#6B7A90]">
-              {submission.submitted_by || submission.submitted_by_name}
-            </p>
             <p className="mt-4 font-bold text-[#0F3D6E] dark:text-white">
               {submission.grade == null ? "Not graded" : `${submission.grade}%`}
             </p>
-          </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openSubmission(submission);
+              }}
+              className="mt-4 w-full rounded-xl bg-[#0F3D6E] py-2 font-bold text-white transition-colors hover:bg-[#154e8a] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submission.grade == null ? "Grade now" : "Update grade"}
+            </button>
+          </div>
         ))}
       </div>
       {!rows.length && <Empty>Select a group or wait for submissions.</Empty>}
