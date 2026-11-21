@@ -464,6 +464,9 @@ def lecturer_default_login(request):
         roster_entry.save(update_fields=['status', 'activated_at'])
 
     # Update user fields from roster
+    name_parts = roster_entry.full_name.split(' ', 1)
+    user.first_name = name_parts[0] if roster_entry.full_name else ''
+    user.last_name = name_parts[1] if len(name_parts) > 1 else ''
     user.department = roster_entry.department
     user.staff_id = roster_entry.staff_id or ''
     user.email_verified = True
