@@ -61,6 +61,8 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
   const canApprove = isLeader && task.board_status === 'proposed' && !task.has_subtasks;
   const canFinish = isAssignee && task.board_status !== 'done' && task.board_status !== 'proposed' && !task.has_subtasks && !(isCompile && compileLocked);
   const canStart = isAssignee && task.board_status === 'todo' && !task.has_subtasks && !(isCompile && compileLocked);
+  const canClaim = task.board_status === 'open_to_claim' && !isAssignee && !task.has_subtasks && !task.is_compile_task;
+  const canReassign = (isLeader || isAssignee) && task.board_status !== 'proposed' && !task.has_subtasks;
 
   const exec = async (call) => {
     const result = await call(false);
