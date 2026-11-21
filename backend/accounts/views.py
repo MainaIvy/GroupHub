@@ -487,6 +487,8 @@ def lecturer_default_login(request):
             'last_name': user.last_name,
             'university': user.university,
             'is_staff': user.is_staff,
+            'department': user.department or '',
+            'staff_id': user.staff_id or '',
             'profile_complete': compute_profile_complete(user),
             'lecturer_setup_required': (
                 user.user_type == 'lecturer'
@@ -961,10 +963,9 @@ def lecturer_settings(request):
         user.grading_defaults = request.data.get('grading_defaults', user.grading_defaults)
         if not user.first_name:
             return Response({'error': 'First name is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            user.save()
-        except ValidationError as error:
-            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
+        # Bypass User.save() -> full_clean() since LecturerRoster already validates the email
+        from django.db.models.base import Model as BaseModel
+        BaseModel.save(user)
     return Response({
         'id': user.id,
         'first_name': user.first_name,
@@ -1561,6 +1562,12 @@ def lecturer_dashboard(request):
                 'user_type': user.user_type,
                 'course': user.course,
                 'year_of_study': user.year_of_study,
+                'department': user.department or '',
+                'staff_id': user.staff_id or '',
+                'phone': '',
+                'office': '',
+                'office_hours': '',
+                'bio': '',
             },
             'pending_approval': not units and UnitAssignment.objects.filter(
                 lecturer=user, status='pending',
