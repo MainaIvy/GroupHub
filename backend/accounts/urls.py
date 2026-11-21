@@ -62,6 +62,8 @@ urlpatterns = [
     path('staff/activate/', views.staff_activate, name='staff_activate'),
     path('staff/forgot-password/', views.staff_forgot_password, name='staff_forgot_password'),
     path('staff/reset-password/', views.staff_reset_password, name='staff_reset_password'),
+    path('lecturer/login/', views.lecturer_default_login, name='lecturer_default_login'),
+    path('lecturer/change-password/', views.change_lecturer_password, name='change_lecturer_password'),
 
     # Student sign-in password reset
     path('student/forgot-password/', views.student_forgot_password, name='student_forgot_password'),

@@ -169,6 +169,7 @@ const Login = () => {
         is_staff: isAdmin,
         lecturer_setup_required: Boolean(profile.lecturer_setup_required || data.lecturer_setup_required),
         profile_complete: profileComplete,
+        must_change_password: Boolean(profile.must_change_password || data.must_change_password),
       }));
 
       setSuccessMessage('Login successful! Redirecting to your dashboard...');
@@ -177,7 +178,11 @@ const Login = () => {
         if (isAdmin) {
           targetPath = '/admin/dashboard';
         } else if (userType === 'lecturer') {
-          targetPath = (profile.lecturer_setup_required || data.lecturer_setup_required) ? '/lecturer/setup' : '/lecturer/dashboard';
+          if (profile.must_change_password || data.must_change_password) {
+            targetPath = '/lecturer/change-password';
+          } else {
+            targetPath = (profile.lecturer_setup_required || data.lecturer_setup_required) ? '/lecturer/setup' : '/lecturer/dashboard';
+          }
         } else if (userType === 'student') {
           targetPath = '/student/dashboard';
         } else {

@@ -406,6 +406,128 @@ def staff_reset_password(request):
 
 @api_view(['POST'])
 @permission_classes([])
+def lecturer_default_login(request):
+    """Lecturer first-time login with default password 'lecturer123'.
+    
+    Admin creates the lecturer in LecturerRoster (name, email, department, staff_id).
+    Lecturer logs in with email + 'lecturer123', then must change their password.
+    """
+    from django.contrib.auth.hashers import check_password
+    from django.utils import timezone
+
+    email = str(request.data.get('email', '')).strip().lower()
+    password = request.data.get('password') or ''
+
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not password:
+        return Response({'error': 'Password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verify lecturer exists in roster
+    roster_entry = LecturerRoster.objects.filter(email__iexact=email).first()
+    if not roster_entry:
+        return Response({'error': 'No lecturer account found with this email.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Get or create user account (case-insensitive email lookup)
+    user = User.objects.filter(email__iexact=email).first()
+    created = False
+    if not user:
+        user = User.objects.create(
+            email=email,
+            username=email,
+            user_type='lecturer',
+            first_name=roster_entry.full_name.split(' ')[0] if roster_entry.full_name else '',
+            last_name=' '.join(roster_entry.full_name.split(' ')[1:]) if len(roster_entry.full_name.split(' ')) > 1 else '',
+            department=roster_entry.department,
+            staff_id=roster_entry.staff_id or '',
+            email_verified=True,
+            is_active=True,
+            must_change_password=True,
+        )
+        user.set_password('lecturer123')
+        user.save()
+        created = True
+
+    # Verify password
+    if not user.check_password(password):
+        return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if user.status == 'suspended' or not user.is_active:
+        return Response({'error': 'This account is suspended or inactive.'}, status=status.HTTP_403_FORBIDDEN)
+
+    # Update roster if needed
+    if roster_entry.status != 'active':
+        roster_entry.status = 'active'
+        roster_entry.activated_at = timezone.now()
+        roster_entry.save(update_fields=['status', 'activated_at'])
+
+    # Update user fields from roster
+    user.department = roster_entry.department
+    user.staff_id = roster_entry.staff_id or ''
+    user.email_verified = True
+    user.is_active = True
+    user.user_type = 'lecturer'
+    user.save()
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'user_type': user.user_type,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'university': user.university,
+            'is_staff': user.is_staff,
+            'profile_complete': compute_profile_complete(user),
+            'lecturer_setup_required': (
+                user.user_type == 'lecturer'
+                and not UnitAssignment.objects.filter(lecturer=user).exists()
+            ),
+            'must_change_password': user.must_change_password,
+        }
+    })
+
+
+@api_view(['POST'])
+@permission_classes([])
+def change_lecturer_password(request):
+    """Change password for a lecturer, clearing must_change_password flag."""
+    from django.contrib.auth.password_validation import validate_password
+
+    user = request.user
+    if user.is_anonymous:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    old_password = str(request.data.get('current_password') or '')
+    new_password = str(request.data.get('new_password') or '')
+    confirm_password = str(request.data.get('confirm_password') or '')
+
+    if not old_password or not new_password or not confirm_password:
+        return Response({'error': 'Complete all password fields.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not user.check_password(old_password):
+        return Response({'error': 'Current password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_password != confirm_password:
+        return Response({'error': 'New passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(new_password, user=user)
+    except ValidationError as error:
+        return Response({'error': ' '.join(error.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.must_change_password = False
+    user.save(update_fields=['password', 'must_change_password'])
+
+    return Response({'message': 'Password updated successfully. You can now use your new password.'})
+
+
+@api_view(['POST'])
+@permission_classes([])
 def student_forgot_password(request):
     """Step 1: Verify email and return security questions (without answers)."""
     email = str(request.data.get('email', '')).strip().lower()
@@ -1236,6 +1358,7 @@ class LoginView(APIView):
                         user.user_type == 'lecturer'
                         and not UnitAssignment.objects.filter(lecturer=user).exists()
                     ),
+                    'must_change_password': user.must_change_password,
                 }
             })
         else:

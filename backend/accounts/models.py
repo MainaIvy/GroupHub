@@ -45,6 +45,7 @@ class User(AbstractUser):
     reset_token = models.CharField(max_length=255, blank=True, null=True)
     reset_token_expires = models.DateTimeField(blank=True, null=True)
     security_questions = models.JSONField(default=list, blank=True, help_text='Security question/answer pairs for password recovery')
+    must_change_password = models.BooleanField(default=False, help_text='User must change password on next login')
 
     def __str__(self):
         return self.username
