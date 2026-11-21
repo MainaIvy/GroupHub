@@ -106,10 +106,6 @@ def add_work_item(request, group_id, task_id):
     task = Task.objects.filter(pk=task_id, project__group=group).first()
     if task is None:
         return _error('Task not found', status.HTTP_404_NOT_FOUND)
-    if task.proposal_status != 'approved':
-        return _error('This task is still a proposal. The group leader must approve it before work is added.')
-    if task.subtasks.exists():
-        return _error('Add work to this task\'s subtasks instead.')
 
     note = str(request.data.get('note') or '').strip()
     url = str(request.data.get('url') or '').strip()

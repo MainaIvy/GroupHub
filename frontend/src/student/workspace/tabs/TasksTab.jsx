@@ -64,8 +64,6 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
     }
   };
 
-  const canAddWork = subtask.proposal_status === 'approved' && !subtask.has_subtasks;
-
   return (
     <article
       key={subtask.id}
@@ -116,18 +114,13 @@ const SubtaskCard = ({ subtask, tasks, members, actions, userId, leaderId, compi
         <div className="mt-2 rounded-lg border border-[#E3EAF2] bg-[#FAFCFD] p-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] font-semibold text-[#4F5F73]">Proof of work ({proofCount})</span>
-            {canAddWork ? (
+            {!compileLocked && (
               <button type="button" onClick={() => setAttachOpen((prev) => !prev)} className="text-[10px] text-[#35475C] underline hover:text-[#435B76]">
                 {attachOpen ? 'Hide' : 'Attach'}
               </button>
-            ) : null}
+            )}
           </div>
-          {!canAddWork && (
-            <p className="text-[10px] text-[#4F5F73] italic">
-              {subtask.proposal_status !== 'approved' ? 'Awaiting leader approval before work can be added.' : 'Parent task — add work to its subtasks instead.'}
-            </p>
-          )}
-          {canAddWork && attachOpen && (
+          {!compileLocked && attachOpen && (
             <form onSubmit={addWork} className="flex flex-col gap-1.5">
               {actions.error && <p role="alert" className="mt-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-medium text-red-700">{actions.error}</p>}
               <textarea value={proofText} onChange={(e) => setProofText(e.target.value)} placeholder="Note or link…" rows={1} className="w-full rounded-lg border border-[#CBD5E1] px-2.5 py-1.5 text-[11px] focus:ring-0 focus:border-[#35475C]" />
