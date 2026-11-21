@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, Edit2, FileText, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, Edit2, FileText, Plus, Paperclip, Trash2 } from 'lucide-react';
 import Avatar from '../../components/Avatar';
 import { btnPrimary, btnSecondary } from '../../design';
 import { childrenOf, formatDue, weightText } from '../taskUtils';
@@ -61,6 +61,33 @@ const SubtaskRow = ({ subtask, tasks, members, actions, userId, leaderId, compil
   const statusLabel = statusLabelFor(subtask.board_status);
   const weightLabel = subtask.weight ? `weight ${subtask.weight}` : 'weight —';
   const proofCount = (subtask.work_items || []).length;
+  const [submitting, setSubmitting] = useState({
+    note: '',
+    url: '',
+    file: null,
+  });
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [submittingWork, setSubmittingWork] = useState(false);
+
+  const handleSubmitWork = async (event) => {
+    event.preventDefault();
+    if (!submitting.note.trim() && !submitting.url.trim() && !submitting.file) return;
+    setSubmittingWork(true);
+    try {
+      const formData = new FormData();
+      if (submitting.note.trim()) formData.append('note', submitting.note.trim());
+      if (submitting.url.trim()) formData.append('url', submitting.url.trim());
+      if (submitting.file) formData.append('file', submitting.file);
+      formData.append('marks_complete', 'true');
+      await actions.addWork(subtask, formData);
+      setSubmitting({ note: '', url: '', file: null });
+      setShowSubmitForm(false);
+    } finally {
+      setSubmittingWork(false);
+    }
+  };
+
+  const workItems = (subtask.work_items || []).slice(0, 3);
 
   return (
     <article
@@ -104,6 +131,9 @@ const SubtaskRow = ({ subtask, tasks, members, actions, userId, leaderId, compil
               {compileLocked && <span className="inline-flex h-6 items-center justify-center gap-1 rounded-6 border border-[#CDD6E0] bg-[#EEF1F4] px-2 py-0.5 text-[10px] font-semibold text-[#2F4A66]">Locked</span>}
             </>
           )}
+          <button type="button" onClick={(e) => { e.stopPropagation(); setShowSubmitForm(!showSubmitForm); }} className="flex h-6 w-6 items-center justify-center rounded-6 border border-[#CDD6E0] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Submit work">
+            <Paperclip size={12} />
+          </button>
           <button type="button" onClick={(e) => { e.stopPropagation(); onEditTask(subtask); }} className="flex h-6 w-6 items-center justify-center rounded-6 border border-[#CDD6E0] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Edit task">
             <Edit2 size={12} />
           </button>
@@ -119,6 +149,62 @@ const SubtaskRow = ({ subtask, tasks, members, actions, userId, leaderId, compil
           )}
         </div>
       </div>
+
+      {showSubmitForm && (
+        <div className="mt-2 pt-2 border-t border-[#DDDDDD]">
+          <form onSubmit={handleSubmitWork} className="space-y-2">
+            <input
+              value={submitting.note}
+              onChange={(event) => setSubmitting({ ...submitting, note: event.target.value })}
+              placeholder="Add a note about your work…"
+              className="w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
+            />
+            <input
+              value={submitting.url}
+              onChange={(event) => setSubmitting({ ...submitting, url: event.target.value })}
+              placeholder="Link (e.g. Google Doc, GitHub)…"
+              className="w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
+            />
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
+              onChange={(event) => setSubmitting({ ...submitting, file: event.target.files?.[0] || null })}
+              className="w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[12px] focus:border-[#4A6079] outline-none"
+            />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowSubmitForm(false)} className="flex-1 rounded-lg border border-[#CBD5E0] bg-white px-3 py-1.5 text-[12px] text-[#666666] hover:bg-[#F5F5F7] transition-colors">Cancel</button>
+              <button type="submit" disabled={submittingWork || (!submitting.note.trim() && !submitting.url.trim() && !submitting.file)} className="flex-1 rounded-lg bg-[#4A6079] px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#35475C] transition-colors">{submittingWork ? 'Submitting…' : 'Submit work'}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {workItems.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-[#DDDDDD]">
+          <p className="text-[11px] font-semibold text-[#666666] mb-1">Proof of work</p>
+          <div className="space-y-1">
+            {workItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-2 rounded-lg border border-[#E3EAF2] bg-[#F8FAFC] p-1.5">
+                {item.file_url ? (
+                  <a href={item.file_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-[#435B76] underline hover:text-[#35475C]">
+                    <span className="text-[10px]">📄</span> {item.file_name || 'File'}
+                  </a>
+                ) : item.url ? (
+                  <a href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-[#435B76] underline hover:text-[#35475C]">
+                    <span className="text-[10px]">🔗</span> {item.url.length > 40 ? item.url.slice(0, 40) + '…' : item.url}
+                  </a>
+                ) : (
+                  <span className="flex items-center gap-1 text-[11px] text-[#666666]">
+                    <span className="text-[10px]">📝</span> {item.note}
+                  </span>
+                )}
+                {item.marks_complete && <span className="ml-auto text-[10px] font-bold text-[#16A34A]">Marks complete</span>}
+              </div>
+            ))}
+            {proofCount > 3 && <p className="mt-1 text-[10px] text-[#4F5F73]">+{proofCount - 3} more…</p>}
+          </div>
+        </div>
+      )}
     </article>
   );
 };
