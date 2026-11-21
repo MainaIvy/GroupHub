@@ -1384,6 +1384,12 @@ def lecturer_dashboard(request):
             logger.warning(f"Access denied for non-lecturer user {user.id}")
             return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
         active_term = current_term()
+        if active_term is None:
+            active_term = Semester.objects.order_by('-year', '-semester').first()
+        if active_term is None:
+            active_term = Semester.objects.create(
+                name='Year 1 Semester 1', year=1, semester=1, is_current=True,
+            )
         lecturer_units = approved_units_for_lecturer(user, active_term)
         logger.info(f"User {user.id} has {lecturer_units.count()} approved units for current term")
         if not lecturer_units.exists():
