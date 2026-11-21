@@ -308,6 +308,17 @@ const Login = () => {
             </Link>
           </div>
 
+          <div className="mt-4 rounded-lg border border-[#D7DEE6] bg-[#EEF1F4] p-4 text-center">
+            <p className="text-sm font-semibold text-[#35475C] mb-2">Lecturer account?</p>
+            <Link
+              to="/lecturer/login"
+              className="inline-block w-full rounded-lg bg-[#35475C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#435B76] transition-colors"
+            >
+              Sign in as lecturer
+            </Link>
+            <p className="mt-2 text-xs text-[#4F5F73]">Default password: lecturer123</p>
+          </div>
+
           {googleClientId && (
             <>
               <div className="relative py-1">
@@ -337,13 +348,6 @@ const Login = () => {
             Don&apos;t have an account?{' '}
             <Link to="/signup" className="font-semibold text-[#35475C] underline">
               Sign up
-            </Link>
-          </p>
-
-          <p className="pt-1 text-center text-sm text-[#4F5F73]">
-            Lecturer?{' '}
-            <Link to="/lecturer/login" className="font-semibold text-[#35475C] underline">
-              Sign in as lecturer
             </Link>
           </p>
         </form>
