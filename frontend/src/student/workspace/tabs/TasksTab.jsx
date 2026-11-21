@@ -90,7 +90,7 @@ const SubtaskRow = ({ subtask, tasks, members, actions, userId, leaderId, compil
         <div className="flex items-center gap-1 shrink-0">
           {subtask.board_status === 'proposed' && isLeader ? (
             <>
-              <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'open_to_claim')} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 bg-[#4A6079] px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-[#35475C] disabled:opacity-60">Approve</button>
+              <button type="button" disabled={actions.busy} onClick={() => actions.approve(subtask, { mode: 'open_to_claim' })} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 bg-[#4A6079] px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-[#35475C] disabled:opacity-60">Approve</button>
               <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(subtask, 'todo')} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 border border-[#CDD6E0] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#1F2D3D] hover:bg-[#EEF1F4] disabled:opacity-60">Reject</button>
             </>
           ) : (
@@ -170,7 +170,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
           <div className="flex items-center gap-1">
             {task.board_status === 'proposed' && isLeader ? (
               <>
-                <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(task, 'open_to_claim')} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 bg-[#4A6079] px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-[#35475C] disabled:opacity-60">Approve</button>
+                <button type="button" disabled={actions.busy} onClick={() => actions.approve(task, { mode: 'open_to_claim' })} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 bg-[#4A6079] px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-[#35475C] disabled:opacity-60">Approve</button>
                 <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(task, 'todo')} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 border border-[#CDD6E0] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#1F2D3D] hover:bg-[#EEF1F4] disabled:opacity-60">Reject</button>
               </>
             ) : (
@@ -226,7 +226,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
         <div className="flex items-center gap-1 shrink-0">
           {task.board_status === 'proposed' && isLeader ? (
             <>
-              <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(task, 'open_to_claim')} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 bg-[#4A6079] px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-[#35475C] disabled:opacity-60">Approve</button>
+              <button type="button" disabled={actions.busy} onClick={() => actions.approve(task, { mode: 'open_to_claim' })} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 bg-[#4A6079] px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-[#35475C] disabled:opacity-60">Approve</button>
               <button type="button" disabled={actions.busy} onClick={() => actions.setStatus(task, 'todo')} className="inline-flex h-6 items-center justify-center gap-1 rounded-6 border border-[#CDD6E0] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#1F2D3D] hover:bg-[#EEF1F4] disabled:opacity-60">Reject</button>
             </>
           ) : (
