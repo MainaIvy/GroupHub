@@ -9,9 +9,6 @@ export default function LecturerSetup() {
     <main className="min-h-screen bg-[#EEF3FA] px-4 py-10 text-[#26303B]">
       <section className="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow-xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-violet-700">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
           <div>
             <h1 className="text-2xl font-bold text-[#0F3D6E]">Teaching Units Status</h1>
             <p className="mt-1 text-sm text-slate-500">Your units are assigned by administrators.</p>
