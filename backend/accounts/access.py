@@ -21,35 +21,27 @@ def is_admin(user):
 
 
 def is_supervising_lecturer(user, group):
-    """True when ``user`` has an active (approved, end-date empty or in the
-    future) ``UnitAssignment`` for the group's unit in the current term.
-
-    Admins supervise every group.
-    """
+    """True when ``user`` has any approved ``UnitAssignment`` for the
+    group's unit (any term). Admins supervise every group."""
     if is_admin(user):
         return True
     if user is None or user.user_type != 'lecturer':
         return False
-    term = current_term()
-    if term is None or group.unit_id is None:
+    if group.unit_id is None:
         return False
     today = timezone.now().date()
     return UnitAssignment.objects.filter(
-        lecturer=user, unit_id=group.unit_id, term=term, status='approved',
+        lecturer=user, unit_id=group.unit_id, status='approved',
     ).filter(
         Q(end_date__isnull=True) | Q(end_date__gte=today)
     ).exists()
 
 
 def _lecturer_active_unit_ids(lecturer):
-    """Unit ids the lecturer has an active approved assignment for in the
-    current term."""
-    term = current_term()
-    if term is None:
-        return set()
+    """Unit ids the lecturer has any active approved assignment for (all terms)."""
     today = timezone.now().date()
     return set(UnitAssignment.objects.filter(
-        lecturer=lecturer, term=term, status='approved',
+        lecturer=lecturer, status='approved',
     ).filter(
         Q(end_date__isnull=True) | Q(end_date__gte=today)
     ).values_list('unit_id', flat=True))
