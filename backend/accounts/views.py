@@ -3125,6 +3125,7 @@ def get_messages(request, room_id):
                     'user_type': msg.sender.user_type
                 },
                 'timestamp': msg.timestamp.isoformat(),
+                'edited_at': msg.edited_at.isoformat() if msg.edited_at else None,
                 'attachment_name': msg.attachment.name.rsplit('/', 1)[-1] if msg.attachment else None,
                 'attachment_url': f'/api/accounts/chat/messages/{msg.id}/attachment/' if msg.attachment else None,
                 'voice_note_url': f'/api/accounts/chat/messages/{msg.id}/voice-note/' if msg.voice_note else None,
@@ -3243,6 +3244,7 @@ def send_message(request, room_id):
                 'user_type': message.sender.user_type
             },
             'timestamp': message.timestamp.isoformat(),
+            'edited_at': message.edited_at.isoformat() if message.edited_at else None,
             'attachment_name': message.attachment.name.rsplit('/', 1)[-1] if message.attachment else None,
             'attachment_url': f'/api/accounts/chat/messages/{message.id}/attachment/' if message.attachment else None,
             'voice_note_url': f'/api/accounts/chat/messages/{message.id}/voice-note/' if message.voice_note else None,
