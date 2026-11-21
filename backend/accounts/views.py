@@ -1823,6 +1823,10 @@ def get_group_task_workspace(request, group_id):
         root_tasks = children_by_parent.get(None, [])
         project_weight = sum(max(1, task.weight) for task in root_tasks)
         project_progress = round(sum(task_rollup(task)['progress'] * max(1, task.weight) for task in root_tasks) / project_weight) if project_weight else 0
+        # Compute workload balance so member_data includes points_assigned and share_percent
+        balance = calculate_group_balance(group)
+        points_by_member = {m['user_id']: m['points_assigned'] for m in balance['members']}
+        share_by_member = {m['user_id']: m['share_percent'] for m in balance['members']}
         member_data = [{
             'id': membership.student_id,
             'name': f"{membership.student.first_name} {membership.student.last_name}".strip() or membership.student.username,
@@ -1831,6 +1835,8 @@ def get_group_task_workspace(request, group_id):
             'role': membership.role,
             'is_leader': membership.student_id == group.leader_id,
             'avatar': avatar_url(membership.student),
+            'points_assigned': points_by_member.get(membership.student_id, 0),
+            'share_percent': share_by_member.get(membership.student_id, 0),
         } for membership in members]
 
         compile_task = next((t for t in tasks if str(t.title).strip().lower() == 'compile and edit' and not t.parent_task_id), None)
