@@ -58,6 +58,7 @@ const auth = () => ({
 const tabs = [
   ["dashboard", "Dashboard", LayoutDashboard],
   ["units", "Course", BookOpen],
+  ["groups", "Groups", Users],
   ["students", "Students", Users],
   ["assessments", "Assessments", ClipboardList],
   ["messages", "Messages", MessageSquare],
@@ -153,6 +154,23 @@ export default function LecturerDashboard() {
   const fileRef = useRef(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
+  // Group creation state
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [createGroupForm, setCreateGroupForm] = useState({
+    name: "",
+    description: "",
+    unit_id: "",
+    max_members: 5,
+    student_ids: [],
+  });
+  const [creatingGroup, setCreatingGroup] = useState(false);
+
+  // Student add/remove state
+  const [showAddStudents, setShowAddStudents] = useState(null); // groupId
+  const [addStudentsForm, setAddStudentsForm] = useState({
+    student_ids: [],
+  });
+
   // Notifications state
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef(null);
@@ -195,6 +213,34 @@ export default function LecturerDashboard() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateGroup = async (e) => {
+    e.preventDefault();
+    setCreatingGroup(true);
+    try {
+      const response = await axios.post(
+        `${API}/groups/create/`,
+        {
+          name: createGroupForm.name,
+          course: "",
+          year_of_study: "",
+          description: createGroupForm.description,
+          unit_id: createGroupForm.unit_id,
+          max_members: createGroupForm.max_members,
+          invite_usernames: createGroupForm.student_ids.join(","),
+        },
+        { headers: auth() },
+      );
+      setNotice("Group created successfully.");
+      setShowCreateGroup(false);
+      setCreateGroupForm({ name: "", description: "", unit_id: "", max_members: 5, student_ids: [] });
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to create group.");
+    } finally {
+      setCreatingGroup(false);
     }
   };
 
@@ -758,7 +804,7 @@ export default function LecturerDashboard() {
                 />
               </Panel>
             )}
-            {tab === "groups" && <Groups groups={groups} onOpen={openGroup} />}
+            {tab === "groups" && <Groups groups={groups} onOpen={openGroup} units={units} onCreateGroup={handleCreateGroup} />}
             {tab === "students" && (
               <Students
                 units={units}
@@ -1520,37 +1566,281 @@ function UnitGrid({ units, onSelect }) {
   );
 }
 
-function Groups({ groups, onOpen }) {
+function Groups({ groups, onOpen, units, onCreateGroup }) {
+  const [expandedUnits, setExpandedUnits] = useState({});
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    description: "",
+    unit_id: "",
+    max_members: 5,
+    student_ids: [],
+  });
+  const [creating, setCreating] = useState(false);
+
+  const toggleUnit = (unitId) => {
+    setExpandedUnits((prev) => ({ ...prev, [unitId]: !prev[unitId] }));
+  };
+
+  const isExpanded = (unitId) => expandedUnits[unitId] !== false;
+
+  // Collect all students from all units for the create form
+  const allStudents = [];
+  const studentSet = new Set();
+  (units || []).forEach((unit) => {
+    (unit.students || []).forEach((s) => {
+      if (!studentSet.has(s.id)) {
+        studentSet.add(s.id);
+        allStudents.push(s);
+      }
+    });
+  });
+
+  // Group groups by unit
+  const groupsByUnit = {};
+  (groups || []).forEach((g) => {
+    const uid = g.unit_id || "ungrouped";
+    if (!groupsByUnit[uid]) groupsByUnit[uid] = [];
+    groupsByUnit[uid].push(g);
+  });
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await axios.post(
+        `${API}/groups/create/`,
+        {
+          name: createForm.name,
+          course: "",
+          year_of_study: "",
+          description: createForm.description,
+          unit_id: createForm.unit_id,
+          max_members: createForm.max_members,
+          invite_usernames: createForm.student_ids.join(","),
+        },
+        { headers: auth() },
+      );
+      setShowCreateGroup(false);
+      setCreateForm({ name: "", description: "", unit_id: "", max_members: 5, student_ids: [] });
+      onCreateGroup();
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to create group.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const unitList = Object.entries(groupsByUnit).map(([unitIdKey, unitGroups]) => {
+    const unit = (units || []).find((u) => String(u.id) === String(unitIdKey)) || {
+      id: unitIdKey,
+      code: "N/A",
+      name: "Unassigned Unit",
+      students: [],
+    };
+
+    return (
+      <section key={unitIdKey} className="mb-6">
+        <button
+          type="button"
+          onClick={() => toggleUnit(unitIdKey)}
+          className="flex items-center justify-between w-full mb-2"
+        >
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${isExpanded(unitIdKey) ? "bg-green-100 text-green-800" : "bg-[#EEF1F4] text-[#33445A]"}`}>
+              {isExpanded(unitIdKey) ? "▾" : "▸"}
+            </span>
+            <span className="font-semibold text-[#1A1A1A]">{unit.code}</span>
+            <span className="text-xs text-[#666666]">{unit.name}</span>
+          </div>
+          <span className="text-xs font-semibold text-[#666666]">
+            {unitGroups.length} group(s) · {unit.student_count || 0} students
+          </span>
+        </button>
+
+        {isExpanded(unitIdKey) && (
+          <div className="ml-4 space-y-3">
+            {unitGroups.map((group) => (
+              <div
+                key={group.id}
+                onClick={() => onOpen(group)}
+                className="rounded-xl border border-[#DDDDDD] bg-white p-4 cursor-pointer hover:bg-[#F5F5F7] hover:shadow-md transition-colors group"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-[#1A1A1A]">{group.name}</h4>
+                    <p className="text-xs text-[#666666] mt-1">
+                      {group.unit_code || unit.code} · {group.members_count} members
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2 py-1 rounded text-[10px] font-bold ${
+                        group.health === "at_risk"
+                          ? "bg-red-100 text-red-700"
+                          : group.health === "quiet"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {group.health || "on_track"}
+                    </span>
+                    <span className="text-xs font-bold text-[#33445A]">
+                      {group.progress || 0}%
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-4 text-xs text-[#4F5F73]">
+                  <span>
+                    {group.projects?.length ?? 0} project(s)
+                  </span>
+                  <span>
+                    {group.overdue_count ?? 0} overdue
+                  </span>
+                  <span>
+                    Next: {group.next_deadline ? new Date(group.next_deadline).toLocaleDateString() : "—"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  });
+
   return (
-    <Panel
-      title="Groups"
-      description="See what each group is doing and open its full workspace."
-    >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {groups.map((group) => (
-          <button
-            key={group.id}
-            onClick={() => onOpen(group)}
-            className="rounded-2xl border border-[#E3E9F2] p-4 text-left dark:border-[#1E2940] hover:bg-[#F4F7FC] dark:hover:bg-[#1E2940] transition-colors"
-          >
-            <div className="flex justify-between">
-              <Users className="text-[#0F3D6E]" />
-              <span className="text-xs text-[#6B7A90]">
-                {group.members_count} members
-              </span>
-            </div>
-            <h3 className="mt-4 font-bold">{group.name}</h3>
-            <p className="text-xs text-[#6B7A90]">
-              {group.unit_code || group.course}
-            </p>
-            <p className="mt-4 text-sm text-[#6B7A90]">
-              {group.projects?.length || 0} projects · click for progress
-            </p>
-          </button>
-        ))}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#1F2D3D]">Groups</h2>
+          <p className="text-sm text-[#4F5F73]">
+            All groups formed for your assigned units. Click a group to view tasks, submissions, and activity.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowCreateGroup(true)}
+          className="rounded-xl bg-[#35475C] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#435B76] transition-colors flex items-center gap-2"
+        >
+          <Plus size={16} /> Create Group
+        </button>
       </div>
-      {!groups.length && <Empty>No groups found.</Empty>}
-    </Panel>
+
+      {unitList.length === 0 && (
+        <Empty>
+          No groups found. Create your first group to get started.
+        </Empty>
+      )}
+
+      {unitList}
+
+      {/* Create Group Modal */}
+      {showCreateGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateGroup(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 p-6 border border-[#DDDDDD]" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-[#1A1A1A]">Create Group</h3>
+              <p className="text-sm text-[#666666]">Create a new project group for one of your units.</p>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#33445A] mb-1">Group Name</label>
+                <input
+                  required
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  placeholder="e.g. Mobile App Team Alpha"
+                  className="w-full rounded-xl border border-[#DDDDDD] bg-white px-4 py-2.5 text-sm focus:border-[#35475C] outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#33445A] mb-1">Description</label>
+                <textarea
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                  rows={2}
+                  placeholder="What is this group working on?"
+                  className="w-full rounded-xl border border-[#DDDDDD] bg-white px-4 py-2.5 text-sm focus:border-[#35475C] outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#33445A] mb-1">Select Unit</label>
+                <select
+                  required
+                  value={createForm.unit_id}
+                  onChange={(e) => setCreateForm({ ...createForm, unit_id: e.target.value })}
+                  className="w-full rounded-xl border border-[#DDDDDD] bg-white px-4 py-2.5 text-sm focus:border-[#35475C] outline-none"
+                >
+                  <option value="">Choose a unit</option>
+                  {(units || []).map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.code} — {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#33445A] mb-1">Max Members</label>
+                <select
+                  value={createForm.max_members}
+                  onChange={(e) => setCreateForm({ ...createForm, max_members: Number(e.target.value) })}
+                  className="w-full rounded-xl border border-[#DDDDDD] bg-white px-4 py-2.5 text-sm focus:border-[#35475C] outline-none"
+                >
+                  <option value={5}>5 members</option>
+                  <option value={6}>6 members</option>
+                  <option value={8}>8 members</option>
+                  <option value={10}>10 members</option>
+                  <option value={12}>12 members</option>
+                  <option value={15}>15 members</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#33445A] mb-1">Invite Students (optional)</label>
+                <div className="max-h-48 overflow-y-auto border border-[#DDDDDD] rounded-xl p-3 bg-[#F8FAF8] space-y-2">
+                  {allStudents.map((s) => {
+                    const selected = createForm.student_ids.includes(s.id);
+                    return (
+                      <label key={s.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(e) => {
+                            const ids = e.target.checked
+                              ? [...createForm.student_ids, s.id]
+                              : createForm.student_ids.filter((id) => id !== s.id);
+                            setCreateForm({ ...createForm, student_ids: ids });
+                          }}
+                          className="rounded text-[#35475C] focus:ring-[#35475C]"
+                        />
+                        <span className="text-sm text-[#1A1A1A]">{s.name}</span>
+                        <span className="text-xs text-[#666666]">({s.email})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateGroup(false)}
+                  className="flex-1 rounded-xl border border-[#DDDDDD] px-4 py-2.5 text-sm font-semibold text-[#33445A] hover:bg-[#F5F5F7] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !createForm.name || !createForm.unit_id}
+                  className="flex-1 rounded-xl bg-[#35475C] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#435B76] transition-colors"
+                >
+                  {creating ? "Creating..." : "Create Group"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -3136,8 +3136,12 @@ def get_students_for_lecturer(request):
         if user.user_type != 'lecturer':
             return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
 
-        active_term = current_term()
-        lecturer_units = approved_units_for_lecturer(user, active_term)
+        # Return students from all units the lecturer is assigned to (any term)
+        lecturer_units = Unit.objects.filter(
+            id__in=UnitAssignment.objects.filter(
+                lecturer=user, status='approved',
+            ).values_list('unit_id', flat=True)
+        ).distinct()
         if not lecturer_units.exists():
             return Response({
                 'status': 'no_assignments',
@@ -3148,7 +3152,6 @@ def get_students_for_lecturer(request):
         students = User.objects.filter(
             user_type='student',
             enrollments__unit__in=lecturer_units,
-            enrollments__semester=active_term,
         ).distinct().values(
             'id', 'first_name', 'last_name', 'email', 'course', 'year_of_study'
         ).order_by('first_name', 'last_name', 'id')
@@ -3744,9 +3747,9 @@ def create_group_view(request):
         return Response({'error': 'Select a valid unit'}, status=status.HTTP_400_BAD_REQUEST)
     if user.user_type == 'student' and user.enrolled_course_id and unit.course_id != user.enrolled_course_id:
         return Response({'error': 'Select a unit from your enrolled programme'}, status=status.HTTP_403_FORBIDDEN)
-    if user.user_type == 'lecturer' and not approved_units_for_lecturer(
-        user, current_term()
-    ).filter(pk=unit.pk).exists():
+    if user.user_type == 'lecturer' and not UnitAssignment.objects.filter(
+        lecturer=user, unit=unit, status='approved',
+    ).exists():
         return Response({'error': 'Select one of your assigned units'}, status=status.HTTP_403_FORBIDDEN)
     course = unit.course.name
     year_of_study = unit.year_of_study
