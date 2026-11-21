@@ -63,7 +63,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
           </div>
           {task.due_date && (
             <div className="mt-1 flex items-center gap-1 text-[11px] text-[#4F5F73]">
-              <CalendarDays size={12} aria-hidden="true" /> {formatDue(task.due_date)}{task.weight ? ` Â· ${weightText(task.weight)} pts` : ''}
+              <CalendarDays size={12} aria-hidden="true" /> {formatDue(task.due_date)}{task.weight ? ` Â· ${weightText(task.weight)}` : ''}
             </div>
           )}
         </div>
@@ -90,11 +90,13 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <h5 className="font-medium text-[#1F2D3D] truncate">{subtask.title}</h5>
-                    <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#4F5F73]">
-                      <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-1.5 py-0.5 font-semibold text-[#6B7280]">Subtask</span>
-                      {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
-                          {subtask.weight ? <span>Â· {weightText(subtask.weight)} pts</span> : ''}
+                        <div className="flex items-center gap-1">
+                          <h5 className="font-medium text-[#1F2D3D] truncate">{subtask.title}</h5>
+                          <span className="rounded-full border border-[#C9D5E2] bg-[#EEF1F4] px-1.5 py-0.5 text-[9px] font-semibold text-[#6B7280]">Subtask</span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#4F5F73]">
+                          {subtask.due_date && <span>{formatDue(subtask.due_date)}</span>}
+                          {subtask.weight ? <span>Â· {weightText(subtask.weight)}</span> : ''}
                           {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
                         </div>
                       </div>
@@ -318,7 +320,7 @@ const TasksTab = ({
                       <h5 className="font-medium text-[#1F2D3D] truncate">{task.title}</h5>
                       <div className="mt-1 flex items-center gap-1 text-xs text-[#4F5F73]">
                         {task.due_date && <span>{formatDue(task.due_date)}</span>}
-                        {task.weight ? <span>Â· {weightText(task.weight)} pts</span> : ''}
+                        {task.weight ? <span>Â· {weightText(task.weight)}</span> : ''}
                       </div>
                       <button type="button" disabled={actions.busy} onClick={() => actions.claim(task, false)} className="mt-2 rounded-lg bg-[#35475C] w-full px-3 py-1.5 text-xs font-bold text-white hover:bg-[#4A6079] disabled:opacity-50">Claim</button>
                     </article>
