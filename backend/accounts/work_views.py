@@ -154,8 +154,8 @@ def delete_work_item(request, group_id, task_id, item_id):
     ).first()
     if item is None:
         return _error('Work item not found', status.HTTP_404_NOT_FOUND)
-    if request.user.id != item.submitted_by_id and not is_leader(request.user, item.task.project.group):
-        return _error('Only the person who added this or the group leader can remove it.', status.HTTP_403_FORBIDDEN)
+    if request.user.id != item.submitted_by_id:
+        return _error('Only the person who added this work can remove it.', status.HTTP_403_FORBIDDEN)
     if item.file:
         item.file.delete(save=False)
     

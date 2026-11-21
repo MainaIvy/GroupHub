@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { btnPrimary, btnSecondary } from '../design';
 import { WEIGHT_SCALE } from '../../taskWeights';
 import { timeAgo } from '../utils';
@@ -132,14 +132,24 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
           {workItems.length ? (
             <Section title="Proof of work">
               <div className="space-y-2 text-xs text-[#4F5F73]">
-                {workItems.map((item) => (
-                  <article key={item.id} className="rounded-lg border border-[#E3EAF2] p-2.5">
-                    <div className="mb-1 flex items-center gap-2 text-sm font-medium text-[#33445A]">{item.author_name} • {timeAgo(item.created_at)}</div>
-                    {item.note && <p className="mt-1 whitespace-pre-wrap">{item.note}</p>}
-                    {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-[#435B76] underline">Open link</a>}
-                    {item.file_url && <a href={item.file_url} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-[#435B76] underline">Open {item.file_name}</a>}
-                  </article>
-                ))}
+                {workItems.map((item) => {
+                  const isOwner = item.author_id === userId;
+                  return (
+                    <article key={item.id} className="rounded-lg border border-[#E3EAF2] p-2.5">
+                      <div className="mb-1 flex items-center justify-between gap-2 text-sm font-medium text-[#33445A]">
+                        <span>{item.author_name} • {timeAgo(item.created_at)}</span>
+                        {isOwner && !actions.busy && (
+                          <button type="button" onClick={() => { if (window.confirm('Remove this proof of work?')) actions.deleteWorkItem(task.id, item.id); }} className="text-[10px] text-red-600 hover:text-red-700 underline hover:bg-red-50 px-1 py-0.5 rounded" title="Delete proof">
+                            <Trash2 size={10} />
+                          </button>
+                        )}
+                      </div>
+                      {item.note && <p className="mt-1 whitespace-pre-wrap">{item.note}</p>}
+                      {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-[#435B76] underline">Open link</a>}
+                      {item.file_url && <a href={item.file_url} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-[#435B76] underline">Open {item.file_name}</a>}
+                    </article>
+                  );
+                })}
               </div>
             </Section>
           ) : null}
