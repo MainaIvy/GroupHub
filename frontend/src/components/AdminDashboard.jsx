@@ -106,22 +106,14 @@ function StatusDot({ value }) {
   );
 }
 
-function Stat({ label, value, icon, highlight }) {
+function Stat({ label, value, icon }) {
   return (
-    <div
-      className={`flex items-center justify-between rounded-3xl p-5 shadow-sm ${
-        highlight ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#1A1A1A]'
-      }`}
-    >
+    <div className="rounded-xl border border-[#CDD6E0] bg-white p-4">
       <div>
-        <p className="text-3xl font-bold">{value ?? '—'}</p>
-        <p className={`mt-1 text-sm ${highlight ? 'text-white/60' : 'text-[#666666]'}`}>{label}</p>
+        <p className="text-[24px] font-semibold text-[#1A1A1A]">{value ?? '—'}</p>
+        <p className="mt-1 text-[12px] text-[#4F5F73]">{label}</p>
       </div>
-      <span
-        className={`flex h-12 w-12 items-center justify-center rounded-full text-2xl ${
-          highlight ? 'bg-[#2C3E50] text-[#1A1A1A]' : 'bg-[#ECF0F1] text-[#1A1A1A]'
-        }`}
-      >
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DFE6EE] text-[#35475C]">
         {icon}
       </span>
     </div>
@@ -132,7 +124,7 @@ function Panel({ title, action, children }) {
   return (
     <section className="rounded-3xl bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-[#1A1A1A]">{title}</h3>
+        <h3 className="text-[18px] font-bold text-[#1A1A1A]">{title}</h3>
         {action}
       </div>
       {children}
@@ -145,7 +137,7 @@ function SeeAll({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg bg-[#1A1A1A] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#4338CA]"
+      className="rounded-6 bg-[#4A6079] px-3 py-1 text-xs font-semibold text-white transition hover:bg-[#35475C]"
     >
       See all <ArrowRightOutlined />
     </button>
@@ -332,13 +324,15 @@ export default function AdminDashboard() {
           <Stat label="Users" value={data.users} icon={<TeamOutlined />} />
           <Stat label="Groups" value={data.groups} icon={<UsergroupAddOutlined />} />
           <Stat label="Tasks" value={data.tasks} icon={<CheckSquareOutlined />} />
-          <Stat label="Submissions" value={data.submissions} icon={<FileDoneOutlined />} highlight />
-          <Stat
-            label="Units w/o lecturer (current term)"
-            value={data.unassigned?.length ?? 0}
-            icon={<WarningOutlined />}
-            highlight
-          />
+          <Stat label="Submissions" value={data.submissions} icon={<FileDoneOutlined />} />
+          <div className="relative">
+            <Stat label="Units without lecturer" value={data.unassigned?.length ?? 0} icon={<WarningOutlined />} />
+            {data.unassigned?.length > 0 && (
+              <span className="absolute -top-1 -right-1 inline-flex items-center gap-1 rounded-full bg-[#FDF1D8] border border-[#E8C36A] px-1.5 py-0.5 text-[10px] font-bold text-[#7A5A10]">
+                Needs attention
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -347,7 +341,7 @@ export default function AdminDashboard() {
               {data.at_risk_groups?.length ? (
                 <ul className="divide-y divide-[#DDDDDD]">
                   {data.at_risk_groups.map((group) => (
-                    <li key={group.id} className="flex items-center justify-between py-3 text-sm">
+                    <li key={group.id} className="flex items-center justify-between py-3 text-[13px]">
                       <span className="font-medium text-[#1A1A1A]">{group.name}</span>
                       <span className="inline-flex items-center gap-2 rounded-full bg-[#FEE2E2] px-3 py-1 text-xs font-semibold text-[#EF4444]">
                         <span className="h-2 w-2 rounded-full bg-[#EF4444]" />
@@ -357,7 +351,7 @@ export default function AdminDashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-[#666666]">
+                <div className="flex flex-col items-center gap-2 py-10 text-center text-[13px] text-[#666666]">
                   <CheckCircleOutlined className="text-3xl text-[#10B981]" />
                   No at-risk groups. Every group is on track.
                 </div>
@@ -372,7 +366,7 @@ export default function AdminDashboard() {
                   <button
                     type="button"
                     onClick={item.run}
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-sm text-[#1A1A1A] transition hover:bg-[#F5F5F7]"
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-[13px] text-[#1A1A1A] transition hover:bg-[#F5F5F7]"
                   >
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ECF0F1] text-[#1A1A1A]">
                       {item.icon}
