@@ -126,6 +126,7 @@ function App() {
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
