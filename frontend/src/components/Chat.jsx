@@ -1006,20 +1006,28 @@ const Chat = ({
                         const own = isMine(message);
                         const userColor = getUserColor(message.sender?.id, allUsers);
                         return (
-                          <article key={message.id} className={`flex group ${own ? 'justify-end' : 'justify-start'} mb-3`}>
-                            <div className="relative">
-                              {/* Message actions menu - just outside left edge of bubble, shown on hover */}
-                              <div className="absolute -left-8 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1">
+                          <article key={message.id} className={`flex ${own ? 'justify-end' : 'justify-start'} mb-3`}>
+                            {!own && (
+                              <div className="mb-0.5 flex items-center gap-1">
+                                <span className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-semibold text-white" style={{ backgroundColor: userColor }}>
+                                  {message.sender?.first_name?.[0] || ''}{message.sender?.last_name?.[0] || ''}
+                                </span>
+                                <span className="text-[10px] font-medium text-[#1F2D3D]">{displayName(message.sender)}</span>
+                              </div>
+                            )}
+                            <div className={`relative max-w-[80%] rounded-2xl px-3 py-2 sm:max-w-[60%] ${own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]'}`}>
+                              {/* Menu button - top-right corner of bubble, hover to show */}
+                              <div className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); setMessageActionsOpen(messageActionsOpen === message.id ? null : message.id); }}
                                   aria-label="More options"
-                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs ${own ? 'text-[#35475C] bg-[#E2E8F0]' : 'text-[#6B7A8C]'} hover:bg-[#EEF1F4]`}
+                                  className={`flex h-6 w-6 items-center justify-center rounded-lg text-[10px] ${own ? 'text-[#35475C] bg-[#E2E8F0]' : 'text-[#6B7A8C]'}`}
                                 >
-                                  <MoreVertical size={14} aria-hidden="true" />
+                                  <MoreVertical size={12} aria-hidden="true" />
                                 </button>
                                 {messageActionsOpen === message.id && (
-                                  <div data-msg-actions={messageActionsOpen} className="absolute mt-1 left-0 z-50 w-48 rounded-lg border border-[#D7DEE6] bg-white shadow-lg py-1">
+                                  <div className="absolute -mt-1 right-0 z-50 w-48 rounded-lg border border-[#D7DEE6] bg-white shadow-lg py-1">
                                     <button
                                       type="button"
                                       onClick={() => handleReplyMessage(message)}
@@ -1057,39 +1065,29 @@ const Chat = ({
                                   </div>
                                 )}
                               </div>
-                              {/* Sender header for incoming messages (outside bubble) */}
-                              {!own && (
-                                <div className="mb-0.5 flex items-center gap-2">
-                                  <span className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{ backgroundColor: userColor }}>
-                                    {message.sender?.first_name?.[0] || ''}{message.sender?.last_name?.[0] || ''}
-                                  </span>
-                                  <span className="text-xs font-semibold text-[#1F2D3D]">{displayName(message.sender)}</span>
-                                </div>
-                              )}
-                              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] ${own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]'}`}>
-                                {message.content && (
-                                  <>
-                                    <p className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${editingMessageId === message.id ? 'hidden' : ''}`}>{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>
-                                    {message.edited_at && editingMessageId !== message.id && (
-                                      <span className="text-[10px] text-[#4F5F73] mt-0.5">Edited</span>
-                                    )}
-                                    {editingMessageId === message.id && (
-                                      <div className="mt-2">
-                                        <textarea
-                                          ref={draftRef}
-                                          value={editDraft}
-                                          onChange={(e) => setEditDraft(e.target.value)}
-                                          rows={2}
-                                          className="w-full min-h-[60px] rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] outline-none focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20"
-                                          placeholder="Edit your message…"
-                                          autoFocus
-                                        />
-                                        <div className="flex justify-end gap-2 mt-1.5">
-                                          <button type="button" onClick={handleCancelEdit} className="text-xs text-[#4F5F73] hover:text-[#35475C]">Cancel</button>
-                                          <button type="button" onClick={handleSaveEdit} disabled={!editDraft.trim()} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-[#35475C] hover:bg-[#435B76] disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
-                                        </div>
+                              {message.content && (
+                                <>
+                                  <p className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${editingMessageId === message.id ? 'hidden' : ''}`}>{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>
+                                  {message.edited_at && editingMessageId !== message.id && (
+                                    <span className="text-[10px] text-[#4F5F73] mt-0.5">Edited</span>
+                                  )}
+                                  {editingMessageId === message.id && (
+                                    <div className="mt-2">
+                                      <textarea
+                                        ref={draftRef}
+                                        value={editDraft}
+                                        onChange={(e) => setEditDraft(e.target.value)}
+                                        rows={2}
+                                        className="w-full min-h-[60px] rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] outline-none focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20"
+                                        placeholder="Edit your message…"
+                                        autoFocus
+                                      />
+                                      <div className="flex justify-end gap-2 mt-1.5">
+                                        <button type="button" onClick={handleCancelEdit} className="text-xs text-[#4F5F73] hover:text-[#35475C]">Cancel</button>
+                                        <button type="button" onClick={handleSaveEdit} disabled={!editDraft.trim()} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-[#35475C] hover:bg-[#435B76] disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
                                       </div>
-                                    )}
+                                    </div>
+                                  )}
                                   </>
                                 )}
                                 {/* Voice note playback - custom player */}
@@ -1112,9 +1110,8 @@ const Chat = ({
                                 <div className="mt-1 flex justify-end">
                                   <time className={`text-[10px] ${own ? 'text-white/70' : 'text-[#4F5F73]'}`}>{new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
                                 </div>
-                              </div>
-                            </div>
-                          </article>
+                                </div>
+                              </article>
                         );
                       })}
                 </div>
