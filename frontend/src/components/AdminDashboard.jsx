@@ -562,7 +562,7 @@ export default function AdminDashboard() {
       </>
     );
   } else if (tab === 'Units and lecturers') {
-    content = <AssignmentManager data={data} onAction={action} onReload={() => load()} />;
+    content = <AssignmentManager data={data} onAction={action} onReload={() => load()} onViewUnits={viewLecturerUnits} />;
   } else if (tab === 'Lecturers') {
     content = <LecturersManager onReload={() => load()} />;
   } else if (tab === 'Import') {
@@ -1062,7 +1062,7 @@ function AnnouncementForm({ onSave }) {
   );
 }
 
-function AssignmentManager({ data, onAction, onReload }) {
+function AssignmentManager({ data, onAction, onReload, onViewUnits }) {
   const [form, setForm] = useState({ lecturer_id: '', unit_id: '', term_id: '' });
   const [importFile, setImportFile] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
@@ -1262,7 +1262,7 @@ function AssignmentManager({ data, onAction, onReload }) {
         </button>
       </form>
 
-      {renderLoadCards(data.lecturers, viewLecturerUnits)}
+      {renderLoadCards(data.lecturers, onViewUnits)}
 
       <Panel title="Units with no lecturer">
         <div className="space-y-4">
