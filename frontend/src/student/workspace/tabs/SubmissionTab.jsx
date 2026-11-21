@@ -8,7 +8,7 @@ const SubmissionTab = ({ ctx }) => {
 
   const compile = workspaceCompile || {};
   const sectionsTotal = safeArray(workspace?.tasks).filter((task) => !task.parent_task_id && task.title.trim().toLowerCase() !== 'compile and edit').length;
-  const sectionsDone = safeArray(workspace?.tasks).filter((task) => !task.parent_task_id && task.title.trim().toLowerCase() !== 'compile and edit' && task.progress_percentage >= 100).length;
+  const sectionsDone = safeArray(workspace?.tasks).filter((task) => !task.parent_task_id && task.title.trim().toLowerCase() !== 'compile and edit' && (task.status === 'completed' || task.progress_percentage >= 100)).length;
 
   return (
     <section className="space-y-5">
