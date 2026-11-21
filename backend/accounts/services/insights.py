@@ -229,7 +229,7 @@ def _compute_progress(group: Group) -> int:
             if project_weight:
                 completed_weight = sum(
                     max(1, task.weight) for task in root_tasks
-                    if task.status == 'completed'
+                    if task.status == 'completed' or task.progress_percentage >= 100
                 )
                 project_progress = round(completed_weight / project_weight * 100)
                 total_progress += project_progress
