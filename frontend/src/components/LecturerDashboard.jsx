@@ -2247,10 +2247,11 @@ function Detail({
           <>
             <div className="rounded-xl bg-[#E8F3FB] p-4 dark:bg-[#182943]">
               <b className="text-3xl text-[#0F3D6E] dark:text-white">
-                {detail.group.project_progress ??
-                  detail.groupData?.project_progress ??
-                  0}
-                %
+                {(typeof detail.group.project_progress === 'number'
+                  ? detail.group.project_progress
+                  : detail.group.project_progress?.status ??
+                    detail.groupData?.project_progress ??
+                    0)} %
               </b>
               <p className="text-xs font-bold text-[#6B7A90] uppercase tracking-wide mt-1">
                 Overall Progress
