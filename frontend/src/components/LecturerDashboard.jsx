@@ -153,6 +153,7 @@ export default function LecturerDashboard() {
   const [selectedFile, setSelectedFile] = useState(null);
   const fileRef = useRef(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [gradingSubmissionId, setGradingSubmissionId] = useState(null);
 
   // Group creation state
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -2275,21 +2276,85 @@ function Detail({
               (task) => (
                 <div
                   key={task.id}
-                  className="mt-2 rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940]"
+                  className="mt-3 rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] bg-[#F8FAFC] dark:bg-[#0B1120]"
                 >
-                  <p className="font-bold text-[#12294A] dark:text-gray-200">
-                    {task.title}
-                  </p>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-xs font-semibold text-[#6B7A90] bg-[#F4F7FC] px-2 py-1 rounded dark:bg-[#0B1120]">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <b className="text-[#12294A] dark:text-gray-200 text-sm font-semibold">
+                        {task.title}
+                      </b>
+                      {task.assigned_to_name ? (
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-[#10B981] text-white"
+                        >
+                          {task.assigned_to_name}
+                        </span>
+                      ) : (
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-[#EF4444] text-white"
+                        >
+                          Unassigned
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${task.status === 'completed' ? 'bg-green-100 text-green-700' : task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}
+                    >
                       {task.status}
-                    </p>
-                    <p className="text-sm font-bold text-[#0F3D6E] dark:text-white">
-                      {task.progress_percentage}%
-                    </p>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 mt-2">
+                    <div className="flex items-center gap-2 text-xs text-[#666666]">
+                      <span className="font-semibold">Progress:</span>
+                      <span className="font-bold text-[#0F3D6E]">
+                        {task.progress_percentage}%
+                      </span>
+                    </div>
+                    {task.due_date && (
+                      <span className={`text-xs font-semibold ${task.is_overdue ? 'text-red-600' : 'text-[#666666]'}`}>
+                        {task.is_overdue ? 'Overdue' : new Date(task.due_date).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ),
+            )}
+            {detail.group.submissions && detail.group.submissions.length > 0 && (
+              <>
+                <h4 className="mt-8 font-bold text-[#1F2D3D] mb-3">Submissions to Grade</h4>
+                {detail.group.submissions.map((submission) => (
+                  <div
+                    key={submission.id}
+                    className="mt-3 rounded-xl border border-[#E3E9F2] p-4 bg-white dark:bg-[#0B1120] dark:border-[#1E2940]"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <b className="text-[#0F3D6E] dark:text-white text-sm font-semibold">
+                          {submission.project_title}
+                        </b>
+                        <p className="text-sm text-[#6B7A90] mt-1">
+                          {submission.submitted_by || submission.submitted_by_name}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${submission.status === 'submitted' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
+                      >
+                        {submission.status}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-[#666666]">
+                      {submission.grade == null ? 'Not graded yet' : `${submission.grade}%`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => openSubmission(submission)}
+                      className="w-full rounded-xl bg-[#0F3D6E] py-2 font-bold text-white transition-colors hover:bg-[#154e8a] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Grade Submission
+                    </button>
+                  </div>
+                ))}
+              </>
             )}
           </>
         ) : detail.id ? (

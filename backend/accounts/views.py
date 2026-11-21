@@ -2083,6 +2083,9 @@ def get_group_task_workspace(request, group_id):
                     'tasks': [task for task in task_data if task['project_id'] == project.id],
                 } for project in projects],
                 'next_deadline': next_deadline,
+                'submissions': [_serialize_submission(s) for s in Submission.objects.filter(
+                    project__group=group,
+                ).select_related('project', 'submitted_by').order_by('-submitted_at')],
             },
             'project': project_header,
             'compile': compile_info,
@@ -2092,7 +2095,6 @@ def get_group_task_workspace(request, group_id):
             'tasks': task_data,
             'health': health,
         })
-    except Group.DoesNotExist:
         return Response({'error': 'Group not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         logger.error(f"Error loading task workspace for group {group_id}: {str(e)}")
