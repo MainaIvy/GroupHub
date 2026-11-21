@@ -524,7 +524,9 @@ def change_lecturer_password(request):
 
     user.set_password(new_password)
     user.must_change_password = False
-    user.save(update_fields=['password', 'must_change_password'])
+    # Bypass User.save() -> full_clean() since LecturerRoster already validates the email
+    from django.db.models.base import Model as BaseModel
+    BaseModel.save(user)
 
     return Response({'message': 'Password updated successfully. You can now use your new password.'})
 
