@@ -1002,124 +1002,124 @@ const Chat = ({
                     <span className="px-2 bg-[#F8FAFC]">{day}</span>
                     <div className="flex-1 h-px bg-[#D7DEE6]" />
                   </div>
-                  {dayMessages.map((message) => {
-                    const own = isMine(message);
-                    const userColor = getUserColor(message.sender?.id, allUsers);
-                    return (
-                      <article key={message.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`relative max-w-[80%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] ${own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]'}`}>
-                          {!own && (
-                            <div className="mb-1.5 flex items-center gap-2">
-                              <span className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{ backgroundColor: userColor }}>
-                                {message.sender?.first_name?.[0] || ''}{message.sender?.last_name?.[0] || ''}
-                              </span>
-                              <span className="text-xs font-semibold text-[#1F2D3D]">{displayName(message.sender)}</span>
-                              <time className="text-[10px] text-[#4F5F73]">{new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
-                            </div>
-                          )}
-                          {own && (
-                            <div className="mb-1.5 flex items-center justify-end gap-2">
-                              <time className="text-[10px] text-white/70">{new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
-                              <span className="text-xs font-semibold text-white/90">You</span>
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white"><UserRound size={14} aria-hidden="true" /></span>
-                            </div>
-                          )}
-                          {message.content && (
-                            <>
-                              <p className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${editingMessageId === message.id ? 'hidden' : ''}`}>{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>
-                              {message.edited_at && editingMessageId !== message.id && (
-                                <span className="text-[10px] text-[#4F5F73] mt-0.5">Edited</span>
-                              )}
-                              {editingMessageId === message.id && (
-                                <div className="mt-2">
-                                  <textarea
-                                    ref={draftRef}
-                                    value={editDraft}
-                                    onChange={(e) => setEditDraft(e.target.value)}
-                                    rows={2}
-                                    className="w-full min-h-[60px] rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] outline-none focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20"
-                                    placeholder="Edit your message…"
-                                    autoFocus
-                                  />
-                                  <div className="flex justify-end gap-2 mt-1.5">
-                                    <button type="button" onClick={handleCancelEdit} className="text-xs text-[#4F5F73] hover:text-[#35475C]">Cancel</button>
-                                    <button type="button" onClick={handleSaveEdit} disabled={!editDraft.trim()} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-[#35475C] hover:bg-[#435B76] disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
-                                  </div>
+                      {dayMessages.map((message) => {
+                        const own = isMine(message);
+                        const userColor = getUserColor(message.sender?.id, allUsers);
+                        return (
+                          <article key={message.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
+                            <div className={"group relative max-w-[80%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] " + (own ? 'bg-[#35475C] text-white' : 'bg-white border border-[#D7DEE6] text-[#1F2D3D]')}>
+                              {!own && (
+                                <div className="mb-1.5 flex items-center gap-2">
+                                  <span className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{ backgroundColor: userColor }}>
+                                    {message.sender?.first_name?.[0] || ''}{message.sender?.last_name?.[0] || ''}
+                                  </span>
+                                  <span className="text-xs font-semibold text-[#1F2D3D]">{displayName(message.sender)}</span>
+                                  <time className="text-[10px] text-[#4F5F73]">{new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
                                 </div>
                               )}
-                            </>
-                          )}
-                          {message.poll && renderPollCard(message.poll, activeRoom?.group_id)}
-                          {/* Voice note playback - custom player */}
-                          {message.voice_note_url && (
-                            <VoiceNotePlayer
-                              audioUrl={message.voice_note_url}
-                              duration={message.voice_duration || 30}
-                              own={own}
-                            />
-                          )}
-                          {/* Regular file attachment */}
-                          {message.attachment_url && (
-                            <button type="button" onClick={() => isImage(message.attachment_name) ? setImagePreview(message.attachment_url) : downloadAttachment(message)} className="mt-2 flex w-full items-center gap-2 rounded-lg border border-[#D7DEE6] bg-white/50 px-3 py-2 text-left text-sm font-medium text-[#35475C] hover:bg-white">
-                              {isImage(message.attachment_name) ? <Image size={16} className="shrink-0" aria-hidden="true" /> : <FileText size={16} className="shrink-0" aria-hidden="true" />}
-                              <span className="min-w-0 flex-1 truncate">{message.attachment_name}</span>
-                              <span className="text-xs">{isImage(message.attachment_name) ? 'View' : downloadBusy === message.id ? '…' : 'Download'}</span>
-                            </button>
-                          )}
+                              {own && (
+                                <div className="mb-1.5 flex items-center justify-end gap-2">
+                                  <time className="text-[10px] text-white/70">{new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
+                                  <span className="text-xs font-semibold text-white/90">You</span>
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white"><UserRound size={14} aria-hidden="true" /></span>
+                                </div>
+                              )}
+                              {message.content && (
+                                <>
+                                  <p className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${editingMessageId === message.id ? 'hidden' : ''}`}>{renderMessageContent(message.content, onTaskReference, activeRoom?.group_id)}</p>
+                                  {message.edited_at && editingMessageId !== message.id && (
+                                    <span className="text-[10px] text-[#4F5F73] mt-0.5">Edited</span>
+                                  )}
+                                  {editingMessageId === message.id && (
+                                    <div className="mt-2">
+                                      <textarea
+                                        ref={draftRef}
+                                        value={editDraft}
+                                        onChange={(e) => setEditDraft(e.target.value)}
+                                        rows={2}
+                                        className="w-full min-h-[60px] rounded-lg border border-[#D7DEE6] bg-white px-3 py-2 text-sm text-[#1F2D3D] outline-none focus:border-[#35475C] focus:ring-2 focus:ring-[#35475C]/20"
+                                        placeholder="Edit your message…"
+                                        autoFocus
+                                      />
+                                      <div className="flex justify-end gap-2 mt-1.5">
+                                        <button type="button" onClick={handleCancelEdit} className="text-xs text-[#4F5F73] hover:text-[#35475C]">Cancel</button>
+                                        <button type="button" onClick={handleSaveEdit} disabled={!editDraft.trim()} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-[#35475C] hover:bg-[#435B76] disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              {message.poll && renderPollCard(message.poll, activeRoom?.group_id)}
+                              {/* Voice note playback - custom player */}
+                              {message.voice_note_url && (
+                                <VoiceNotePlayer
+                                  audioUrl={message.voice_note_url}
+                                  duration={message.voice_duration || 30}
+                                  own={own}
+                                />
+                              )}
+                              {/* Regular file attachment */}
+                              {message.attachment_url && (
+                                <button type="button" onClick={() => isImage(message.attachment_name) ? setImagePreview(message.attachment_url) : downloadAttachment(message)} className="mt-2 flex w-full items-center gap-2 rounded-lg border border-[#D7DEE6] bg-white/50 px-3 py-2 text-left text-sm font-medium text-[#35475C] hover:bg-white">
+                                  {isImage(message.attachment_name) ? <Image size={16} className="shrink-0" aria-hidden="true" /> : <FileText size={16} className="shrink-0" aria-hidden="true" />}
+                                  <span className="min-w-0 flex-1 truncate">{message.attachment_name}</span>
+                                  <span className="text-xs">{isImage(message.attachment_name) ? 'View' : downloadBusy === message.id ? '…' : 'Download'}</span>
+                                </button>
+                              )}
 
-                          {/* Message actions */}
-                          <div className="mt-2 flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setMessageActionsOpen(messageActionsOpen === message.id ? null : message.id)}
-                              aria-label="More options"
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs ${own ? 'text-[#35475C] bg-[#E2E8F0]' : 'text-[#6B7A8C]'} hover:bg-[#EEF1F4]`}
-                            >
-                              <MoreVertical size={14} aria-hidden="true" />
-                            </button>
-                            {messageActionsOpen === message.id && (
-                              <div data-msg-actions={messageActionsOpen} className="absolute mt-1 right-0 z-50 w-48 rounded-lg border border-[#D7DEE6] bg-white shadow-lg py-1">
+                              {/* Message actions - hidden by default, shown on hover like Instagram */}
+                              <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1">
                                 <button
                                   type="button"
-                                  onClick={() => handleReplyMessage(message)}
-                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                  onClick={(e) => { e.stopPropagation(); setMessageActionsOpen(messageActionsOpen === message.id ? null : message.id); }}
+                                  aria-label="More options"
+                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs ${own ? 'text-[#35475C] bg-[#E2E8F0]' : 'text-[#6B7A8C]'} hover:bg-[#EEF1F4]`}
                                 >
-                                  <Reply size={14} aria-hidden="true" /> Reply
+                                  <MoreVertical size={14} aria-hidden="true" />
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleReactMessage(message.id, '👍')}
-                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
-                                >
-                                  <span className="text-lg">👍</span> React
-                                </button>
-                                {own && (
-                                  <>
-                                    <div className="h-px bg-[#EEF1F4] my-1" />
+                                {messageActionsOpen === message.id && (
+                                  <div data-msg-actions={messageActionsOpen} className="absolute mt-1 right-0 z-50 w-48 rounded-lg border border-[#D7DEE6] bg-white shadow-lg py-1">
                                     <button
                                       type="button"
-                                      onClick={() => handleEditMessage(message)}
+                                      onClick={() => handleReplyMessage(message)}
                                       className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
                                     >
-                                      <Pencil size={14} aria-hidden="true" /> Edit
+                                      <Reply size={14} aria-hidden="true" /> Reply
                                     </button>
-                                    <div className="h-px bg-[#EEF1F4] my-1" />
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteMessage(message.id)}
-                                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                      onClick={() => handleReactMessage(message.id, '👍')}
+                                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
                                     >
-                                      <Trash2 size={14} aria-hidden="true" /> Delete
+                                      <span className="text-lg">👍</span> React
                                     </button>
-                                  </>
+                                    {own && (
+                                      <>
+                                        <div className="h-px bg-[#EEF1F4] my-1" />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleEditMessage(message)}
+                                          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#1F2D3D] hover:bg-[#EEF1F4]"
+                                        >
+                                          <Pencil size={14} aria-hidden="true" /> Edit
+                                        </button>
+                                        <div className="h-px bg-[#EEF1F4] my-1" />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteMessage(message.id)}
+                                          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                        >
+                                          <Trash2 size={14} aria-hidden="true" /> Delete
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
+                            </div>
+                          </article>
+                        );
+                      })}
                 </div>
               ))}
               <div ref={messageEndRef} />
