@@ -6,7 +6,6 @@ import SignUp from './components/SignUp';
 import Login from './components/Login';
 import StudentDashboard from './components/StudentDashboard';
 import LecturerDashboard from './components/LecturerDashboard';
-import LecturerSetup from './components/LecturerSetup';
 import AdminDashboard from './components/AdminDashboard';
 import About from './components/About';
 import Contact from './components/Contact';
@@ -126,7 +125,6 @@ function App() {
         />
         <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
-        <Route path="/lecturer/setup" element={<LecturerSetup />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </Router>
