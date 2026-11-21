@@ -52,9 +52,7 @@ const MyTasks = ({ ctx }) => {
       }
       const due = startOfDay(new Date(task.due_date)).getTime();
       const status = String(task.status || '').toLowerCase();
-      
-      if (status === 'completed') continue; // Skip completed in grouped view
-      
+
       if (due < today) {
         overdue.push(task);
       } else if (due === today) {
