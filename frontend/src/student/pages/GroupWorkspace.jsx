@@ -168,7 +168,7 @@ const GroupWorkspace = ({ ctx }) => {
       case 'files':
         return <FilesTab files={extras.files} loading={extras.filesLoading} error={extras.filesError} onRetry={extras.reloadFiles} onGoChat={() => goTab('chat')} />;
       case 'submission':
-        return <SubmissionTab ctx={{ ...ctx, workspaceCompile: workspace.compile, workspace, isWorkspaceLeader: isLeader }} />;
+        return <SubmissionTab ctx={{ ...ctx, actions, workspaceCompile: workspace.compile, workspace, isWorkspaceLeader: isLeader }} />;
       case 'members':
         return <MembersTab user={user} group={{ ...workspace.group, ...group }} members={members} isLeader={isLeader} joinRequests={joinRequests} access={access} setGroups={setGroups} onLeft={toGroups} onLeaveError={setError} onReload={data.reload} />;
       case 'activity':
