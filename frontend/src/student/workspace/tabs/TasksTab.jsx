@@ -5,25 +5,39 @@ import { btnPrimary, btnSecondary } from '../../design';
 import { ProgressBar } from '../../components/ProgressBar';
 import { childrenOf, formatDue, weightText } from '../taskUtils';
 
-const statuses = ['todo', 'in_progress', 'completed'];
+const statuses = ['todo', 'in_progress', 'done'];
 const personsLabel = 'Group by: Task';
 const groupLabels = { task: 'Task', person: 'Person', status: 'Status' };
 
-const taskStatusChip = (status) => ({
-  completed: 'bg-[#E3EAF2] text-[#35475C] border-[#D7DEE6]',
-  in_progress: 'bg-[#EEF1F4] text-[#2F4A66] border-[#C9D5E2]',
-  todo: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
-}[status] || 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]');
+const toDisplayStatus = (boardStatus) => {
+  if (boardStatus === 'done') return 'done';
+  if (boardStatus === 'in_progress') return 'in_progress';
+  return 'todo';
+};
+
+const taskStatusChip = (boardStatus) => {
+  const s = toDisplayStatus(boardStatus);
+  return ({
+    done: 'bg-[#E3EAF2] text-[#35475C] border-[#D7DEE6]',
+    in_progress: 'bg-[#EEF1F4] text-[#2F4A66] border-[#C9D5E2]',
+    todo: 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]',
+  }[s] || 'bg-[#EEF1F4] text-[#33445A] border-[#D7DEE6]');
+};
+
+const statusLabelFor = (boardStatus) => {
+  const s = toDisplayStatus(boardStatus);
+  return { todo: 'To do', in_progress: 'In progress', done: 'Done' }[s];
+};
 
 const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, openGroupTasks, onEditTask, onDeleteTask, onAddSubtask }) => {
   const subtasks = task.subtask_ids.map((id) => tasks.find((item) => item.id === id)).filter(Boolean);
   const member = members.find((item) => item.id === task.assigned_to_id);
   const isLeader = userId === leaderId;
   const isAssignee = task.assigned_to_id === userId;
-  const canFinish = isAssignee && task.board_status !== 'completed';
-  const canStart = isAssignee && task.board_status === 'todo';
+  const canFinish = isAssignee && task.board_status !== 'done' && !task.has_subtasks;
+  const canStart = isAssignee && task.board_status !== 'done' && task.board_status !== 'in_progress';
   const canClaim = task.board_status === 'open_to_claim' && !task.has_subtasks;
-  const statusLabel = { pending: 'Pending', in_progress: 'In progress', completed: 'Done' }[task.board_status] || task.board_status;
+  const statusLabel = statusLabelFor(task.board_status);
   const proofCount = (task.work_items || []).length;
   const isCompile = task.is_compile_task || task.title.trim().toLowerCase() === 'compile and edit';
   const compileLocked = compile.is_locked;
@@ -53,8 +67,8 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
             <h4 className="font-semibold text-[#1F2D3D] truncate">{task.title}</h4>
             {!task.parent_task_id && <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[10px] font-semibold text-[#35475C]">Parent task</span>}
             {isCompile ? <span className="rounded-full border border-[#E3EAF2] bg-[#EEF1F4] px-2 py-0.5 text-[11px] font-semibold text-[#2F4A66]">Final task</span> : null}
-            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)} cursor-pointer hover:opacity-80 transition-colors`} onClick={(isLeader || isAssignee) && !compileLocked ? () => {
-              const next = task.board_status === 'completed' ? 'pending' : task.board_status === 'pending' ? 'in_progress' : 'completed';
+            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${taskStatusChip(task.board_status)}${((isLeader || isAssignee) && !compileLocked && !task.has_subtasks) ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={(isLeader || isAssignee) && !compileLocked && !task.has_subtasks ? () => {
+              const next = task.board_status === 'done' ? 'pending' : task.board_status === 'in_progress' ? 'completed' : 'in_progress';
               actions.setStatus(task, next);
             } : undefined}>
               {statusLabel}
@@ -80,9 +94,9 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
             <ul className="space-y-1">
             {subtasks.map((subtask) => {
               const subMember = members.find((item) => item.id === subtask.assigned_to_id);
-              const subStatusLabel = { pending: 'Pending', in_progress: 'In progress', completed: 'Done' }[subtask.board_status] || subtask.board_status;
+              const subStatusLabel = statusLabelFor(subtask.board_status);
               const canClaimSub = subtask.board_status === 'open_to_claim' && !subtask.has_subtasks;
-              const canFinishSub = subtask.assigned_to_id === userId && subtask.board_status !== 'completed';
+              const canFinishSub = subtask.assigned_to_id === userId && subtask.board_status !== 'done';
               const subProofCount = (subtask.work_items || []).length;
               const subCompileLocked = compileLocked && subtask.is_compile_task;
               return (
@@ -100,10 +114,10 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
                           {subtask.is_overdue && <span className="text-red-700 font-semibold">overdue</span>}
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusChip(subtask.board_status)} cursor-pointer hover:opacity-80 transition-colors`} onClick={() => {
-                        const next = subtask.board_status === 'completed' ? 'pending' : subtask.board_status === 'pending' ? 'in_progress' : 'completed';
+                      <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusChip(subtask.board_status)}${subtask.assigned_to_id === userId && !subCompileLocked ? ' cursor-pointer hover:opacity-80 transition-colors' : ''}`} onClick={subtask.assigned_to_id === userId && !subCompileLocked ? () => {
+                        const next = subtask.board_status === 'done' ? 'pending' : subtask.board_status === 'in_progress' ? 'completed' : 'in_progress';
                         actions.setStatus(subtask, next);
-                      }}>
+                      } : undefined}>
                         {subStatusLabel}
                       </span>
                     </div>
@@ -145,7 +159,7 @@ const TaskRow = ({ task, tasks, members, actions, userId, leaderId, compile, ope
               {member && !compileLocked ? (
                 <button type="button" disabled={actions.busy} onClick={() => reassignTask(member.id)} className={btnSecondary}>Reassign</button>
               ) : null}
-              {(isLeader || isAssignee) && !compileLocked && task.board_status !== 'completed' ? (
+              {(isLeader || isAssignee) && !compileLocked && task.board_status !== 'done' ? (
                 <button type="button" onClick={() => onEditTask(task)} className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D7DEE6] text-[#35475C] hover:bg-[#EEF1F4] transition-colors" title="Edit task">
                   <Edit2 size={12} />
                 </button>
@@ -236,7 +250,7 @@ const TasksTab = ({
     });
     return Array.from(map.values()).filter((entry) => entry.items.length > 0);
   }, [tasks, members]);
-  const groupedByStatus = useMemo(() => statuses.map((status) => ({ status, items: tasks.filter((task) => task.board_status === status) })), [tasks]);
+  const groupedByStatus = useMemo(() => statuses.map((status) => ({ status, items: tasks.filter((task) => toDisplayStatus(task.board_status) === status) })), [tasks]);
 
   const taskGroups = useMemo(() => {
     if (groupBy === 'task') return groupedByTask.map((group) => ({ title: group.task.title, tasks: group.items, sectionId: group.task.id }));
