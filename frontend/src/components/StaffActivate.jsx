@@ -69,7 +69,7 @@ export default function StaffActivate() {
         if (user.is_staff) {
           navigate('/admin/dashboard');
         } else if (user.user_type === 'lecturer') {
-          navigate(user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard');
+          navigate('/lecturer/dashboard');
         } else {
           navigate('/student/dashboard');
         }

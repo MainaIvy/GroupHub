@@ -356,7 +356,7 @@ const SignUp = () => {
         if (user.is_staff) {
           targetPath = '/admin/dashboard';
         } else if (user.user_type === 'lecturer') {
-          targetPath = user.lecturer_setup_required ? '/lecturer/setup' : '/lecturer/dashboard';
+          targetPath = '/lecturer/dashboard';
         } else {
           targetPath = '/student/dashboard';
         }
