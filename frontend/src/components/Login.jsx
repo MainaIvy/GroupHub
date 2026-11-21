@@ -339,6 +339,13 @@ const Login = () => {
               Sign up
             </Link>
           </p>
+
+          <p className="pt-1 text-center text-sm text-[#4F5F73]">
+            Lecturer?{' '}
+            <Link to="/lecturer/login" className="font-semibold text-[#35475C] underline">
+              Sign in as lecturer
+            </Link>
+          </p>
         </form>
       </main>
     </div>
