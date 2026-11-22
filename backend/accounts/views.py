@@ -30,7 +30,7 @@ from django.db.models import Exists, OuterRef
 from django.core.files.storage import default_storage
 from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
-    ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster, AuditLog, AdminSetting,
+    ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster, AuditLog, AdminSetting, TaskSubmission,
 )
 from .profile import compute_profile_complete, lecturer_setup_required
 from .access import can_view_group, can_manage_group
