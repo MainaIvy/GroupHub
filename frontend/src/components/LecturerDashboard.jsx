@@ -141,6 +141,7 @@ export default function LecturerDashboard() {
     feedback: "",
     status: "reviewed",
   });
+  const [taskGrade, setTaskGrade] = useState("");
   const [gradingMode, setGradingMode] = useState("student");
   const [gradingGroupId, setGradingGroupId] = useState("");
   const [groupSubmissions, setGroupSubmissions] = useState([]);
@@ -288,6 +289,7 @@ export default function LecturerDashboard() {
     });
     setDetail(submission);
     setSubmissionSource(submission.source || 'submission');
+    setTaskGrade(submission.source === 'task' ? '' : '');
   };
 
   const grade = async (event) => {
@@ -309,6 +311,18 @@ export default function LecturerDashboard() {
       }
     } catch (requestError) {
       setError(requestError.response?.data?.error || "Unable to save grade.");
+    }
+  };
+
+  const downloadWorkFile = async (fileUrl) => {
+    try {
+      const response = await axios.get(fileUrl, { responseType: 'blob' });
+      const blob = new Blob([response.data]);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch {
+      alert('Session expired. Please log in again.');
+      window.location.assign('/login');
     }
   };
 
@@ -2421,6 +2435,17 @@ function Detail({
                 </span>
               </p>
             </div>
+            <label className="block text-sm font-bold text-[#12294A] dark:text-gray-200">
+              Grade (%)
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={taskGrade}
+                onChange={(event) => setTaskGrade(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-[#CBD5E1] px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
+              />
+            </label>
             {detail.proof_text && (
               <div className="rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] dark:bg-[#0B1120]">
                 <h4 className="text-sm font-bold text-[#1F2D3D] mb-2">Note</h4>
@@ -2436,11 +2461,20 @@ function Detail({
             {detail.screenshot_url && (
               <div className="rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] dark:bg-[#0B1120]">
                 <h4 className="text-sm font-bold text-[#1F2D3D] mb-2">File</h4>
-                <a href={detail.screenshot_url} target="_blank" rel="noreferrer" className="text-sm text-[#435B76] underline hover:text-[#35475C]">Open file</a>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadWorkFile(detail.screenshot_url);
+                  }}
+                  className="flex items-center gap-1 text-sm text-[#435B76] underline hover:text-[#35475C]"
+                >
+                  <span className="text-[10px]">📄</span> Download file
+                </button>
               </div>
             )}
             <p className="text-xs text-[#4F5F73]">
-              Task submissions show proof of work. Use the task panel to update status or confirm weight.
+              Task submissions show proof of work. Grade is recorded locally.
             </p>
           </div>
         ) : null}
