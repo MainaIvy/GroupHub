@@ -17,6 +17,7 @@ import MyTasks from './pages/MyTasks';
 import MyUnits from './pages/MyUnits';
 import Messages from './pages/Messages';
 import Settings from './pages/Settings';
+import Grades from './pages/Grades';
 import GroupWorkspace from './pages/GroupWorkspace';
 
 const PAGES = {
@@ -25,6 +26,7 @@ const PAGES = {
   tasks: MyTasks,
   units: MyUnits,
   groups: Groups,
+  grades: Grades,
 };
 
 const StudentShell = () => {

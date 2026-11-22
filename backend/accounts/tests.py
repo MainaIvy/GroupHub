@@ -3250,4 +3250,60 @@ class SubmissionGradingTests(APITestCase):
         )
         self.assertEqual(response.status_code, 200, response.json())
 
+    def test_student_grades_empty_when_not_released(self):
+        self._auth(self.student1)
+        response = self.client.get('/api/accounts/student/grades/')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['grades'], [])
+
+    def test_student_sees_own_released_grade_only(self):
+        from .models import MemberGrade
+
+        # Set different marks per student, then release.
+        MemberGrade.objects.create(
+            submission=self.submission, student=self.student1,
+            final_mark=85, reason='', updated_by=self.lecturer,
+        )
+        MemberGrade.objects.create(
+            submission=self.submission, student=self.student2,
+            final_mark=60, reason='', updated_by=self.lecturer,
+        )
+        self.submission.grade = 75
+        self.submission.released_at = timezone.now()
+        self.submission.status = 'graded'
+        self.submission.save()
+
+        # student1 sees their own mark (85), not student2's (60).
+        self._auth(self.student1)
+        response = self.client.get('/api/accounts/student/grades/')
+        self.assertEqual(response.status_code, 200, response.json())
+        grades = response.json()['grades']
+        self.assertEqual(len(grades), 1)
+        self.assertEqual(grades[0]['final_mark'], 85)
+        self.assertEqual(grades[0]['group_mark'], 75)
+        self.assertEqual(grades[0]['reason'], '')
+
+        # student2 sees their own mark (60), not student1's (85).
+        self._auth(self.student2)
+        response = self.client.get('/api/accounts/student/grades/')
+        self.assertEqual(response.status_code, 200, response.json())
+        grades = response.json()['grades']
+        self.assertEqual(len(grades), 1)
+        self.assertEqual(grades[0]['final_mark'], 60)
+        self.assertEqual(grades[0]['group_mark'], 75)
+
+    def test_student_cannot_see_unreleased_grade(self):
+        self._auth(self.lecturer)
+        self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85},
+            format='json',
+        )
+        # Not released: released_at is null.
+        self._auth(self.student1)
+        response = self.client.get('/api/accounts/student/grades/')
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['grades'], [])
+
+
 

@@ -1,11 +1,12 @@
 import React from 'react';
 import logo from '../../assets/images/GROUPHUBLOGO.png';
-import { BookOpen, CheckCircle2, LayoutDashboard, LogOut, MessageSquare, Settings, UsersRound } from 'lucide-react';
+import { BookOpen, CheckCircle2, LayoutDashboard, LogOut, MessageSquare, Settings, UsersRound, Award } from 'lucide-react';
 
 const TABS = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
   { id: 'groups', label: 'Groups', icon: UsersRound },
   { id: 'tasks', label: 'My tasks', icon: CheckCircle2 },
+  { id: 'grades', label: 'Grades', icon: Award },
   { id: 'units', label: 'My units', icon: BookOpen },
   { id: 'chat', label: 'Messages', icon: MessageSquare },
   { id: 'settings', label: 'Settings', icon: Settings },

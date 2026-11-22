@@ -1,5 +1,6 @@
 export const API = {
   studentDashboard: '/api/accounts/dashboard/student/',
+  studentGrades: '/api/accounts/student/grades/',
   notifications: '/api/accounts/notifications/',
   createGroup: '/api/accounts/groups/create/',
   joinGroup: '/api/accounts/groups/join/'

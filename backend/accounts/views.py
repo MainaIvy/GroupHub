@@ -1825,6 +1825,46 @@ def student_dashboard(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def student_grades(request):
+    """List every released submission grade for the signed-in student."""
+    user = request.user
+    if user.user_type != 'student':
+        return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    memberships = GroupMembership.objects.filter(student=user).select_related('group__unit')
+    grades = []
+    for membership in memberships:
+        group = membership.group
+        submission = Submission.objects.filter(
+            project__group=group,
+        ).select_related('project').prefetch_related('member_grades').order_by('-submitted_at').first()
+        if not submission or submission.released_at is None:
+            continue
+        my_grade = submission.member_grades.filter(student=user).first()
+        final_mark = my_grade.final_mark if my_grade else None
+        reason = my_grade.reason if my_grade else ''
+        differs = (final_mark is not None and submission.grade is not None
+                   and float(final_mark) != float(submission.grade))
+        grades.append({
+            'id': submission.id,
+            'unit_code': group.unit.code if group.unit else (group.unit_code or ''),
+            'unit_name': group.unit.name if group.unit else (group.unit_name or group.course or ''),
+            'project_title': submission.project.title,
+            'group_mark': float(submission.grade) if submission.grade is not None else None,
+            'final_mark': float(final_mark) if final_mark is not None else None,
+            'feedback': submission.feedback or '',
+            'reason': reason if differs else '',
+            'released_at': submission.released_at.isoformat() if submission.released_at else None,
+            'submitted_at': submission.submitted_at.isoformat(),
+            'group_id': group.id,
+        })
+
+    grades.sort(key=lambda g: g['released_at'] or '', reverse=True)
+    return Response({'grades': grades})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def student_workload_summary(request):
     user = request.user
     if user.user_type != 'student':
