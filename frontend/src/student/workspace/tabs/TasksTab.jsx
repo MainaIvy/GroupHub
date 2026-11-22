@@ -548,8 +548,8 @@ const TasksTab = ({
             <section className="space-y-2" aria-labelledby="tasks">
               <h4 className="text-[11px] font-semibold text-[#4F5F73] mb-2 uppercase tracking-wide">Tasks</h4>
               {taskGroups.length ? (
-                taskGroups.map((group) => (
-                  <TaskGroup key={group.sectionId} title={group.title} tasks={group.tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={reload} collapsible={groupBy === 'task'} onEditTask={onEditTask} onDeleteTask={onDeleteTask} onAddSubtask={onAddSubtask} onSelectTask={onSelectTask} />
+                taskGroups.map((group, index) => (
+                  <TaskGroup key={group.sectionId || `task-group-${index}`} title={group.title} tasks={group.tasks} members={members} actions={actions} userId={userId} leaderId={leaderId} compile={compile} openGroupTasks={reload} collapsible={groupBy === 'task'} onEditTask={onEditTask} onDeleteTask={onDeleteTask} onAddSubtask={onAddSubtask} onSelectTask={onSelectTask} />
                 ))
               ) : (
                 <p className="text-[11px] text-[#4F5F73]">No tasks yet. Add one to start the plan.</p>
