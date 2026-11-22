@@ -290,7 +290,7 @@ export default function LecturerDashboard() {
     });
     setDetail(submission);
     setSubmissionSource(submission.source || 'submission');
-    setTaskGrade(submission.source === 'task' ? '' : '');
+    setTaskGrade(submission.source === 'task' ? (submission.grade ?? '') : '');
   };
 
   const grade = async (event) => {
@@ -320,7 +320,13 @@ export default function LecturerDashboard() {
       const response = await api.get(fileUrl, { responseType: 'blob' });
       const blob = new Blob([response.data]);
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileUrl.split('/').pop() || 'downloaded-file';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     } catch {
       alert('Session expired. Please log in again.');
       window.location.assign('/login');
@@ -2470,9 +2476,24 @@ function Detail({
                 <h4 className="text-sm font-bold text-[#1F2D3D] mb-2">File</h4>
                 <button
                   type="button"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    downloadWorkFile(detail.screenshot_url);
+                    try {
+                      const response = await api.get(detail.screenshot_url, { responseType: 'blob' });
+                      const disposition = response.headers['content-disposition'] || '';
+                      const match = disposition.match(/filename="?([^"]+)"?/);
+                      const filename = match ? match[1] : 'downloaded-file';
+                      const url = URL.createObjectURL(response.data);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                      URL.revokeObjectURL(url);
+                    } catch {
+                      alert('Unable to download file.');
+                    }
                   }}
                   className="flex items-center gap-1 text-sm text-[#435B76] underline hover:text-[#35475C]"
                 >
@@ -2486,11 +2507,28 @@ function Detail({
             {taskGrade && (
               <button
                 type="button"
-                onClick={() => {
-                  setNotice(`Grade ${taskGrade}% saved for ${detail.submitted_by_name || detail.submitted_by}`);
-                  setTaskGrade('');
-                  setDetail(null);
-                  load();
+                onClick={async () => {
+                  try {
+                    const tsId = detail.id.toString().replace(/^ts-/, '');
+                    await axios.patch(
+                      `${API}/task-submissions/${tsId}/grade/`,
+                      { grade: taskGrade, feedback: detail.feedback || '' },
+                      { headers: auth() },
+                    );
+                    setNotice("Grade saved successfully.");
+                    setTaskGrade('');
+                    setDetail(null);
+                    load();
+                    if (gradingGroupId) {
+                      const response = await axios.get(
+                        `${API}/groups/${gradingGroupId}/submissions/`,
+                        { headers: auth() },
+                      );
+                      setGroupSubmissions(response.data);
+                    }
+                  } catch (requestError) {
+                    setError(requestError.response?.data?.error || "Unable to save grade.");
+                  }
                 }}
                 className="w-full rounded-xl bg-[#0F3D6E] py-2 font-bold text-white transition-colors hover:bg-[#154e8a] disabled:opacity-50 disabled:cursor-not-allowed"
               >

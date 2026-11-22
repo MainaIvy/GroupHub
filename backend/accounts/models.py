@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import validate_email, MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 import re
 import uuid
 
@@ -679,6 +680,9 @@ class TaskSubmission(models.Model):
     url = models.URLField(max_length=500, blank=True)
     file = models.FileField(upload_to='task_work/%Y/%m/', blank=True)
     marks_complete = models.BooleanField(default=False)
+    grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    feedback = models.TextField(blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

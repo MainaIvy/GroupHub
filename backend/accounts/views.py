@@ -2307,6 +2307,66 @@ def grade_submission(request, submission_id):
     return Response(_serialize_submission(submission))
 
 
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def grade_task_submission(request, task_submission_id):
+    if request.user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        ts = TaskSubmission.objects.select_related('task__project__group', 'submitted_by').get(
+            pk=task_submission_id
+        )
+    except TaskSubmission.DoesNotExist:
+        return Response({'error': 'Task submission not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if not can_view_group(request.user, ts.task.project.group):
+        return Response({'error': 'You can only grade submissions from your groups.'}, status=status.HTTP_403_FORBIDDEN)
+    raw_grade = request.data.get('grade')
+    try:
+        grade = None if raw_grade in (None, '') else float(raw_grade)
+        if grade is not None and not 0 <= grade <= 100:
+            raise ValueError
+    except (TypeError, ValueError):
+        return Response({'error': 'Grade must be a number between 0 and 100.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    old_grade = ts.grade
+    ts.grade = grade
+    ts.feedback = str(request.data.get('feedback', ts.feedback) or '').strip()
+    ts.reviewed_at = timezone.now() if grade is not None else None
+    ts.save(update_fields=['grade', 'feedback', 'reviewed_at'])
+
+    # Notify student
+    if ts.submitted_by.id != request.user.id:
+        Notification.objects.create(
+            user=ts.submitted_by,
+            notification_type='submission_reviewed',
+            title='Task graded',
+            message=f'{request.user.first_name} {request.user.last_name} graded your task "{ts.task.title}".',
+            related_project=ts.task.project,
+            related_group=ts.task.project.group,
+        )
+
+    AuditLog.objects.create(
+        actor=request.user,
+        action='grade_task_submission',
+        target_type='TaskSubmission',
+        target_id=str(ts.id),
+        details={
+            'old_grade': float(old_grade) if old_grade is not None else None,
+            'new_grade': grade,
+            'task_id': ts.task_id,
+            'group_id': ts.task.project.group_id,
+        }
+    )
+
+    return Response({
+        'id': ts.id,
+        'task_id': ts.task_id,
+        'grade': float(ts.grade) if ts.grade is not None else None,
+        'feedback': ts.feedback,
+        'reviewed_at': ts.reviewed_at.isoformat() if ts.reviewed_at else None,
+    })
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def group_submissions(request, group_id):
@@ -2345,8 +2405,8 @@ def group_submissions(request, group_id):
                     'attachments': [],
                     'status': 'completed' if ts.marks_complete else 'submitted',
                     'submitted_at': ts.created_at.isoformat(),
-                    'feedback': '',
-                    'grade': None,
+                    'feedback': ts.feedback or '',
+                    'grade': float(ts.grade) if ts.grade is not None else None,
                     'source': 'task',
                     'task_id': ts.task_id,
                 })

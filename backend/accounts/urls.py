@@ -91,6 +91,7 @@ urlpatterns = [
     path('dashboard/lecturer/', views.lecturer_dashboard, name='lecturer_dashboard'),
     path('student/workload-summary/', views.student_workload_summary, name='student_workload_summary'),
     path('submissions/<int:submission_id>/grade/', views.grade_submission, name='grade_submission'),
+    path('task-submissions/<int:task_submission_id>/grade/', views.grade_task_submission, name='grade_task_submission'),
 
 
     # Chat
