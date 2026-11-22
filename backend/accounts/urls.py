@@ -99,6 +99,7 @@ urlpatterns = [
     path('submissions/<int:submission_id>/save-draft/', views.save_submission_draft, name='save_submission_draft'),
     path('submissions/<int:submission_id>/request-revision/', views.request_submission_revision, name='request_submission_revision'),
     path('submissions/<int:submission_id>/publish/', views.publish_submission_grade, name='publish_submission_grade'),
+    path('submissions/<int:submission_id>/release/', views.release_submission_grade, name='release_submission_grade'),
     path('units/<int:unit_id>/submissions/csv/', views.unit_submissions_csv, name='unit_submissions_csv'),
 
 

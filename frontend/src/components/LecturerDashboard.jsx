@@ -2827,7 +2827,7 @@ function ReviewPage({ submissionId, onClose, setNotice, load }) {
       setReleasing(true);
       setError("");
       await axios.post(
-        `${API}/submissions/${submissionId}/publish/`,
+        `${API}/submissions/${submissionId}/release/`,
         {},
         { headers: auth() }
       );

@@ -2439,6 +2439,7 @@ def unit_submissions_overview(request, unit_id):
         latest = submissions.first()
         group_mark = None
         published = False
+        released = False
         status = 'submitted'
         submitted_at = None
         late = False
@@ -2448,8 +2449,11 @@ def unit_submissions_overview(request, unit_id):
             submitted_at = latest.submitted_at.isoformat()
             group_mark = latest.grade
             published = latest.published
+            released = latest.released_at is not None
             if latest.project.deadline:
                 late = latest.submitted_at > latest.project.deadline
+
+        is_student = user.user_type == 'student'
 
         member_grades = []
         if (is_admin(user) or _is_supervising_lecturer_for_unit(user, group.unit)):
@@ -2458,7 +2462,7 @@ def unit_submissions_overview(request, unit_id):
                     'student_id': mg.student_id,
                     'student_name': f"{mg.student.first_name} {mg.student.last_name}".strip() or mg.student.username,
                     'suggested_mark': float(mg.suggested_mark) if mg.suggested_mark is not None else None,
-                    'final_mark': float(mg.final_mark) if mg.final_mark is not None else None,
+                    'final_mark': (float(mg.final_mark) if mg.final_mark is not None else None) if (released or not is_student) else None,
                     'reason': mg.reason,
                 })
 
@@ -2468,8 +2472,9 @@ def unit_submissions_overview(request, unit_id):
             'status': status,
             'submitted_at': submitted_at,
             'late': late,
-            'group_mark': float(group_mark) if group_mark is not None else None,
+            'group_mark': (float(group_mark) if group_mark is not None else None) if (released or not is_student) else None,
             'published': published,
+            'released_at': latest.released_at.isoformat() if latest and latest.released_at else None,
             'member_grades': member_grades,
         })
 
@@ -2498,10 +2503,8 @@ def submission_grading_detail(request, submission_id):
         if not _is_supervising_lecturer_for_unit(user, group.unit):
             return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
     elif user.user_type == 'student':
-        if not submission.published:
-            return Response({'error': 'Results not published yet.'}, status=status.HTTP_403_FORBIDDEN)
-        # Student can only read their own MemberGrade
-        pass
+        if not can_view_group(user, group):
+            return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
     else:
         return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -2531,13 +2534,16 @@ def submission_grading_detail(request, submission_id):
     max_marks = submission.project.max_marks
     suggested = _compute_suggested_mark(group, max_marks)
 
+    is_student = user.user_type == 'student'
+    released = submission.released_at is not None
+
     member_grades = []
     for mg in submission.member_grades.select_related('student', 'updated_by').all():
         member_grades.append({
             'student_id': mg.student_id,
             'student_name': f"{mg.student.first_name} {mg.student.last_name}".strip() or mg.student.username,
             'suggested_mark': float(mg.suggested_mark) if mg.suggested_mark is not None else None,
-            'final_mark': float(mg.final_mark) if mg.final_mark is not None else None,
+            'final_mark': (float(mg.final_mark) if mg.final_mark is not None else None) if (released or not is_student) else None,
             'reason': mg.reason,
             'updated_by_name': f"{mg.updated_by.first_name} {mg.updated_by.last_name}".strip() if mg.updated_by else None,
             'updated_at': mg.updated_at.isoformat(),
@@ -2553,11 +2559,12 @@ def submission_grading_detail(request, submission_id):
         'content': submission.content,
         'status': submission.status,
         'submitted_at': submission.submitted_at.isoformat(),
-        'grade': float(submission.grade) if submission.grade is not None else None,
-        'feedback': submission.feedback,
+        'grade': (float(submission.grade) if submission.grade is not None else None) if (released or not is_student) else None,
+        'feedback': submission.feedback if (released or not is_student) else None,
         'graded_by': submission.graded_by_id,
         'graded_by_name': f"{submission.graded_by.first_name} {submission.graded_by.last_name}".strip() if submission.graded_by else None,
         'graded_at': submission.graded_at.isoformat() if submission.graded_at else None,
+        'released_at': submission.released_at.isoformat() if submission.released_at else None,
         'published': submission.published,
         'proof_text': submission.proof_text,
         'github_url': submission.github_url,
@@ -2623,12 +2630,39 @@ def save_submission_draft(request, submission_id):
         },
     )
 
+    # Auto-release when the lecturer has release_grades enabled in settings.
+    if user.user_type == 'lecturer' and bool(user.grading_defaults.get('release_grades')):
+        submission.released_at = timezone.now()
+        submission.status = 'graded'
+        submission.save(update_fields=['released_at', 'status'])
+        members = GroupMembership.objects.filter(group=submission.project.group).select_related('student')
+        for m in members:
+            Notification.objects.create(
+                user=m.student,
+                notification_type='submission_reviewed',
+                title='Submission reviewed',
+                message=f'The grade for “{submission.project.title}” has been released.',
+                related_project=submission.project,
+                related_group=submission.project.group,
+            )
+        AuditLog.objects.create(
+            actor=user,
+            action='release_submission_grade',
+            target_type='Submission',
+            target_id=str(submission.id),
+            details={
+                'grade': float(submission.grade) if submission.grade is not None else None,
+                'released_at': submission.released_at.isoformat(),
+            },
+        )
+
     return Response({
         'id': submission.id,
         'status': submission.status,
         'grade': float(submission.grade) if submission.grade is not None else None,
         'feedback': submission.feedback,
         'graded_at': submission.graded_at.isoformat(),
+        'released_at': submission.released_at.isoformat() if submission.released_at else None,
     })
 
 
@@ -2703,8 +2737,9 @@ def publish_submission_grade(request, submission_id):
         return Response({'error': 'A group mark must be set before publishing.'}, status=status.HTTP_400_BAD_REQUEST)
 
     submission.published = True
+    submission.released_at = timezone.now()
     submission.status = 'graded'
-    submission.save(update_fields=['published', 'status'])
+    submission.save(update_fields=['published', 'released_at', 'status'])
 
     # Notify all group members
     from .models import GroupMembership
@@ -2730,6 +2765,59 @@ def publish_submission_grade(request, submission_id):
     return Response({
         'id': submission.id,
         'published': submission.published,
+        'status': submission.status,
+        'grade': float(submission.grade),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def release_submission_grade(request, submission_id):
+    """Release the grade to students (sets released_at, notifies members, audits)."""
+    try:
+        submission = Submission.objects.select_related(
+            'project__group', 'graded_by',
+        ).prefetch_related('member_grades__student').get(pk=submission_id)
+    except Submission.DoesNotExist:
+        return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    from .access import is_admin
+    if not is_admin(user) and user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer or admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    if not can_view_group(user, submission.project.group):
+        return Response({'error': 'You cannot view this group.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if submission.grade is None:
+        return Response({'error': 'A group mark must be set before releasing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.released_at = timezone.now()
+    submission.status = 'graded'
+    submission.save(update_fields=['released_at', 'status'])
+
+    # Notify all group members
+    members = GroupMembership.objects.filter(group=submission.project.group).select_related('student')
+    for m in members:
+        Notification.objects.create(
+            user=m.student,
+            notification_type='submission_reviewed',
+            title='Submission reviewed',
+            message=f'The grade for “{submission.project.title}” has been released.',
+            related_project=submission.project,
+            related_group=submission.project.group,
+        )
+
+    AuditLog.objects.create(
+        actor=user,
+        action='release_submission_grade',
+        target_type='Submission',
+        target_id=str(submission.id),
+        details={'grade': float(submission.grade), 'released_at': submission.released_at.isoformat()},
+    )
+
+    return Response({
+        'id': submission.id,
+        'released_at': submission.released_at.isoformat(),
         'status': submission.status,
         'grade': float(submission.grade),
     })

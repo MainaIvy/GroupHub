@@ -3138,17 +3138,89 @@ class SubmissionGradingTests(APITestCase):
         self.assertEqual(response.status_code, 200, response.json())
         self.assertEqual(response.json()['grade'], 90)
 
-    def test_student_cannot_see_draft(self):
+    def test_student_sees_draft_with_null_grades(self):
         self._auth(self.student1)
+        response = self.client.get(
+            f'/api/accounts/submissions/{self.submission.id}/grading-detail/',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertIsNone(response.json()['grade'])
+        self.assertIsNone(response.json()['feedback'])
+        self.assertIsNone(response.json()['released_at'])
+        # Member marks are hidden until released.
+        for mg in response.json()['member_grades']:
+            self.assertIsNone(mg['final_mark'])
+
+    def test_release_sets_released_at_and_notifies(self):
+        self._auth(self.lecturer)
+        self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85, 'feedback': 'Good work overall.'},
+            format='json',
+        )
+        response = self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/release/',
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertIsNotNone(response.json()['released_at'])
+        self.assertEqual(response.json()['status'], 'graded')
+
+        from .models import Notification, Submission
+        submission = Submission.objects.get(pk=self.submission.id)
+        self.assertIsNotNone(submission.released_at)
+        notifications = Notification.objects.filter(
+            notification_type='submission_reviewed',
+            user__in=[self.student1, self.student2],
+        )
+        self.assertEqual(notifications.count(), 2)
+        self.assertTrue(all(n.title == 'Submission reviewed' for n in notifications))
+
+    def test_student_sees_grade_after_release(self):
+        self._auth(self.lecturer)
         self.client.patch(
             f'/api/accounts/submissions/{self.submission.id}/save-draft/',
             {'grade': 85},
             format='json',
         )
+        self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/release/',
+            format='json',
+        )
+
+        self._auth(self.student1)
         response = self.client.get(
             f'/api/accounts/submissions/{self.submission.id}/grading-detail/',
         )
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['grade'], 85)
+        self.assertEqual(response.json()['feedback'], '')
+        self.assertIsNotNone(response.json()['released_at'])
+
+    def test_other_unit_lecturer_cannot_release(self):
+        self._auth(self.other_lecturer)
+        response = self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/release/',
+            format='json',
+        )
         self.assertEqual(response.status_code, 403, response.json())
+
+    def test_student_cannot_release(self):
+        self._auth(self.student1)
+        response = self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/release/',
+            format='json',
+        )
+        self.assertEqual(response.status_code, 403, response.json())
+
+    def test_release_without_grade_is_rejected(self):
+        self._auth(self.lecturer)
+        response = self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/release/',
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('group mark must be set', response.json()['error'])
 
     def test_student_can_see_published_own_mark(self):
         self._auth(self.lecturer)
@@ -3169,6 +3241,7 @@ class SubmissionGradingTests(APITestCase):
         self.assertEqual(response.status_code, 200, response.json())
         self.assertTrue(response.json()['published'])
         self.assertEqual(response.json()['grade'], 85)
+        self.assertIsNotNone(response.json()['released_at'])
 
     def test_admin_can_read_submissions(self):
         self._auth(self.admin)

@@ -340,6 +340,7 @@ class Submission(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     graded_at = models.DateTimeField(null=True, blank=True)
+    released_at = models.DateTimeField(null=True, blank=True)
     feedback = models.TextField(blank=True)
     grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     graded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='graded_submissions')
