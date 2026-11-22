@@ -213,6 +213,10 @@ export default function LecturerDashboard() {
         headers: auth(),
       });
       setData(response.data);
+      // Default to the first unit when no unit is selected yet
+      if (!unitId && response.data?.units?.length > 0) {
+        setUnitId(response.data.units[0].id);
+      }
     } catch (requestError) {
       setError(
         requestError.response?.data?.error || "Unable to load dashboard.",
