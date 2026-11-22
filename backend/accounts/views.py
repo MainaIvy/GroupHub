@@ -1519,7 +1519,7 @@ def lecturer_dashboard(request):
                 'task_id': ts.task_id,
                 'note': ts.note or '',
                 'url': ts.url or '',
-                'file_url': f'/api/accounts/work-items/{ts.id}/file/' if ts.file else '',
+                'screenshot_url': f'/api/accounts/work-items/{ts.id}/file/' if ts.file else '',
             })
 
         combined.sort(key=lambda x: x['submitted_at'], reverse=True)
