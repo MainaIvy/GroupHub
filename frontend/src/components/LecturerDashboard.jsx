@@ -2592,14 +2592,18 @@ function SubmissionsOverview({ units, selectedUnit, unitId, setUnitId, openSubmi
           <h1 className="text-2xl font-bold text-[#0F3D6E]">{activeUnit.name}</h1>
           <p className="text-[#4F5F73]">Submission grading for {activeUnit.code}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setUnitId(activeUnitId)}
-          disabled={activeUnitId === (unitId || selectedUnit)}
-          className="h-10 rounded-lg border border-[#D7DEE6] px-4 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4]"
+        <select
+          value={activeUnitId || ""}
+          onChange={(event) => setUnitId(event.target.value)}
+          className="h-10 rounded-lg border border-[#D7DEE6] bg-white px-3 text-sm font-semibold text-[#35475C] focus:border-[#4A6079] outline-none"
         >
-          Change unit
-        </button>
+          <option value="">Select a unit</option>
+          {units.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.code} — {u.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {loading && <p className="text-[#4F5F73]">Loading submissions…</p>}
