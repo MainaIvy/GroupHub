@@ -196,6 +196,7 @@ const GroupWorkspace = ({ ctx }) => {
           onClose={closeTask}
           onSelectTask={openTask}
           onAddSubtask={(parent) => setProposeFor(parent)}
+          onGoSubmission={() => actions.setStatus(selectedTask, 'completed')}
         />
       ) : null}
       {proposeFor !== undefined ? (

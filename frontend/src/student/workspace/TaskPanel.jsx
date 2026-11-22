@@ -72,8 +72,10 @@ const TaskPanel = ({ task, tasks, members, activity, userId, leaderId, actions, 
   };
 
   const finishTask = async () => {
-    if (!task.has_subtasks) {
+    if (!task.has_subtasks && onGoSubmission) {
       await onGoSubmission();
+    } else if (!task.has_subtasks && actions.setStatus) {
+      await actions.setStatus(task, 'completed');
     }
   };
 
