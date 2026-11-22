@@ -872,6 +872,8 @@ export default function LecturerDashboard() {
           gradeForm={gradeForm}
           setGradeForm={setGradeForm}
           grade={grade}
+          submissionSource={submissionSource}
+          setSubmissionSource={setSubmissionSource}
         />
       )}
     </div>
@@ -2228,6 +2230,8 @@ function Detail({
   gradeForm,
   setGradeForm,
   grade,
+  submissionSource,
+  setSubmissionSource,
 }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-5 backdrop-blur-sm">
