@@ -80,7 +80,12 @@ const SubmissionsPanel = ({ ctx, embedded = false }) => {
                     {submission.github_url && <a href={submission.github_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-medium text-[#435B76] underline">Open GitHub link</a>}
                     {submission.screenshot_url && <a href={submission.screenshot_url} target="_blank" rel="noreferrer" className="mt-2 block text-xs font-medium text-[#435B76] underline">View screenshot</a>}
                     {safeArray(submission.attachments).map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" className="mt-2 block text-xs font-medium text-[#435B76] underline">Open {attachment.name}</a>)}
-                    {submission.feedback && <p className="mt-2 rounded bg-[#F3F5F7] p-2 text-xs text-[#435B76]">Feedback: {submission.feedback}</p>}
+                    {submission.grade !== null && submission.grade !== undefined && (
+                      <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-[#1F2D3D]">
+                        <span className="text-[#4A6079]">Grade:</span> {submission.grade}%
+                      </p>
+                    )}
+                    {submission.feedback && <p className="mt-1 rounded bg-[#F3F5F7] p-2 text-xs text-[#435B76]">Feedback: {submission.feedback}</p>}
                   </article>
                 )) : <p className="rounded-md bg-[#F3F5F7] px-3 py-6 text-center text-xs text-[#4F5F73]">No submissions yet for this group.</p>}
               </div>
