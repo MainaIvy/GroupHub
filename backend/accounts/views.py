@@ -24,6 +24,7 @@ import json
 import logging
 import re
 import os
+import csv
 from datetime import datetime, time, timedelta
 from django.db import models, transaction
 from django.db.models import Exists, OuterRef
@@ -31,6 +32,7 @@ from django.core.files.storage import default_storage
 from .models import (
     User, Group, GroupMembership, Project, Task, TaskActivity, TaskComment, Submission, SubmissionAttachment,
     ChatRoom, Message, Notification, NotificationSettings, Course, Unit, Semester,     StudentEnrollment, UnitAssignment, LecturerRoster, AuditLog, AdminSetting, TaskSubmission,
+    MemberGrade,
 )
 from .profile import compute_profile_complete, lecturer_setup_required
 from .access import can_view_group, can_manage_group
@@ -2365,6 +2367,427 @@ def grade_task_submission(request, task_submission_id):
         'feedback': ts.feedback,
         'reviewed_at': ts.reviewed_at.isoformat() if ts.reviewed_at else None,
     })
+
+
+# ---------------------------------------------------------------------------
+# Submission grading workflow (Project max_marks / MemberGrade / publish)
+# ---------------------------------------------------------------------------
+
+def _is_supervising_lecturer_for_unit(user, unit):
+    """True when user is an admin or a lecturer with an active approved
+    UnitAssignment for this unit (any term)."""
+    from .access import is_admin
+    if is_admin(user):
+        return True
+    if user is None or user.user_type != 'lecturer':
+        return False
+    today = timezone.now().date()
+    return UnitAssignment.objects.filter(
+        lecturer=user, unit=unit, status='approved',
+    ).filter(
+        models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
+    ).exists()
+
+
+def _compute_suggested_mark(group, max_marks):
+    """Compute a suggested individual mark from contribution data.
+
+    share_of_completed_points / fair_share, clamped to [0.7, 1.1],
+    multiplied by max_marks, rounded to 1 decimal.
+    Never applied automatically.
+    """
+    insights = compute_group_insights(group)
+    balance = insights['balance']
+    members = balance.get('members', [])
+    member_count = len(members)
+    if member_count == 0:
+        return None
+    fair_share = balance.get('fair_share', 100 / member_count)
+    total_points = balance.get('total_points', 0)
+    results = {}
+    for m in members:
+        points_completed = m.get('points_completed', 0)
+        share_of_completed = points_completed / total_points * 100 if total_points else 0
+        factor = share_of_completed / fair_share if fair_share else 1
+        factor = max(0.7, min(1.1, factor))
+        suggested = round(max_marks * factor, 1)
+        results[m['user_id']] = suggested
+    return results
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def unit_submissions_overview(request, unit_id):
+    """Groups with status, submitted_at, late flag, group mark, published."""
+    try:
+        unit = Unit.objects.get(pk=unit_id)
+    except Unit.DoesNotExist:
+        return Response({'error': 'Unit not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    from .access import is_admin, can_view_unit
+    if not can_view_unit(user, unit):
+        return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    groups = Group.objects.filter(unit=unit).select_related('leader').order_by('name')
+    term = current_term()
+    today = timezone.now().date()
+
+    data = []
+    for group in groups:
+        submissions = Submission.objects.filter(project__group=group).order_by('-submitted_at')
+        latest = submissions.first()
+        group_mark = None
+        published = False
+        status = 'submitted'
+        submitted_at = None
+        late = False
+
+        if latest:
+            status = latest.status
+            submitted_at = latest.submitted_at.isoformat()
+            group_mark = latest.grade
+            published = latest.published
+            if latest.project.deadline:
+                late = latest.submitted_at > latest.project.deadline
+
+        member_grades = []
+        if (is_admin(user) or _is_supervising_lecturer_for_unit(user, group)):
+            for mg in MemberGrade.objects.filter(submission__project__group=group).select_related('student'):
+                member_grades.append({
+                    'student_id': mg.student_id,
+                    'student_name': f"{mg.student.first_name} {mg.student.last_name}".strip() or mg.student.username,
+                    'suggested_mark': float(mg.suggested_mark) if mg.suggested_mark is not None else None,
+                    'final_mark': float(mg.final_mark) if mg.final_mark is not None else None,
+                    'reason': mg.reason,
+                })
+
+        data.append({
+            'group_id': group.id,
+            'group_name': group.name,
+            'status': status,
+            'submitted_at': submitted_at,
+            'late': late,
+            'group_mark': float(group_mark) if group_mark is not None else None,
+            'published': published,
+            'member_grades': member_grades,
+        })
+
+    return Response({'unit_id': unit_id, 'groups': data})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def submission_grading_detail(request, submission_id):
+    """Submission content, attachments, task timeline, per-member contribution,
+    suggested marks."""
+    try:
+        submission = Submission.objects.select_related(
+            'project', 'project__group', 'submitted_by', 'graded_by',
+        ).prefetch_related('attachments', 'member_grades__student').get(pk=submission_id)
+    except Submission.DoesNotExist:
+        return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    group = submission.project.group
+    user = request.user
+    from .access import is_admin, can_view_group
+
+    if is_admin(user):
+        pass  # admins can read
+    elif user.user_type == 'lecturer':
+        if not _is_supervising_lecturer_for_unit(user, group.unit):
+            return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
+    elif user.user_type == 'student':
+        if not submission.published:
+            return Response({'error': 'Results not published yet.'}, status=status.HTTP_403_FORBIDDEN)
+        # Student can only read their own MemberGrade
+        pass
+    else:
+        return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    task_timeline = []
+    for task in submission.project.tasks.all().order_by('created_at'):
+        task_timeline.append({
+            'id': task.id,
+            'title': task.title,
+            'status': task.status,
+            'progress_percentage': task.progress_percentage,
+            'assigned_to': f"{task.assigned_to.first_name} {task.assigned_to.last_name}".strip() if task.assigned_to else None,
+            'due_date': task.due_date.isoformat() if task.due_date else None,
+        })
+
+    member_contributions = []
+    insights = compute_group_insights(group)
+    for m in insights['balance']['members']:
+        member_contributions.append({
+            'user_id': m['user_id'],
+            'name': m['name'],
+            'points_assigned': m['points_assigned'],
+            'points_completed': m['points_completed'],
+            'share_percent': m['share_percent'],
+            'fair_share': m['fair_share'],
+        })
+
+    max_marks = submission.project.max_marks
+    suggested = _compute_suggested_mark(group, max_marks)
+
+    member_grades = []
+    for mg in submission.member_grades.select_related('student', 'updated_by').all():
+        member_grades.append({
+            'student_id': mg.student_id,
+            'student_name': f"{mg.student.first_name} {mg.student.last_name}".strip() or mg.student.username,
+            'suggested_mark': float(mg.suggested_mark) if mg.suggested_mark is not None else None,
+            'final_mark': float(mg.final_mark) if mg.final_mark is not None else None,
+            'reason': mg.reason,
+            'updated_by_name': f"{mg.updated_by.first_name} {mg.updated_by.last_name}".strip() if mg.updated_by else None,
+            'updated_at': mg.updated_at.isoformat(),
+        })
+
+    return Response({
+        'id': submission.id,
+        'project_id': submission.project_id,
+        'project_title': submission.project.title,
+        'project_max_marks': max_marks,
+        'submitted_by_id': submission.submitted_by_id,
+        'submitted_by_name': f"{submission.submitted_by.first_name} {submission.submitted_by.last_name}".strip() or submission.submitted_by.username,
+        'content': submission.content,
+        'status': submission.status,
+        'submitted_at': submission.submitted_at.isoformat(),
+        'grade': float(submission.grade) if submission.grade is not None else None,
+        'feedback': submission.feedback,
+        'graded_by': submission.graded_by_id,
+        'graded_by_name': f"{submission.graded_by.first_name} {submission.graded_by.last_name}".strip() if submission.graded_by else None,
+        'graded_at': submission.graded_at.isoformat() if submission.graded_at else None,
+        'published': submission.published,
+        'proof_text': submission.proof_text,
+        'github_url': submission.github_url,
+        'screenshot_url': submission.screenshot.url if submission.screenshot else None,
+        'attachments': [{
+            'id': a.id,
+            'name': a.file.name.rsplit('/', 1)[-1],
+            'url': a.file.url,
+        } for a in submission.attachments.all()],
+        'task_timeline': task_timeline,
+        'member_contributions': member_contributions,
+        'suggested_marks': {str(k): v for k, v in suggested.items()} if suggested else {},
+        'member_grades': member_grades,
+    })
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def save_submission_draft(request, submission_id):
+    """Save a draft grade/feedback (status stays under_review, not published)."""
+    try:
+        submission = Submission.objects.select_related('project__group', 'graded_by').get(pk=submission_id)
+    except Submission.DoesNotExist:
+        return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    from .access import is_admin
+    if not is_admin(user) and user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer or admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    if user.user_type == 'lecturer' and not _is_supervising_lecturer_for_unit(user, submission.project.group.unit):
+        return Response({'error': 'You can only grade submissions from your assigned units.'}, status=status.HTTP_403_FORBIDDEN)
+
+    raw_grade = request.data.get('grade')
+    try:
+        grade = None if raw_grade in (None, '') else float(raw_grade)
+        if grade is not None and not 0 <= grade <= submission.project.max_marks:
+            raise ValueError
+    except (TypeError, ValueError):
+        return Response({'error': f'Grade must be a number between 0 and {submission.project.max_marks}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Editing a published mark requires a reason.
+    if submission.published and (grade is not None and grade != submission.grade):
+        reason = str(request.data.get('reason', '')).strip()
+        if not reason:
+            return Response({'error': 'A reason is required when changing a published mark.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.grade = grade
+    submission.feedback = str(request.data.get('feedback', submission.feedback) or '').strip()
+    submission.status = 'under_review'
+    submission.graded_by = user
+    submission.graded_at = timezone.now()
+    submission.save(update_fields=['grade', 'feedback', 'status', 'graded_by', 'graded_at'])
+
+    AuditLog.objects.create(
+        actor=user,
+        action='save_submission_draft',
+        target_type='Submission',
+        target_id=str(submission.id),
+        details={
+            'grade': float(grade) if grade is not None else None,
+            'status': submission.status,
+            'reason': str(request.data.get('reason', '')).strip() if submission.published else None,
+        },
+    )
+
+    return Response({
+        'id': submission.id,
+        'status': submission.status,
+        'grade': float(submission.grade) if submission.grade is not None else None,
+        'feedback': submission.feedback,
+        'graded_at': submission.graded_at.isoformat(),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_submission_revision(request, submission_id):
+    """Ask the group to revise their submission (with a message)."""
+    try:
+        submission = Submission.objects.select_related('project__group', 'submitted_by').get(pk=submission_id)
+    except Submission.DoesNotExist:
+        return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    from .access import is_admin
+    if not is_admin(user) and user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer or admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    if user.user_type == 'lecturer' and not _is_supervising_lecturer_for_unit(user, submission.project.group.unit):
+        return Response({'error': 'You can only manage submissions from your assigned units.'}, status=status.HTTP_403_FORBIDDEN)
+
+    message = str(request.data.get('message', '')).strip()
+    if not message:
+        return Response({'error': 'A revision message is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.status = 'revision_requested'
+    submission.feedback = message
+    submission.save(update_fields=['status', 'feedback'])
+
+    # Notify all members of the group
+    from .models import GroupMembership
+    members = GroupMembership.objects.filter(group=submission.project.group).select_related('student')
+    for m in members:
+        if m.student_id != user.id:
+            Notification.objects.create(
+                user=m.student,
+                notification_type='submission_revision_requested',
+                title='Revision requested',
+                message=message,
+                related_project=submission.project,
+                related_group=submission.project.group,
+            )
+
+    AuditLog.objects.create(
+        actor=user,
+        action='request_submission_revision',
+        target_type='Submission',
+        target_id=str(submission.id),
+        details={'message': message},
+    )
+
+    return Response({'id': submission.id, 'status': submission.status})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def publish_submission_grade(request, submission_id):
+    """Publish the grade so students can see it."""
+    try:
+        submission = Submission.objects.select_related(
+            'project__group', 'graded_by',
+        ).prefetch_related('member_grades__student').get(pk=submission_id)
+    except Submission.DoesNotExist:
+        return Response({'error': 'Submission not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    from .access import is_admin
+    if not is_admin(user) and user.user_type != 'lecturer':
+        return Response({'error': 'Lecturer or admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    if user.user_type == 'lecturer' and not _is_supervising_lecturer_for_unit(user, submission.project.group.unit):
+        return Response({'error': 'You can only publish grades from your assigned units.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if submission.grade is None:
+        return Response({'error': 'A group mark must be set before publishing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.published = True
+    submission.status = 'graded'
+    submission.save(update_fields=['published', 'status'])
+
+    # Notify all group members
+    from .models import GroupMembership
+    members = GroupMembership.objects.filter(group=submission.project.group).select_related('student')
+    for m in members:
+        Notification.objects.create(
+            user=m.student,
+            notification_type='submission_published',
+            title='Grade published',
+            message=f'The grade for “{submission.project.title}” has been published.',
+            related_project=submission.project,
+            related_group=submission.project.group,
+        )
+
+    AuditLog.objects.create(
+        actor=user,
+        action='publish_submission_grade',
+        target_type='Submission',
+        target_id=str(submission.id),
+        details={'grade': float(submission.grade), 'published': True},
+    )
+
+    return Response({
+        'id': submission.id,
+        'published': submission.published,
+        'status': submission.status,
+        'grade': float(submission.grade),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def unit_submissions_csv(request, unit_id):
+    """CSV export of group and individual marks per unit."""
+    import csv
+    from django.http import HttpResponse
+
+    try:
+        unit = Unit.objects.get(pk=unit_id)
+    except Unit.DoesNotExist:
+        return Response({'error': 'Unit not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    from .access import is_admin, can_view_unit
+    if not can_view_unit(user, unit):
+        return Response({'error': 'Access denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    groups = Group.objects.filter(unit=unit).order_by('name')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="unit_{unit_id}_marks.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Group Name', 'Submission Status', 'Group Mark', 'Published',
+        'Student Name', 'Suggested Mark', 'Final Mark', 'Reason',
+    ])
+
+    for group in groups:
+        latest = Submission.objects.filter(project__group=group).order_by('-submitted_at').first()
+        group_mark = float(latest.grade) if latest and latest.grade is not None else ''
+        status = latest.status if latest else ''
+        published = 'Yes' if latest and latest.published else 'No'
+
+        member_grades = MemberGrade.objects.filter(submission__project__group=group).select_related('student')
+        mg_by_student = {mg.student_id: mg for mg in member_grades}
+
+        members = GroupMembership.objects.filter(group=group).select_related('student')
+        if not members.exists():
+            writer.writerow([group.name, status, group_mark, published, '', '', '', ''])
+        for m in members:
+            mg = mg_by_student.get(m.student_id)
+            writer.writerow([
+                group.name,
+                status,
+                group_mark,
+                published,
+                f"{m.student.first_name} {m.student.last_name}".strip() or m.student.username,
+                float(mg.suggested_mark) if mg and mg.suggested_mark is not None else '',
+                float(mg.final_mark) if mg and mg.final_mark is not None else '',
+                mg.reason if mg else '',
+            ])
+
+    return response
 
 
 @api_view(['GET', 'POST'])

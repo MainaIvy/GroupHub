@@ -93,6 +93,14 @@ urlpatterns = [
     path('submissions/<int:submission_id>/grade/', views.grade_submission, name='grade_submission'),
     path('task-submissions/<int:task_submission_id>/grade/', views.grade_task_submission, name='grade_task_submission'),
 
+    # Submission grading workflow
+    path('units/<int:unit_id>/submissions/', views.unit_submissions_overview, name='unit_submissions_overview'),
+    path('submissions/<int:submission_id>/grading-detail/', views.submission_grading_detail, name='submission_grading_detail'),
+    path('submissions/<int:submission_id>/save-draft/', views.save_submission_draft, name='save_submission_draft'),
+    path('submissions/<int:submission_id>/request-revision/', views.request_submission_revision, name='request_submission_revision'),
+    path('submissions/<int:submission_id>/publish/', views.publish_submission_grade, name='publish_submission_grade'),
+    path('units/<int:unit_id>/submissions/csv/', views.unit_submissions_csv, name='unit_submissions_csv'),
+
 
     # Chat
     path('chat/rooms/', views.get_chat_rooms, name='get_chat_rooms'),

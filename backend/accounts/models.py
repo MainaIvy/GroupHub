@@ -222,6 +222,7 @@ class Project(models.Model):
     description = models.TextField(blank=True)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='projects')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    max_marks = models.PositiveIntegerField(default=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deadline = models.DateTimeField(null=True, blank=True)
@@ -328,9 +329,9 @@ class TaskActivity(models.Model):
 class Submission(models.Model):
     STATUS_CHOICES = [
         ('submitted', 'Submitted'),
-        ('reviewed', 'Reviewed'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
+        ('under_review', 'Under Review'),
+        ('revision_requested', 'Revision Requested'),
+        ('graded', 'Graded'),
     ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='submissions')
     submitted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
@@ -338,8 +339,11 @@ class Submission(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted')
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    graded_at = models.DateTimeField(null=True, blank=True)
     feedback = models.TextField(blank=True)
     grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    graded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='graded_submissions')
+    published = models.BooleanField(default=False)
     github_url = models.URLField(max_length=500, null=True, blank=True)
     proof_text = models.TextField()
     screenshot = models.ImageField(upload_to='submissions/screenshots/', null=True, blank=True)
@@ -356,6 +360,21 @@ class SubmissionAttachment(models.Model):
     file = models.FileField(upload_to='submissions/files/%Y/%m/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
+
+class MemberGrade(models.Model):
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='member_grades')
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='member_grades')
+    suggested_mark = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    final_mark = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    reason = models.TextField(blank=True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_member_grades')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['submission', 'student']
+
+    def __str__(self):
+        return f"{self.student} - {self.submission.project.title}"
 
 class ChatRoom(models.Model):
     CHAT_TYPE_CHOICES = [

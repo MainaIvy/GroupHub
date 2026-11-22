@@ -2990,3 +2990,191 @@ class TaskPlanRuleTests(APITestCase):
         self.assertIn('default maximum', response.json()['error'].lower())
 
 
+class SubmissionGradingTests(APITestCase):
+    def setUp(self):
+        self.lecturer = User.objects.create_user(
+            username='grade-lecturer', email='grade-lecturer@zetech.ac.ke',
+            password='StrongPass123', first_name='Dr', last_name='Smith', user_type='lecturer',
+        )
+        self.other_lecturer = User.objects.create_user(
+            username='other-lecturer', email='other-lecturer@zetech.ac.ke',
+            password='StrongPass123', first_name='Prof', last_name='Jones', user_type='lecturer',
+        )
+        self.admin = User.objects.create_user(
+            username='grade-admin', email='grade-admin@zetech.ac.ke',
+            password='StrongPass123', first_name='Admin', user_type='student', is_staff=True,
+        )
+        self.student1 = User.objects.create_user(
+            username='grade-student1', email='grade-student1@zetech.ac.ke',
+            password='StrongPass123', first_name='Alice', user_type='student',
+        )
+        self.student2 = User.objects.create_user(
+            username='grade-student2', email='grade-student2@zetech.ac.ke',
+            password='StrongPass123', first_name='Bob', user_type='student',
+        )
+        self.course = Course.objects.create(code='CS', name='Computer Science', department='School of Computing')
+        self.term = Semester.objects.create(name='Y1S1', year=1, semester=1, is_current=True)
+        self.unit = Unit.objects.create(
+            code='CS101', name='Intro to Programming', course=self.course,
+            year_of_study=1, semester=1,
+        )
+        UnitAssignment.objects.create(
+            lecturer=self.lecturer, unit=self.unit, term=self.term, status='approved',
+        )
+        self.group = Group.objects.create(
+            name='Grade Group', course='CS', year_of_study='1',
+            join_code='GRD123', unit=self.unit, lecturer=self.lecturer,
+        )
+        GroupMembership.objects.create(group=self.group, student=self.student1, role='admin')
+        GroupMembership.objects.create(group=self.group, student=self.student2)
+        self.project = Project.objects.create(group=self.group, title='Library System', max_marks=100)
+        self.submission = Submission.objects.create(
+            project=self.project, submitted_by=self.student1,
+            proof_text='Final report and code are ready.',
+            status='submitted',
+        )
+        self.client = APIClient()
+
+    def _auth(self, user):
+        self.client.force_authenticate(user=user)
+
+    def test_lecturer_can_save_draft_grade(self):
+        self._auth(self.lecturer)
+        response = self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85, 'feedback': 'Good work overall.'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['status'], 'under_review')
+        self.assertEqual(response.json()['grade'], 85)
+
+    def test_grade_cannot_exceed_max_marks(self):
+        self._auth(self.lecturer)
+        response = self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 150},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('between 0 and 100', response.json()['error'])
+
+    def test_other_unit_lecturer_gets_403(self):
+        self._auth(self.other_lecturer)
+        response = self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 403, response.json())
+
+    def test_publish_creates_notifications(self):
+        self._auth(self.lecturer)
+        self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85, 'feedback': 'Good work.'},
+            format='json',
+        )
+        response = self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/publish/',
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertTrue(response.json()['published'])
+
+        # Verify notifications were created for group members
+        from .models import Notification
+        notifications = Notification.objects.filter(
+            notification_type='submission_published',
+            user__in=[self.student1, self.student2],
+        )
+        self.assertEqual(notifications.count(), 2)
+        self.assertTrue(all(n.title == 'Grade published' for n in notifications))
+
+    def test_publish_without_grade_is_rejected(self):
+        self._auth(self.lecturer)
+        response = self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/publish/',
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('group mark must be set', response.json()['error'])
+
+    def test_editing_published_mark_without_reason_is_rejected(self):
+        self._auth(self.lecturer)
+        self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85},
+            format='json',
+        )
+        self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/publish/',
+            format='json',
+        )
+        response = self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 90},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.json())
+        self.assertIn('reason', response.json()['error'].lower())
+
+    def test_editing_published_mark_with_reason_is_allowed(self):
+        self._auth(self.lecturer)
+        self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85},
+            format='json',
+        )
+        self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/publish/',
+            format='json',
+        )
+        response = self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 90, 'reason': 'Found extra credit work.'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertEqual(response.json()['grade'], 90)
+
+    def test_student_cannot_see_draft(self):
+        self._auth(self.student1)
+        self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85},
+            format='json',
+        )
+        response = self.client.get(
+            f'/api/accounts/submissions/{self.submission.id}/grading-detail/',
+        )
+        self.assertEqual(response.status_code, 403, response.json())
+
+    def test_student_can_see_published_own_mark(self):
+        self._auth(self.lecturer)
+        self.client.patch(
+            f'/api/accounts/submissions/{self.submission.id}/save-draft/',
+            {'grade': 85},
+            format='json',
+        )
+        self.client.post(
+            f'/api/accounts/submissions/{self.submission.id}/publish/',
+            format='json',
+        )
+
+        self._auth(self.student1)
+        response = self.client.get(
+            f'/api/accounts/submissions/{self.submission.id}/grading-detail/',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+        self.assertTrue(response.json()['published'])
+        self.assertEqual(response.json()['grade'], 85)
+
+    def test_admin_can_read_submissions(self):
+        self._auth(self.admin)
+        response = self.client.get(
+            f'/api/accounts/submissions/{self.submission.id}/grading-detail/',
+        )
+        self.assertEqual(response.status_code, 200, response.json())
+
+

@@ -49,6 +49,7 @@ import {
   UsersRound,
   MoreHorizontal,
   UserRound,
+  FileText,
 } from "lucide-react";
 
 const API = `${API_BASE}/api/accounts`;
@@ -62,6 +63,7 @@ const tabs = [
   ["groups", "Groups", Users],
   ["students", "Students", Users],
   ["assessments", "Assessments", ClipboardList],
+  ["submissions", "Submissions", FileText],
   ["messages", "Messages", MessageSquare],
   ["settings", "Settings", Settings],
 ];
@@ -832,6 +834,9 @@ export default function LecturerDashboard() {
               </Panel>
             )}
             {tab === "groups" && <Groups groups={groups} onOpen={openGroup} units={units} onCreateGroup={handleCreateGroup} />}
+            {tab === "submissions" && (
+              <SubmissionsOverview units={units} selectedUnit={selectedUnit} unitId={unitId} setUnitId={setUnitId} openSubmission={openSubmission} groups={groups} />
+            )}
             {tab === "students" && (
               <Students
                 units={units}
@@ -2545,6 +2550,139 @@ function Detail({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function SubmissionsOverview({ units, selectedUnit, unitId, setUnitId, openSubmission, groups }) {
+  const [unitSubmissions, setUnitSubmissions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const activeUnitId = unitId || selectedUnit;
+  const activeUnit = units.find((u) => String(u.id) === String(activeUnitId));
+
+  useEffect(() => {
+    if (!activeUnitId) return;
+    setLoading(true);
+    setError("");
+    axios
+      .get(`${API}/units/${activeUnitId}/submissions/`, { headers: auth() })
+      .then((response) => setUnitSubmissions(response.data.groups || []))
+      .catch((err) => setError(err.response?.data?.error || "Unable to load submissions."))
+      .finally(() => setLoading(false));
+  }, [activeUnitId]);
+
+  if (!activeUnitId) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-[#0F3D6E]">Submissions</h1>
+        <p className="text-[#4F5F73]">Select a unit to view submissions for grading.</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0F3D6E]">{activeUnit.name}</h1>
+          <p className="text-[#4F5F73]">Submission grading for {activeUnit.code}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setUnitId(activeUnitId)}
+          disabled={activeUnitId === (unitId || selectedUnit)}
+          className="h-10 rounded-lg border border-[#D7DEE6] px-4 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4]"
+        >
+          Change unit
+        </button>
+      </div>
+
+      {loading && <p className="text-[#4F5F73]">Loading submissions…</p>}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>
+      )}
+
+      {unitSubmissions.length === 0 && !loading && !error && (
+        <div className="rounded-xl border border-dashed border-[#D7DEE6] bg-white p-8 text-center">
+          <FileText size={32} className="mx-auto mb-2 text-[#4F5F73]" aria-hidden="true" />
+          <p className="text-sm font-medium text-[#1F2D3D]">No submissions yet for this unit.</p>
+        </div>
+      )}
+
+      {unitSubmissions.map((g) => {
+        const late = g.late;
+        const published = g.published;
+        return (
+          <article
+            key={g.group_id}
+            className="rounded-xl border p-4 transition-colors hover:shadow-sm"
+            onClick={() => openSubmission({ id: g.group_id, group: { name: g.group_name } })}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <b className="text-[#0F3D6E]">{g.group_name}</b>
+                {late && (
+                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-red-100 text-red-700">
+                    Late
+                  </span>
+                )}
+                {published && (
+                  <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-green-100 text-green-700">
+                    Published
+                  </span>
+                )}
+              </div>
+              <span className={`text-xs font-semibold ${published ? 'text-green-600' : 'text-[#35475C]'}`}>
+                {g.group_mark == null ? "No mark" : g.group_mark + "%"}
+              </span>
+            </div>
+            <p className="text-xs text-[#4F5F73] mb-2">
+              Status: {g.status}{g.submitted_at ? ` · Submitted ${new Date(g.submitted_at).toLocaleDateString()}` : ""}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openSubmission({ id: g.group_id, group: { name: g.group_name } });
+                }}
+                className="w-full h-10 rounded-lg bg-[#0F3D6E] px-4 text-sm font-semibold text-white hover:bg-[#154e8a]"
+              >
+                Grade Group
+              </button>
+              {published ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `${API}/units/${activeUnitId}/submissions/csv/`;
+                  }}
+                  className="h-10 rounded-lg border border-[#D7DEE6] bg-white px-4 text-sm font-semibold text-[#35475C] hover:bg-[#EEF1F4]"
+                >
+                  Export CSV
+                </button>
+              ) : null}
+            </div>
+            {g.member_grades.length > 0 && (
+              <div className="mt-3 space-y-1">
+                <p className="text-[10px] font-semibold text-[#4F5F73]">Individual marks:</p>
+                {g.member_grades.map((mg) => (
+                  <div key={mg.student_id} className="flex items-center justify-between gap-2 text-xs p-1 rounded bg-[#F4F7FC]">
+                    <span>{mg.student_name}</span>
+                    <span>
+                      {mg.final_mark == null ? "—" : mg.final_mark + "%"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+        );
+      })}
+    </section>
   );
 }
 
