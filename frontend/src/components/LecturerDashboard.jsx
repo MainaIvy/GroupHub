@@ -888,6 +888,8 @@ export default function LecturerDashboard() {
           grade={grade}
           submissionSource={submissionSource}
           setSubmissionSource={setSubmissionSource}
+          taskGrade={taskGrade}
+          setTaskGrade={setTaskGrade}
         />
       )}
     </div>
@@ -2246,6 +2248,8 @@ function Detail({
   grade,
   submissionSource,
   setSubmissionSource,
+  taskGrade,
+  setTaskGrade,
 }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-5 backdrop-blur-sm">
@@ -2476,6 +2480,20 @@ function Detail({
             <p className="text-xs text-[#4F5F73]">
               Task submissions show proof of work. Grade is recorded locally.
             </p>
+            {taskGrade && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNotice(`Grade ${taskGrade}% saved for ${detail.submitted_by_name || detail.submitted_by}`);
+                  setTaskGrade('');
+                  setDetail(null);
+                  load();
+                }}
+                className="w-full rounded-xl bg-[#0F3D6E] py-2 font-bold text-white transition-colors hover:bg-[#154e8a] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save Grade
+              </button>
+            )}
           </div>
         ) : null}
       </div>
