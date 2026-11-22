@@ -3,9 +3,22 @@ import { AlertTriangle, ChevronDown, ChevronUp, CalendarDays, Clock, Edit2, File
 import Avatar from '../../components/Avatar';
 import { btnPrimary, btnSecondary } from '../../design';
 import { childrenOf, formatDue, weightText } from '../taskUtils';
+import api from '../../../api';
 
 const isLeaf = (task) => !task.has_subtasks && !task.is_compile_task;
 const isApproved = (task) => task.board_status !== 'proposed';
+
+const downloadWorkFile = async (fileUrl) => {
+  try {
+    const response = await api.get(fileUrl, { responseType: 'blob' });
+    const blob = new Blob([response.data]);
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } catch {
+    alert('Session expired. Please log in again.');
+    window.location.assign('/login');
+  }
+};
 
 const computeProgress = (allTasks) => {
   const leafTasks = allTasks.filter((t) => isLeaf(t) && isApproved(t));
@@ -186,9 +199,16 @@ const SubtaskRow = ({ subtask, tasks, members, actions, userId, leaderId, compil
             {workItems.map((item) => (
               <div key={item.id} className="flex items-center gap-2 rounded-lg border border-[#E3EAF2] bg-[#F8FAFC] p-1.5">
                 {item.file_url ? (
-                  <a href={item.file_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-[#435B76] underline hover:text-[#35475C]">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadWorkFile(item.file_url);
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-[#435B76] underline hover:text-[#35475C]"
+                  >
                     <span className="text-[10px]">📄</span> {item.file_name || 'File'}
-                  </a>
+                  </button>
                 ) : item.url ? (
                   <a href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-[#435B76] underline hover:text-[#35475C]">
                     <span className="text-[10px]">🔗</span> {item.url.length > 40 ? item.url.slice(0, 40) + '…' : item.url}
