@@ -77,7 +77,7 @@ const SubtaskRow = ({ subtask, tasks, members, actions, userId, leaderId, compil
       const formData = new FormData();
       if (submitting.note.trim()) formData.append('note', submitting.note.trim());
       if (submitting.url.trim()) formData.append('url', submitting.url.trim());
-      if (submitting.file) formData.append('file', submitting.file);
+      if (submitting.file) formData.append('files', submitting.file);
       formData.append('marks_complete', 'true');
       await actions.addWork(subtask, formData);
       setSubmitting({ note: '', url: '', file: null });
