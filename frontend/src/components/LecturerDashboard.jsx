@@ -2295,13 +2295,31 @@ function Detail({
   setError,
   setNotice,
 }) {
+  const groupObj = detail?.group?.group || detail?.group || {};
+  const groupTasks = detail?.group?.tasks || detail?.groupData?.tasks || [];
+  const groupSubmissions =
+    groupObj?.submissions || detail?.group?.submissions || [];
+  const hasGroupTasks = groupTasks.length > 0;
+  const hasGroupSubmissions = groupSubmissions.length > 0;
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-5 backdrop-blur-sm">
       <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-[#121A2D]">
         <div className="mb-5 flex justify-between items-center border-b border-[#E3E9F2] pb-4 dark:border-[#1E2940]">
-          <h2 className="text-xl font-bold text-[#0F3D6E] dark:text-white">
-            {detail.title || detail.project_title}
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold text-[#0F3D6E] dark:text-white">
+              {detail.title || detail.group?.group?.name || detail.group?.name || detail.project_title}
+            </h2>
+            {detail.group && (
+              <p className="text-xs text-[#6B7A90]">
+                {detail.group.group?.unit_code ||
+                  detail.group.group?.unit_name ||
+                  detail.group?.unit_code ||
+                  detail.group?.unit_name ||
+                  ''}
+              </p>
+            )}
+          </div>
           <button
             onClick={close}
             className="p-1 rounded-full hover:bg-[#F4F7FC] dark:hover:bg-[#1E2940] transition-colors"
@@ -2326,72 +2344,81 @@ function Detail({
           ))
         ) : detail.group ? (
           <>
-            <div className="rounded-xl bg-[#E8F3FB] p-4 dark:bg-[#182943]">
-              <b className="text-3xl text-[#0F3D6E] dark:text-white">
-                {(typeof detail.group.project_progress === 'number'
-                  ? detail.group.project_progress
-                  : detail.group.project_progress?.status ??
-                    detail.groupData?.project_progress ??
-                    0)} %
-              </b>
+            <div className="rounded-xl bg-[#E8F3FB] p-4 dark:bg-[#182943] mb-4">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <b className="text-2xl text-[#0F3D6E] dark:text-white">
+                  {(typeof detail.group.project_progress === 'number'
+                    ? detail.group.project_progress
+                    : detail.group.project_progress?.status ??
+                      detail.groupData?.project_progress ??
+                      0)} %
+                </b>
+                <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${hasGroupSubmissions ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {hasGroupSubmissions ? 'Submitted' : 'Not submitted'}
+                </span>
+              </div>
               <p className="text-xs font-bold text-[#6B7A90] uppercase tracking-wide mt-1">
                 Overall Progress
               </p>
             </div>
-            <h3 className="mt-6 font-bold text-[#0F3D6E] dark:text-white mb-3">
+            <h3 className="mt-2 font-bold text-[#0F3D6E] dark:text-white mb-3">
               Activity and tasks
             </h3>
-            {(detail.group.tasks || detail.groupData?.tasks || []).map(
-              (task) => (
-                <div
-                  key={task.id}
-                  className="mt-3 rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] bg-[#F8FAFC] dark:bg-[#0B1120]"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      <b className="text-[#12294A] dark:text-gray-200 text-sm font-semibold">
-                        {task.title}
-                      </b>
-                      {task.assigned_to_name ? (
-                        <span
-                          className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-[#10B981] text-white"
-                        >
-                          {task.assigned_to_name}
+            {hasGroupTasks ? (
+              groupTasks.map(
+                (task) => (
+                  <div
+                    key={task.id}
+                    className="mt-3 rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] bg-[#F8FAFC] dark:bg-[#0B1120]"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <b className="text-[#12294A] dark:text-gray-200 text-sm font-semibold">
+                          {task.title}
+                        </b>
+                        {task.assigned_to_name ? (
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-[#10B981] text-white"
+                          >
+                            {task.assigned_to_name}
+                          </span>
+                        ) : (
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-[#EF4444] text-white"
+                          >
+                            Unassigned
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${task.status === 'completed' ? 'bg-green-100 text-green-700' : task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}
+                      >
+                        {task.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 mt-2">
+                      <div className="flex items-center gap-2 text-xs text-[#666666]">
+                        <span className="font-semibold">Progress:</span>
+                        <span className="font-bold text-[#0F3D6E]">
+                          {task.progress_percentage}%
                         </span>
-                      ) : (
-                        <span
-                          className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-[#EF4444] text-white"
-                        >
-                          Unassigned
+                      </div>
+                      {task.due_date && (
+                        <span className={`text-xs font-semibold ${task.is_overdue ? 'text-red-600' : 'text-[#666666]'}`}>
+                          {task.is_overdue ? 'Overdue' : new Date(task.due_date).toLocaleDateString()}
                         </span>
                       )}
                     </div>
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${task.status === 'completed' ? 'bg-green-100 text-green-700' : task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}
-                    >
-                      {task.status}
-                    </span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 mt-2">
-                    <div className="flex items-center gap-2 text-xs text-[#666666]">
-                      <span className="font-semibold">Progress:</span>
-                      <span className="font-bold text-[#0F3D6E]">
-                        {task.progress_percentage}%
-                      </span>
-                    </div>
-                    {task.due_date && (
-                      <span className={`text-xs font-semibold ${task.is_overdue ? 'text-red-600' : 'text-[#666666]'}`}>
-                        {task.is_overdue ? 'Overdue' : new Date(task.due_date).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ),
+                ),
+              )
+            ) : (
+              <p className="mt-2 text-sm text-[#4F5F73]">No tasks yet</p>
             )}
-            {detail.group.submissions && detail.group.submissions.length > 0 && (
+            {hasGroupSubmissions ? (
               <>
                 <h4 className="mt-8 font-bold text-[#1F2D3D] mb-3">Submissions to Grade</h4>
-                {detail.group.submissions.map((submission) => (
+                {groupSubmissions.map((submission) => (
                   <div
                     key={submission.id}
                     className="mt-3 rounded-xl border border-[#E3E9F2] p-4 bg-white dark:bg-[#0B1120] dark:border-[#1E2940]"
@@ -2424,6 +2451,8 @@ function Detail({
                   </div>
                 ))}
               </>
+            ) : (
+              <p className="mt-8 text-sm text-[#4F5F73]">Not submitted yet</p>
             )}
           </>
         ) : detail.id && submissionSource === 'submission' ? (
