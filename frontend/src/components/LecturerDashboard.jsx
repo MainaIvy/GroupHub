@@ -890,6 +890,7 @@ export default function LecturerDashboard() {
           setSubmissionSource={setSubmissionSource}
           taskGrade={taskGrade}
           setTaskGrade={setTaskGrade}
+          downloadWorkFile={downloadWorkFile}
         />
       )}
     </div>
@@ -2250,6 +2251,7 @@ function Detail({
   setSubmissionSource,
   taskGrade,
   setTaskGrade,
+  downloadWorkFile,
 }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-5 backdrop-blur-sm">
