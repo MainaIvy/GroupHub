@@ -2294,7 +2294,40 @@ def group_submissions(request, group_id):
             submissions = Submission.objects.filter(project__group=group).select_related(
                 'project', 'submitted_by'
             ).prefetch_related('attachments').order_by('-submitted_at')
-            return Response([_serialize_submission(submission) for submission in submissions])
+
+            # Also include per-subtask work submissions (TaskSubmission) so
+            # lecturers can see and grade all student work in one place.
+            task_submissions = TaskSubmission.objects.filter(
+                task__project__group=group,
+            ).select_related('task', 'submitted_by').order_by('-created_at')
+
+            combined = []
+            for s in submissions:
+                combined.append({
+                    **_serialize_submission(s),
+                    'source': 'submission',
+                })
+            for ts in task_submissions:
+                combined.append({
+                    'id': f'ts-{ts.id}',
+                    'project_id': ts.task.project_id,
+                    'project_title': ts.task.title,
+                    'submitted_by_id': ts.submitted_by_id,
+                    'submitted_by_name': f"{ts.submitted_by.first_name} {ts.submitted_by.last_name}".strip() or ts.submitted_by.username,
+                    'github_url': ts.url or '',
+                    'proof_text': ts.note or '',
+                    'screenshot_url': f'/api/accounts/work-items/{ts.id}/file/' if ts.file else '',
+                    'attachments': [],
+                    'status': 'completed' if ts.marks_complete else 'submitted',
+                    'submitted_at': ts.created_at.isoformat(),
+                    'feedback': '',
+                    'grade': None,
+                    'source': 'task',
+                    'task_id': ts.task_id,
+                })
+
+            combined.sort(key=lambda x: x['submitted_at'], reverse=True)
+            return Response(combined)
 
         proof_text = str(request.data.get('proof_text') or '').strip()
         github_url = str(request.data.get('github_url') or '').strip()

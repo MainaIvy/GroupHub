@@ -135,6 +135,7 @@ export default function LecturerDashboard() {
   const [query, setQuery] = useState("");
   const [unitId, setUnitId] = useState("");
   const [detail, setDetail] = useState(null);
+  const [submissionSource, setSubmissionSource] = useState('submission');
   const [gradeForm, setGradeForm] = useState({
     grade: "",
     feedback: "",
@@ -286,10 +287,12 @@ export default function LecturerDashboard() {
         submission.status === "submitted" ? "reviewed" : submission.status,
     });
     setDetail(submission);
+    setSubmissionSource(submission.source || 'submission');
   };
 
   const grade = async (event) => {
     event.preventDefault();
+    if (submissionSource !== 'submission') return;
     try {
       await axios.patch(`${API}/submissions/${detail.id}/grade/`, gradeForm, {
         headers: auth(),
@@ -2357,7 +2360,7 @@ function Detail({
               </>
             )}
           </>
-        ) : detail.id ? (
+        ) : detail.id && submissionSource === 'submission' ? (
           <form onSubmit={grade} className="space-y-4">
             <div className="rounded-xl bg-[#F4F7FC] p-4 dark:bg-[#0B1120]">
               <p className="text-sm text-[#6B7A90]">
@@ -2395,6 +2398,47 @@ function Detail({
               Save Grade
             </button>
           </form>
+        ) : detail.id && submissionSource === 'task' ? (
+          <div className="space-y-4">
+            <div className="rounded-xl bg-[#F4F7FC] p-4 dark:bg-[#0B1120]">
+              <p className="text-sm text-[#6B7A90]">
+                Student:{" "}
+                <b className="text-[#12294A] dark:text-gray-200">
+                  {detail.submitted_by_name || detail.submitted_by || 'Unknown'}
+                </b>
+              </p>
+              <p className="text-sm text-[#6B7A90] mt-1">
+                Task: <b className="text-[#12294A] dark:text-gray-200">{detail.project_title}</b>
+              </p>
+              <p className="text-sm text-[#6B7A90] mt-1">
+                Status:{' '}
+                <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${detail.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {detail.status}
+                </span>
+              </p>
+            </div>
+            {detail.proof_text && (
+              <div className="rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] dark:bg-[#0B1120]">
+                <h4 className="text-sm font-bold text-[#1F2D3D] mb-2">Note</h4>
+                <p className="text-sm text-[#33445A] whitespace-pre-wrap">{detail.proof_text}</p>
+              </div>
+            )}
+            {detail.github_url && (
+              <div className="rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] dark:bg-[#0B1120]">
+                <h4 className="text-sm font-bold text-[#1F2D3D] mb-2">Link</h4>
+                <a href={detail.github_url} target="_blank" rel="noreferrer" className="text-sm text-[#435B76] underline hover:text-[#35475C]">{detail.github_url}</a>
+              </div>
+            )}
+            {detail.screenshot_url && (
+              <div className="rounded-xl border border-[#E3E9F2] p-4 dark:border-[#1E2940] dark:bg-[#0B1120]">
+                <h4 className="text-sm font-bold text-[#1F2D3D] mb-2">File</h4>
+                <a href={detail.screenshot_url} target="_blank" rel="noreferrer" className="text-sm text-[#435B76] underline hover:text-[#35475C]">Open file</a>
+              </div>
+            )}
+            <p className="text-xs text-[#4F5F73]">
+              Task submissions show proof of work. Use the task panel to update status or confirm weight.
+            </p>
+          </div>
         ) : null}
       </div>
     </div>
