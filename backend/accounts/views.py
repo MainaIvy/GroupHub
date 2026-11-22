@@ -1490,17 +1490,42 @@ def lecturer_dashboard(request):
             project__group__in=lecturer_groups
         ).select_related('project', 'submitted_by').order_by('-submitted_at')[:10]
 
-        submissions_data = []
+        task_submissions = TaskSubmission.objects.filter(
+            task__project__group__in=lecturer_groups,
+        ).select_related('task', 'submitted_by').order_by('-created_at')[:10]
+
+        combined = []
         for sub in recent_submissions:
-            submissions_data.append({
+            combined.append({
                 'id': sub.id,
                 'project_title': sub.project.title,
                 'submitted_by': f"{sub.submitted_by.first_name} {sub.submitted_by.last_name}",
                 'grade': float(sub.grade) if sub.grade is not None else None,
                 'feedback': sub.feedback,
                 'status': sub.status,
-                'submitted_at': sub.submitted_at.isoformat()
+                'submitted_at': sub.submitted_at.isoformat(),
+                'source': 'submission',
             })
+        for ts in task_submissions:
+            combined.append({
+                'id': f'ts-{ts.id}',
+                'project_title': ts.task.title,
+                'submitted_by': f"{ts.submitted_by.first_name} {ts.submitted_by.last_name}",
+                'grade': None,
+                'feedback': '',
+                'status': 'completed' if ts.marks_complete else 'submitted',
+                'submitted_at': ts.created_at.isoformat(),
+                'source': 'task',
+                'task_id': ts.task_id,
+                'note': ts.note or '',
+                'url': ts.url or '',
+                'file_url': f'/api/accounts/work-items/{ts.id}/file/' if ts.file else '',
+            })
+
+        combined.sort(key=lambda x: x['submitted_at'], reverse=True)
+        combined = combined[:10]
+
+        submissions_data = combined
 
         # Recent comments from lecturer on tasks
         recent_comments = TaskComment.objects.filter(
