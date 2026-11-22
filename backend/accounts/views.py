@@ -2452,7 +2452,7 @@ def unit_submissions_overview(request, unit_id):
                 late = latest.submitted_at > latest.project.deadline
 
         member_grades = []
-        if (is_admin(user) or _is_supervising_lecturer_for_unit(user, group)):
+        if (is_admin(user) or _is_supervising_lecturer_for_unit(user, group.unit)):
             for mg in MemberGrade.objects.filter(submission__project__group=group).select_related('student'):
                 member_grades.append({
                     'student_id': mg.student_id,
