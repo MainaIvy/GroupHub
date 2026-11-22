@@ -898,6 +898,8 @@ export default function LecturerDashboard() {
           taskGrade={taskGrade}
           setTaskGrade={setTaskGrade}
           downloadWorkFile={downloadWorkFile}
+          setError={setError}
+          setNotice={setNotice}
         />
       )}
     </div>
@@ -2259,6 +2261,8 @@ function Detail({
   taskGrade,
   setTaskGrade,
   downloadWorkFile,
+  setError,
+  setNotice,
 }) {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-5 backdrop-blur-sm">
