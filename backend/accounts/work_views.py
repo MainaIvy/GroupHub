@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from .models import Group, Submission, SubmissionAttachment, Task, TaskActivity, TaskSubmission
 from .planning_rules import avatar_url, is_leader, is_member
+from .access import is_supervising_lecturer
 from .views import _sync_parent_task_rollups
 
 BLOCKED_EXTENSIONS = {'exe', 'bat', 'cmd', 'com', 'scr', 'msi', 'ps1', 'vbs', 'dll', 'jar', 'apk', 'app', 'sh'}
@@ -212,7 +213,8 @@ def work_item_file(request, item_id):
     if item is None or not item.file:
         raise Http404('File not found')
     group = item.task.project.group
-    if not (is_member(request.user, group) or is_leader(request.user, group)):
+    if not (is_member(request.user, group) or is_leader(request.user, group)
+            or is_supervising_lecturer(request.user, group)):
         return _error('Access denied', status.HTTP_403_FORBIDDEN)
     return _file_response(item.file)
 
@@ -224,7 +226,8 @@ def submission_file(request, attachment_id):
     if attachment is None:
         raise Http404('File not found')
     group = attachment.submission.project.group
-    if not (is_member(request.user, group) or is_leader(request.user, group)):
+    if not (is_member(request.user, group) or is_leader(request.user, group)
+            or is_supervising_lecturer(request.user, group)):
         return _error('Access denied', status.HTTP_403_FORBIDDEN)
     return _file_response(attachment.file)
 
