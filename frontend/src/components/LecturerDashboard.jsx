@@ -137,6 +137,7 @@ export default function LecturerDashboard() {
   const [mobile, setMobile] = useState(false);
   const [query, setQuery] = useState("");
   const [unitId, setUnitId] = useState("");
+  const [reviewSubmission, setReviewSubmission] = useState(null);
   const [detail, setDetail] = useState(null);
   const [submissionSource, setSubmissionSource] = useState('submission');
   const [gradeForm, setGradeForm] = useState({
@@ -294,9 +295,20 @@ export default function LecturerDashboard() {
       status:
         submission.status === "submitted" ? "reviewed" : submission.status,
     });
-    setDetail(submission);
-    setSubmissionSource(submission.source || 'submission');
-    setTaskGrade(submission.source === 'task' ? (submission.grade ?? '') : '');
+
+    if (submission.group) {
+      // Group view from SubmissionsOverview - keep Detail modal
+      setDetail(submission);
+      setReviewSubmission(null);
+      setSubmissionSource(submission.source || 'submission');
+      setTaskGrade(submission.source === 'task' ? (submission.grade ?? '') : '');
+    } else {
+      // Submission review - open full Review page
+      setDetail(null);
+      setReviewSubmission(submission);
+      setSubmissionSource(submission.source || 'submission');
+      setTaskGrade(submission.source === 'task' ? (submission.grade ?? '') : '');
+    }
   };
 
   const grade = async (event) => {
@@ -896,7 +908,15 @@ export default function LecturerDashboard() {
         </div>
       </div>
 
-      {detail && (
+      {reviewSubmission && (
+        <ReviewPage
+          submissionId={reviewSubmission.id}
+          onClose={() => setReviewSubmission(null)}
+          setNotice={setNotice}
+          load={load}
+        />
+      )}
+      {detail && !reviewSubmission && (
         <Detail
           detail={detail}
           close={() => setDetail(null)}
@@ -2691,6 +2711,533 @@ function SubmissionsOverview({ units, selectedUnit, unitId, setUnitId, openSubmi
         );
       })}
     </section>
+  );
+}
+
+// --- Review Page (replaces Grade Submission modal) ---
+
+function ReviewPage({ submissionId, onClose, setNotice, load }) {
+  const [submission, setSubmission] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [groupMark, setGroupMark] = useState("");
+  const [memberMarks, setMemberMarks] = useState({});
+  const [memberReasons, setMemberReasons] = useState({});
+  const [feedback, setFeedback] = useState("");
+  const [memberFilter, setMemberFilter] = useState("all");
+  const [saving, setSaving] = useState(false);
+  const [releasing, setReleasing] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!submissionId) return;
+    fetchSubmission(submissionId);
+  }, [submissionId]);
+
+  const fetchSubmission = async (id) => {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await axios.get(`${API}/submissions/${id}/grading-detail/`, {
+        headers: auth(),
+      });
+      const data = response.data;
+      setSubmission(data);
+      setGroupMark(data.grade != null ? String(data.grade) : "");
+      setFeedback(data.feedback || "");
+
+      const marks = {};
+      const reasons = {};
+      data.member_grades.forEach((mg) => {
+        marks[mg.student_id] =
+          mg.final_mark != null
+            ? String(mg.final_mark)
+            : mg.suggested_mark != null
+              ? String(mg.suggested_mark)
+              : "";
+        reasons[mg.student_id] = mg.reason || "";
+      });
+      Object.entries(data.suggested_marks || {}).forEach(([userId, mark]) => {
+        if (!(userId in marks)) marks[userId] = String(mark);
+        if (!(userId in reasons)) reasons[userId] = "";
+      });
+      setMemberMarks(marks);
+      setMemberReasons(reasons);
+    } catch (err) {
+      setError(err.response?.data?.error || "Unable to load submission.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!submission) return;
+
+    const gm = groupMark ? parseFloat(groupMark) : null;
+    for (const [studentId, mark] of Object.entries(memberMarks)) {
+      const mm = mark ? parseFloat(mark) : null;
+      if (mm !== null && gm !== null && mm !== gm) {
+        if (!memberReasons[studentId] || memberReasons[studentId].trim() === "") {
+          setError(
+            "A reason is required when a member's mark differs from the group mark."
+          );
+          return;
+        }
+      }
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      const memberGrades = Object.entries(memberMarks).map(
+        ([studentId, mark]) => ({
+          student_id: parseInt(studentId),
+          final_mark: mark ? parseFloat(mark) : null,
+          reason: memberReasons[studentId] || "",
+        })
+      );
+
+      await axios.patch(
+        `${API}/submissions/${submissionId}/save-draft/`,
+        {
+          grade: groupMark ? parseFloat(groupMark) : null,
+          feedback: feedback,
+          member_grades: memberGrades,
+        },
+        { headers: auth() }
+      );
+
+      setNotice("Draft saved successfully.");
+      setSaving(false);
+      onClose();
+      if (load) load();
+    } catch (err) {
+      setSaving(false);
+      setError(err.response?.data?.error || "Unable to save draft.");
+    }
+  };
+
+  const handleRelease = async () => {
+    if (!submission) return;
+    if (!groupMark) {
+      setError("A group mark must be set before releasing.");
+      return;
+    }
+    try {
+      setReleasing(true);
+      setError("");
+      await axios.post(
+        `${API}/submissions/${submissionId}/publish/`,
+        {},
+        { headers: auth() }
+      );
+      setNotice("Grade released to students.");
+      setReleasing(false);
+      setShowConfirm(false);
+      onClose();
+      if (load) load();
+    } catch (err) {
+      setReleasing(false);
+      setError(err.response?.data?.error || "Unable to release grade.");
+    }
+  };
+
+  const maxMarks = submission ? submission.project_max_marks || 100 : 100;
+  const memberList = submission ? submission.member_contributions : [];
+  const filteredMembers =
+    memberFilter === "all"
+      ? memberList
+      : memberList.filter((m) => m.user_id === memberFilter);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-[#4F5F73]">Loading submission…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <button
+          onClick={onClose}
+          className="text-sm text-[#4A6079] underline mb-4 block"
+        >
+          ← Back
+        </button>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="review-page p-6">
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-2 text-sm font-semibold text-[#4A6079] hover:text-[#35475C]"
+        >
+          ← Back to submissions
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-[#0F3D6E]">
+            Review Submission
+          </h1>
+          <p className="text-[#4F5F73] text-sm">
+            {submission.project_title}
+          </p>
+        </div>
+        <div className="text-right">
+          <span className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded ${submission.status === 'graded' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+            {submission.status}
+          </span>
+        </div>
+      </div>
+
+      <div className="review-grid">
+        {/* LEFT: ~65% */}
+        <div className="review-left space-y-4">
+          {/* Card 1: Group header */}
+          <div className="rounded-xl border border-[#CDD6E0] bg-white p-5">
+            <h3 className="text-sm font-semibold text-[#1F2D3D] mb-3">
+              Group submission
+            </h3>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="text-[#4F5F73] text-xs">Submitted by</p>
+                <p className="font-medium text-[#1F2D3D]">
+                  {submission.submitted_by_name}
+                </p>
+              </div>
+              <div>
+                <p className="text-[#4F5F73] text-xs">Status</p>
+                <span className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded ${submission.status === 'graded' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {submission.status}
+                </span>
+              </div>
+              <div>
+                <p className="text-[#4F5F73] text-xs">Submitted</p>
+                <p className="font-medium text-[#1F2D3D]">
+                  {submission.submitted_at
+                    ? new Date(submission.submitted_at).toLocaleDateString()
+                    : "—"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Contribution table */}
+          <div className="rounded-xl border border-[#CDD6E0] bg-white p-5">
+            <h3 className="text-sm font-semibold text-[#1F2D3D] mb-3">
+              Member Contributions
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-[#CDD6E0]">
+                    <th className="text-left pb-2 text-[#4F5F73] font-semibold">
+                      Member
+                    </th>
+                    <th className="text-right pb-2 text-[#4F5F73] font-semibold">
+                      Points Assigned
+                    </th>
+                    <th className="text-right pb-2 text-[#4F5F73] font-semibold">
+                      Points Completed
+                    </th>
+                    <th className="text-right pb-2 text-[#4F5F73] font-semibold">
+                      Share %
+                    </th>
+                    <th className="text-right pb-2 text-[#4F5F73] font-semibold">
+                      Fair Share
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMembers.map((m) => {
+                    const shareOverFair =
+                      m.share_percent - m.fair_share;
+                    const isAmber = shareOverFair > 15 && shareOverFair <= 25;
+                    const isRed = shareOverFair > 25;
+                    const rowClass = isRed
+                      ? "bg-[#FEE2E2]"
+                      : isAmber
+                        ? "bg-[#FEF3C7]"
+                        : "";
+                    return (
+                      <tr
+                        key={m.user_id}
+                        className={`${rowClass} border-b border-[#CDD6E0] hover:bg-[#F4F7FC]`}
+                      >
+                        <td className="py-2">{m.name}</td>
+                        <td className="text-right py-2">
+                          {m.points_assigned}
+                        </td>
+                        <td className="text-right py-2">
+                          {m.points_completed}
+                        </td>
+                        <td className="text-right py-2">
+                          {m.share_percent?.toFixed(1)}%
+                        </td>
+                        <td className="text-right py-2">
+                          {m.fair_share?.toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11px] text-[#4F5F73]">
+              Amber: share over fair share +15 · Red: share over fair share +25
+            </p>
+          </div>
+
+          {/* Card 3: Activity feed */}
+          <div className="rounded-xl border border-[#CDD6E0] bg-white p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-[#1F2D3D]">
+                Activity Feed
+              </h3>
+              <select
+                value={memberFilter}
+                onChange={(e) => setMemberFilter(e.target.value)}
+                className="text-xs border border-[#CDD6E0] rounded px-2 py-1 bg-white"
+              >
+                <option value="all">All members</option>
+                {memberList.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              {submission.task_timeline.map((task) => {
+                const matchesFilter =
+                  memberFilter === "all" || task.assigned_to === memberFilter;
+                if (!matchesFilter) return null;
+                return (
+                  <div
+                    key={task.id}
+                    className="flex gap-3 py-2 border-b border-[#CDD6E0]/50 last:border-0"
+                  >
+                    <div className="w-8 text-[10px] text-[#4F5F73]">
+                      {task.due_date
+                        ? new Date(task.due_date).toLocaleDateString()
+                        : "—"}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-[#1F2D3D]">
+                        {task.title}
+                      </p>
+                      <p className="text-[11px] text-[#4F5F73]">
+                        Status: {task.status} · Progress:{task.progress_percentage}% · Assigned:{task.assigned_to || "Unassigned"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {submission.task_timeline.length === 0 && (
+                <p className="text-[11px] text-[#4F5F73] italic">
+                  No activity yet.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Card 4: Submission proof */}
+          <div className="rounded-xl border border-[#CDD6E0] bg-white p-5">
+            <h3 className="text-sm font-semibold text-[#1F2D3D] mb-3">
+              Submission
+            </h3>
+            <p className="text-sm text-[#4F5F73] whitespace-pre-wrap mb-3">
+              {submission.content || submission.proof_text || "No content."}
+            </p>
+            {submission.attachments &&
+              submission.attachments.length > 0 && (
+                <div className="space-y-1">
+                  {submission.attachments.map((a) => (
+                    <div key={a.id} className="flex items-center gap-2">
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-[#4A6079] underline"
+                      >
+                        {a.name}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            {submission.github_url && (
+              <div className="mt-2">
+                <a
+                  href={submission.github_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-[#4A6079] underline"
+                >
+                  Open GitHub link
+                </a>
+              </div>
+            )}
+            {submission.screenshot_url && (
+              <div className="mt-2">
+                <a
+                  href={submission.screenshot_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-[#4A6079] underline"
+                >
+                  View screenshot
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT: ~35% sticky */}
+        <div className="review-right w-[35%] shrink-0">
+          <div className="sticky top-6">
+            <div className="rounded-xl border border-[#CDD6E0] bg-white p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-[#1F2D3D]">Grade</h3>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-[#4F5F73] mb-1">
+                  Group mark (0 to {maxMarks})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={maxMarks}
+                  value={groupMark}
+                  onChange={(e) => setGroupMark(e.target.value)}
+                  className="w-full border border-[#CDD6E0] rounded-lg px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-[#4F5F73] mb-1">
+                  Member marks
+                </label>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {memberList.map((m) => {
+                    const mark = memberMarks[m.user_id] || "";
+                    const reason = memberReasons[m.user_id] || "";
+                    const gm = groupMark ? parseFloat(groupMark) : null;
+                    const mm = mark ? parseFloat(mark) : null;
+                    const differs = gm !== null && mm !== null && mm !== gm;
+                    return (
+                      <div key={m.user_id} className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[11px] font-medium text-[#1F2D3D]">
+                            {m.name}
+                          </label>
+                          {differs && (
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                              Differs
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max={maxMarks}
+                          value={mark}
+                          onChange={(e) =>
+                            setMemberMarks({
+                              ...memberMarks,
+                              [m.user_id]: e.target.value,
+                            })
+                          }
+                          className="w-full border border-[#CDD6E0] rounded-lg px-3 py-1.5 text-[12px] focus:border-[#4A6079] outline-none"
+                        />
+                        {differs && (
+                          <input
+                            type="text"
+                            placeholder="Reason…"
+                            value={reason}
+                            onChange={(e) =>
+                              setMemberReasons({
+                                ...memberReasons,
+                                [m.user_id]: e.target.value,
+                              })
+                            }
+                            className="w-full border border-[#CDD6E0] rounded-lg px-3 py-1.5 text-[12px] focus:border-[#4A6079] outline-none"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-[#4F5F73] mb-1">
+                  Feedback
+                </label>
+                <textarea
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  rows="4"
+                  className="w-full border border-[#CDD6E0] rounded-lg px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
+                />
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-[#CDD6E0]">
+                <button
+                  onClick={handleSaveDraft}
+                  disabled={saving}
+                  className={`w-full py-2.5 rounded-lg font-semibold text-[13px] transition-colors ${saving ? "opacity-50 cursor-not-allowed" : "bg-[#4A6079] text-white hover:bg-[#35475C]"}`}
+                >
+                  {saving ? "Saving…" : "Save draft"}
+                </button>
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  disabled={releasing || !groupMark}
+                  className={`w-full py-2.5 rounded-lg font-semibold text-[13px] transition-colors ${releasing || !groupMark ? "opacity-50 cursor-not-allowed border border-[#CDD6E0] text-[#4A6079] bg-white hover:bg-[#F4F7FC]" : "bg-[#4A6079] text-white hover:bg-[#35475C]"}`}
+                >
+                  {releasing ? "Releasing…" : "Release to students"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirmation dialog */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="rounded-xl border border-[#CDD6E0] bg-white p-6 max-w-md w-full">
+            <h3 className="text-sm font-semibold text-[#1F2D3D] mb-2">
+              Release grade to students?
+            </h3>
+            <p className="text-sm text-[#4F5F73] mb-4">
+              Students will be able to see their marks and feedback. This action sends notifications to all group members.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-2 rounded-lg border border-[#CDD6E0] text-[13px] font-semibold text-[#4F5F73] hover:bg-[#F4F7FC]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRelease}
+                disabled={releasing}
+                className="flex-1 py-2 rounded-lg bg-[#4A6079] text-[13px] font-semibold text-white transition-colors hover:bg-[#35475C] disabled:opacity-50"
+              >
+                {releasing ? "Releasing…" : "Release"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
