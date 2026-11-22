@@ -2,6 +2,7 @@
 import logo from "../assets/images/GROUPHUBLOGO.png";
 import dayjs from 'dayjs';
 import axios from "axios";
+import api from "../api";
 import { API_BASE } from "../apiConfig";
 import * as XLSX from "xlsx";
 import Avatar from "../student/components/Avatar";
@@ -316,7 +317,7 @@ export default function LecturerDashboard() {
 
   const downloadWorkFile = async (fileUrl) => {
     try {
-      const response = await axios.get(fileUrl, { responseType: 'blob' });
+      const response = await api.get(fileUrl, { responseType: 'blob' });
       const blob = new Blob([response.data]);
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
