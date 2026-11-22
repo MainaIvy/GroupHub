@@ -297,6 +297,7 @@ export default function LecturerDashboard() {
     event.preventDefault();
     if (submissionSource !== 'submission') return;
     try {
+      setError("");
       await axios.patch(`${API}/submissions/${detail.id}/grade/`, gradeForm, {
         headers: auth(),
       });
@@ -311,6 +312,7 @@ export default function LecturerDashboard() {
         setGroupSubmissions(response.data);
       }
     } catch (requestError) {
+      setNotice("");
       setError(requestError.response?.data?.error || "Unable to save grade.");
     }
   };
@@ -2412,7 +2414,7 @@ function Detail({
                 type="number"
                 min="0"
                 max="100"
-                value={gradeForm.grade}
+                value={gradeForm.grade || ""}
                 onChange={(event) =>
                   setGradeForm({ ...gradeForm, grade: event.target.value })
                 }
@@ -2458,7 +2460,7 @@ function Detail({
                 type="number"
                 min="0"
                 max="100"
-                value={taskGrade}
+                value={taskGrade || ""}
                 onChange={(event) => setTaskGrade(event.target.value)}
                 className="mt-2 w-full rounded-xl border border-[#CBD5E1] px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
               />
@@ -2508,37 +2510,37 @@ function Detail({
             <p className="text-xs text-[#4F5F73]">
               Task submissions show proof of work. Grade is recorded locally.
             </p>
-            {taskGrade && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const tsId = detail.id.toString().replace(/^ts-/, '');
-                    await axios.patch(
-                      `${API}/task-submissions/${tsId}/grade/`,
-                      { grade: taskGrade, feedback: detail.feedback || '' },
+            <button
+              type="button"
+              onClick={async () => {
+                setError("");
+                try {
+                  const tsId = detail.id.toString().replace(/^ts-/, '');
+                  await axios.patch(
+                    `${API}/task-submissions/${tsId}/grade/`,
+                    { grade: taskGrade || null, feedback: detail.feedback || '' },
+                    { headers: auth() },
+                  );
+                  setNotice("Grade saved successfully.");
+                  setTaskGrade('');
+                  setDetail(null);
+                  load();
+                  if (gradingGroupId) {
+                    const response = await axios.get(
+                      `${API}/groups/${gradingGroupId}/submissions/`,
                       { headers: auth() },
                     );
-                    setNotice("Grade saved successfully.");
-                    setTaskGrade('');
-                    setDetail(null);
-                    load();
-                    if (gradingGroupId) {
-                      const response = await axios.get(
-                        `${API}/groups/${gradingGroupId}/submissions/`,
-                        { headers: auth() },
-                      );
-                      setGroupSubmissions(response.data);
-                    }
-                  } catch (requestError) {
-                    setError(requestError.response?.data?.error || "Unable to save grade.");
+                    setGroupSubmissions(response.data);
                   }
-                }}
-                className="w-full rounded-xl bg-[#0F3D6E] py-2 font-bold text-white transition-colors hover:bg-[#154e8a] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Save Grade
-              </button>
-            )}
+                } catch (requestError) {
+                  setNotice("");
+                  setError(requestError.response?.data?.error || "Unable to save grade.");
+                }
+              }}
+              className="w-full rounded-xl bg-[#0F3D6E] py-2 font-bold text-white transition-colors hover:bg-[#154e8a] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {taskGrade ? "Save Grade" : "Clear Grade"}
+            </button>
           </div>
         ) : null}
       </div>
