@@ -906,10 +906,6 @@ export default function LecturerDashboard() {
                 reload={load}
               />
             )}
-          </main>
-        </div>
-      </div>
-
       {reviewSubmission && (
         <ReviewPage
           submissionId={reviewSubmission.id}
@@ -945,6 +941,9 @@ export default function LecturerDashboard() {
           setNotice={setNotice}
         />
       )}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
