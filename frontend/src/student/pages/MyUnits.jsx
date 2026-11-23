@@ -29,7 +29,7 @@ const MyUnits = ({ ctx }) => {
 
   const initialUnitId = routeUnitId || location.state?.unit;
   const initialUnitKnown = useMemo(
-    () => Boolean(initialUnitId) && units.some((u) => String(u.id) === String(initialUnitId)),
+    () => Boolean(initialUnitId) && units?.some((u) => String(u.id) === String(initialUnitId)),
     [initialUnitId, units],
   );
 
@@ -45,12 +45,12 @@ const MyUnits = ({ ctx }) => {
 
   const selectedUnit = useMemo(() => {
     if (!selectedUnitId) return null;
-    return units.find((u) => String(u.id) === String(selectedUnitId));
+    return units?.find((u) => String(u.id) === String(selectedUnitId));
   }, [units, selectedUnitId]);
 
   const userGroupForSelectedUnit = useMemo(() => {
     if (!selectedUnitId) return null;
-    return groups.find((g) => String(g.unit_id) === String(selectedUnitId));
+    return groups?.find((g) => String(g.unit_id) === String(selectedUnitId));
   }, [groups, selectedUnitId]);
 
   const academicText = useMemo(() => {
