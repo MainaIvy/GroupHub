@@ -101,7 +101,7 @@ const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLe
               ))}
             </ul>
           ) : <p className="text-sm text-[#4F5F73]">No one is waiting for approval.</p>}
-          {access.error ? <p role="alert" className="mt-2 text-sm font-medium text-red-700">{access.error}</p> : null}
+          {access?.error ? <p role="alert" className="mt-2 text-sm font-medium text-red-700">{access.error}</p> : null}
         </section>
 
         {!readOnly && (
