@@ -919,12 +919,14 @@ export default function LecturerDashboard() {
         />
       )}
       {detail && !reviewSubmission && detail.group?.tasks && (
-        <GroupWorkspace
-          ctx={{ groups, user, setError, setGroups: () => {} }}
-          readOnly
-          groupId={detail.group.group.id}
-          onBack={() => setDetail(null)}
-        />
+        <div className="min-w-0 flex-1">
+          <GroupWorkspace
+            ctx={{ groups, user, setError, setGroups: () => {} }}
+            readOnly
+            groupId={detail.group.group.id}
+            onBack={() => setDetail(null)}
+          />
+        </div>
       )}
       {detail && !reviewSubmission && !detail.group?.tasks && (
         <Detail
@@ -1737,7 +1739,7 @@ function Groups({ groups, onOpen, units, onCreateGroup }) {
               <div
                 key={group.id}
                 onClick={() => onOpen(group)}
-                className="rounded-xl border border-[#DDDDDD] bg-white p-4 cursor-pointer hover:bg-[#F5F5F7] hover:shadow-md transition-colors group"
+                className="rounded-xl border border-[#DDDDDD] bg-white p-4 cursor-pointer hover:bg-[#F5F5F7] hover:shadow-md hover:border-[#4A6079] transition-colors group"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -1752,14 +1754,17 @@ function Groups({ groups, onOpen, units, onCreateGroup }) {
                         group.health?.status === "at_risk"
                           ? "bg-red-100 text-red-700"
                           : group.health?.status === "quiet"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-green-100 text-green-700"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-green-100 text-green-700"
                       }`}
                     >
                       {group.health?.status || "on_track"}
                     </span>
                     <span className="text-xs font-bold text-[#33445A]">
                       {group.progress?.status || group.progress || 0}%
+                    </span>
+                    <span className="text-[10px] text-[#4A6079] font-semibold ml-2">
+                      View group →
                     </span>
                   </div>
                 </div>
