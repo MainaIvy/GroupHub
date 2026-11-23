@@ -110,31 +110,31 @@ const GroupWorkspace = ({ ctx, readOnly = false, groupId: propGroupId, onBack })
   const unitLine = group.unit_code ? `${group.unit_code}${group.unit_name ? ` · ${group.unit_name}` : ''}` : group.course || 'Group workspace';
 
   const header = (
-    <header className="rounded-xl border border-[#D7DEE6] bg-white p-4">
-      <button type="button" onClick={navigateBack} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-[#4A6079] hover:underline"><ArrowLeft size={16} aria-hidden="true" /> {readOnly ? 'Back to groups' : 'Your groups'}</button>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <header className="rounded-xl border border-[#D7DEE6] bg-white p-3">
+      <button type="button" onClick={navigateBack} className="mb-1 inline-flex items-center gap-1 text-sm font-semibold text-[#4A6079] hover:underline"><ArrowLeft size={16} aria-hidden="true" /> {readOnly ? 'Back to groups' : 'Your groups'}</button>
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-bold text-[#1F2D3D]">{group.name}</h2>
-            {isLeader ? <span className="rounded-full bg-[#E3EAF2] px-2 py-0.5 text-[13px] font-semibold text-[#2F4A66]">Leader</span> : null}
+            <h2 className="text-lg font-bold text-[#1F2D3D]">{group.name}</h2>
+            {isLeader ? <span className="rounded-full bg-[#E3EAF2] px-2 py-0.5 text-[12px] font-semibold text-[#2F4A66]">Leader</span> : null}
             {insight ? <HealthBadge status={insight.health.status} reason={insight.health.reason} /> : null}
           </div>
-          <p className="mt-1 text-sm text-[#4F5F73]">{unitLine}</p>
-          <div className="mt-3 flex items-center -space-x-2" aria-label={`${members.length || group.members_count || 0} member{(members.length || group.members_count || 0) !== 1 ? 's' : ''}`}>
+          <p className="mt-0.5 text-sm text-[#4F5F73]">{unitLine}</p>
+          <div className="mt-2 flex items-center -space-x-1" aria-label={`${members.length || group.members_count || 0} member{(members.length || group.members_count || 0) !== 1 ? 's' : ''}`}>
             {members.slice(0, 6).map((member) => <Avatar key={member.id} name={member.name} avatar={member.avatar} />)}
-            {members.length > 6 ? <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF1F4] text-[13px] font-bold text-[#4F5F73] ring-2 ring-white">+{members.length - 6}</span> : null}
+            {members.length > 6 ? <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#EEF1F4] text-[12px] font-bold text-[#4F5F73] ring-2 ring-white">+{members.length - 6}</span> : null}
           </div>
         </div>
-        <div className="flex items-center gap-3 rounded-lg bg-[#EEF1F4] px-4 py-2">
-          <div><span className="block text-[13px] font-semibold text-[#4F5F73]">Join code</span><code className="text-sm font-bold tracking-widest text-[#1F2D3D]">{code || '—'}</code></div>
-          <button type="button" onClick={copyCode} disabled={!code} aria-label="Copy join code" className="flex h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-[#35475C] hover:bg-white disabled:opacity-50">
-            {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}{copied ? 'Copied' : 'Copy'}
+        <div className="flex items-center gap-2 rounded-lg bg-[#EEF1F4] px-3 py-1.5">
+          <div><span className="block text-[11px] font-semibold text-[#4F5F73]">Join code</span><code className="text-xs font-bold tracking-widest text-[#1F2D3D]">{code || '—'}</code></div>
+          <button type="button" onClick={copyCode} disabled={!code} aria-label="Copy join code" className="flex h-8 items-center gap-1 rounded-lg px-1.5 text-xs font-semibold text-[#35475C] hover:bg-white disabled:opacity-50">
+            {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}{copied ? 'Copied' : 'Copy'}
           </button>
         </div>
       </div>
-      <nav aria-label="Workspace sections" className="mt-4 flex gap-1 overflow-x-auto border-t border-[#E3EAF2] pt-3">
+      <nav aria-label="Workspace sections" className="mt-2.5 flex gap-1 overflow-x-auto border-t border-[#E3EAF2] pt-2 pb-1">
         {visibleTabs.map(([key, label]) => (
-          <button key={key} type="button" aria-current={tab === key ? 'page' : undefined} onClick={() => goTab(key)} className={`h-10 shrink-0 rounded-lg px-4 text-sm font-semibold ${tab === key ? 'bg-[#35475C] text-white' : 'text-[#33445A] hover:bg-[#EEF1F4]'}`}>{label}</button>
+          <button key={key} type="button" aria-current={tab === key ? 'page' : undefined} onClick={() => goTab(key)} className={`h-9 shrink-0 rounded-lg px-3 text-xs font-semibold ${tab === key ? 'bg-[#35475C] text-white' : 'text-[#33445A] hover:bg-[#EEF1F4]'}`}>{label}</button>
         ))}
       </nav>
     </header>
