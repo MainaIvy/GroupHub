@@ -229,7 +229,7 @@ export default function LecturerDashboard() {
   };
 
   const handleCreateGroup = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setCreatingGroup(true);
     try {
       const response = await axios.post(
@@ -1697,7 +1697,7 @@ function Groups({ groups, onOpen, units, onCreateGroup }) {
       );
       setShowCreateGroup(false);
       setCreateForm({ name: "", description: "", unit_id: "", max_members: 5, student_ids: [] });
-      onCreateGroup();
+      onCreateGroup(e);
     } catch (err) {
       alert(err.response?.data?.error || "Failed to create group.");
     } finally {
