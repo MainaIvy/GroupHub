@@ -30,15 +30,22 @@ const TABS = [
   ['members', 'Members'],
   ['activity', 'Activity'],
 ];
-const TAB_KEYS = TABS.map(([key]) => key);
 
-const GroupWorkspace = ({ ctx }) => {
-  const { groupId } = useParams();
+const GroupWorkspace = ({ ctx, readOnly = false, groupId: propGroupId, onBack }) => {
+  const { groupId: paramGroupId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { groups, setGroups, user, insights, notif, access, setSubmissionGroupId, setError } = ctx;
+  const { groups, setGroups, user, insights, notif, access, setSubmissionGroupId, setError } = ctx || {};
 
-  const group = groups.find((item) => String(item.id) === String(groupId));
+  const groupId = propGroupId || paramGroupId;
+  const group = groups?.find((item) => String(item.id) === String(groupId));
+  const defaultBack = user?.user_type === 'lecturer'
+    ? '/lecturer/dashboard'
+    : '/student/dashboard';
+  const navigateBack = onBack || (() => navigate(defaultBack, { state: { tab: 'groups' } }));
+
+  const visibleTabs = readOnly ? TABS.filter(([key]) => key !== 'chat') : TABS;
+  const TAB_KEYS = visibleTabs.map(([key]) => key);
   const requestedTab = searchParams.get('tab');
   const tab = TAB_KEYS.includes(requestedTab) ? requestedTab : 'overview';
   const [selectedTaskId, setSelectedTaskId] = useState(() => Number(searchParams.get('task')) || null);
@@ -51,10 +58,10 @@ const GroupWorkspace = ({ ctx }) => {
   const actions = useTaskActions(groupId, data.reload);
 
   useEffect(() => {
-    if (group) setSubmissionGroupId(String(group.id));
+    if (group && setSubmissionGroupId) setSubmissionGroupId(String(group.id));
     // Submissions load through the shared dashboard state, keyed by group id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.id]);
+  }, [group?.id, setSubmissionGroupId]);
 
   const goTab = useCallback((key) => {
     const next = new URLSearchParams(searchParams);
@@ -82,9 +89,9 @@ const GroupWorkspace = ({ ctx }) => {
   const tasks = useMemo(() => workspace?.tasks || [], [workspace]);
   const members = useMemo(() => workspace?.members || [], [workspace]);
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) || null;
-  const insight = insights.byGroup[groupId];
+  const insight = insights?.byGroup[groupId];
   const isLeader = Boolean(group?.is_leader) || workspace?.group?.leader_id === user?.id;
-  const joinRequests = notif.joinRequests.filter((item) => String(item.related_group_id) === String(groupId));
+  const joinRequests = notif?.joinRequests.filter((item) => String(item.related_group_id) === String(groupId)) || [];
   const toGroups = () => navigate('/student/dashboard', { state: { tab: 'groups' } });
 
   const copyCode = async () => {
@@ -104,7 +111,7 @@ const GroupWorkspace = ({ ctx }) => {
 
   const header = (
     <header className="rounded-xl border border-[#D7DEE6] bg-white p-4">
-      <button type="button" onClick={toGroups} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-[#4A6079] hover:underline"><ArrowLeft size={16} aria-hidden="true" /> Your groups</button>
+      <button type="button" onClick={navigateBack} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-[#4A6079] hover:underline"><ArrowLeft size={16} aria-hidden="true" /> {readOnly ? 'Back to groups' : 'Your groups'}</button>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -126,7 +133,7 @@ const GroupWorkspace = ({ ctx }) => {
         </div>
       </div>
       <nav aria-label="Workspace sections" className="mt-4 flex gap-1 overflow-x-auto border-t border-[#E3EAF2] pt-3">
-        {TABS.map(([key, label]) => (
+        {visibleTabs.map(([key, label]) => (
           <button key={key} type="button" aria-current={tab === key ? 'page' : undefined} onClick={() => goTab(key)} className={`h-10 shrink-0 rounded-lg px-4 text-sm font-semibold ${tab === key ? 'bg-[#35475C] text-white' : 'text-[#33445A] hover:bg-[#EEF1F4]'}`}>{label}</button>
         ))}
       </nav>
@@ -159,18 +166,19 @@ const GroupWorkspace = ({ ctx }) => {
             onCreateProject={() => ctx.setProjectModal({})}
             onGoSubmission={() => goTab('submission')}
             reload={data.reload}
+            readOnly={readOnly}
           />
         );
       case 'chat':
         return <ChatTab groupId={group.id} tasks={tasks} onOpenTask={openTask} onGoGroups={toGroups} />;
       case 'polls':
-        return <PollsTab groupId={group.id} />;
+        return <PollsTab groupId={group.id} readOnly={readOnly} />;
       case 'files':
         return <FilesTab files={extras.files} loading={extras.filesLoading} error={extras.filesError} onRetry={extras.reloadFiles} onGoChat={() => goTab('chat')} />;
       case 'submission':
-        return <SubmissionTab ctx={{ ...ctx, actions, workspaceCompile: workspace.compile, workspace, isWorkspaceLeader: isLeader }} />;
+        return <SubmissionTab ctx={{ ...ctx, actions, workspaceCompile: workspace.compile, workspace, isWorkspaceLeader: isLeader }} readOnly={readOnly} />;
       case 'members':
-        return <MembersTab user={user} group={{ ...workspace.group, ...group }} members={members} isLeader={isLeader} joinRequests={joinRequests} access={access} setGroups={setGroups} onLeft={toGroups} onLeaveError={setError} onReload={data.reload} />;
+        return <MembersTab user={user} group={{ ...workspace.group, ...group }} members={members} isLeader={isLeader} joinRequests={joinRequests} access={access} setGroups={setGroups} onLeft={navigateBack} onLeaveError={setError} onReload={data.reload} readOnly={readOnly} />;
       case 'activity':
         return <ActivityTab activity={data.activity} comments={data.comments} onGoTasks={() => goTab('tasks')} />;
       default:

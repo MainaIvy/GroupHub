@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from .models import Group, Poll, PollOption, PollVote, Notification, AuditLog
 from .planning_rules import is_leader, is_member
+from .access import can_view_group
 
 MAX_OPTIONS = 20
 
@@ -20,7 +21,19 @@ def _error(message, code=status.HTTP_400_BAD_REQUEST):
 
 
 def _can_use(user, group):
+    """Student-only write/participation access to polls."""
     return user.user_type == 'student' and (is_member(user, group) or is_leader(user, group))
+
+
+def _can_view_polls(user, group):
+    """Read access to polls: group members/leaders, or a lecturer supervising the unit."""
+    return can_view_group(user, group)
+
+
+def _student_only(request):
+    if request.user.user_type != 'student':
+        return _error('Only students can perform this action.', status.HTTP_403_FORBIDDEN)
+    return None
 
 
 def _sync_poll(poll):
@@ -130,12 +143,15 @@ def group_polls(request, group_id):
     if group is None:
         return _error('Group not found', status.HTTP_404_NOT_FOUND)
     user = request.user
-    if not _can_use(user, group):
-        return _error('Only group members can use polls.', status.HTTP_403_FORBIDDEN)
-
     if request.method == 'GET':
+        if not _can_view_polls(user, group):
+            return _error('Only group members can view polls.', status.HTTP_403_FORBIDDEN)
         polls = group.polls.select_related('created_by', 'group')
         return Response([serialize_poll(poll, user) for poll in polls])
+
+    # POST (create poll): students only.
+    if not _can_use(user, group):
+        return _error('Only group members can create polls.', status.HTTP_403_FORBIDDEN)
 
     question = str(request.data.get('question') or '').strip()
     if not question:
@@ -196,8 +212,8 @@ def _load_poll(request, poll_id):
     poll = Poll.objects.select_related('group__lecturer', 'group__unit', 'created_by').filter(pk=poll_id).first()
     if poll is None:
         return None, _error('Poll not found', status.HTTP_404_NOT_FOUND)
-    if not _can_use(request.user, poll.group):
-        return None, _error('Only group members can use polls.', status.HTTP_403_FORBIDDEN)
+    if not _can_view_polls(request.user, poll.group):
+        return None, _error('Only group members can view polls.', status.HTTP_403_FORBIDDEN)
     return _sync_poll(poll), None
 
 
@@ -211,6 +227,9 @@ def poll_results(request, poll_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def vote_on_poll(request, poll_id):
+    student_error = _student_only(request)
+    if student_error:
+        return student_error
     poll, error = _load_poll(request, poll_id)
     if error:
         return error
@@ -241,6 +260,9 @@ def vote_on_poll(request, poll_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_poll_option(request, poll_id):
+    student_error = _student_only(request)
+    if student_error:
+        return student_error
     poll, error = _load_poll(request, poll_id)
     if error:
         return error
@@ -277,6 +299,9 @@ def add_poll_option(request, poll_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def close_poll(request, poll_id):
+    student_error = _student_only(request)
+    if student_error:
+        return student_error
     poll, error = _load_poll(request, poll_id)
     if error:
         return error
@@ -305,6 +330,9 @@ def close_poll(request, poll_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def pick_poll_winner(request, poll_id):
+    student_error = _student_only(request)
+    if student_error:
+        return student_error
     poll, error = _load_poll(request, poll_id)
     if error:
         return error
@@ -340,6 +368,9 @@ def pick_poll_winner(request, poll_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def delete_poll(request, poll_id):
+    student_error = _student_only(request)
+    if student_error:
+        return student_error
     poll, error = _load_poll(request, poll_id)
     if error:
         return error

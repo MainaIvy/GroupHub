@@ -6,6 +6,7 @@ import api from "../api";
 import { API_BASE } from "../apiConfig";
 import * as XLSX from "xlsx";
 import Avatar from "../student/components/Avatar";
+import GroupWorkspace from "../student/pages/GroupWorkspace";
 import {
   Bell,
   BookOpen,
@@ -916,7 +917,15 @@ export default function LecturerDashboard() {
           load={load}
         />
       )}
-      {detail && !reviewSubmission && (
+      {detail && !reviewSubmission && detail.group?.tasks && (
+        <GroupWorkspace
+          ctx={{ groups, user, setError, setGroups: () => {} }}
+          readOnly
+          groupId={detail.group.group.id}
+          onBack={() => setDetail(null)}
+        />
+      )}
+      {detail && !reviewSubmission && !detail.group?.tasks && (
         <Detail
           detail={detail}
           close={() => setDetail(null)}

@@ -5,9 +5,10 @@ import Avatar from '../../components/Avatar';
 import { API_BASE } from '../../../apiConfig';
 import axios from '../../../api';
 
-const SubmissionTab = ({ ctx }) => {
+const SubmissionTab = ({ ctx, readOnly }) => {
   const { workspaceCompile, workspace, user, actions } = ctx;
   const isLeader = user?.id === workspace?.group?.leader_id;
+  const isLecturer = readOnly && user?.user_type === 'lecturer';
 
   const compile = workspaceCompile || {};
   const allTasks = safeArray(workspace?.tasks);
@@ -25,6 +26,31 @@ const SubmissionTab = ({ ctx }) => {
   const [submission, setSubmission] = useState(null);
   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
+
+  // Lecturer grading state (readOnly mode only).
+  const [groupMark, setGroupMark] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [memberMarks, setMemberMarks] = useState({});
+  const [memberReasons, setMemberReasons] = useState({});
+  const [gradingSaving, setGradingSaving] = useState(false);
+  const [gradingReleasing, setGradingReleasing] = useState(false);
+  const [gradingError, setGradingError] = useState("");
+
+  useEffect(() => {
+    if (!submission) return;
+    if (isLecturer) {
+      setGroupMark(submission.grade != null ? String(submission.grade) : "");
+      setFeedback(submission.feedback || "");
+      const marks = {};
+      const reasons = {};
+      (submission.member_grades || []).forEach((mg) => {
+        marks[mg.student_id] = mg.final_mark != null ? String(mg.final_mark) : (mg.suggested_mark != null ? String(mg.suggested_mark) : "");
+        reasons[mg.student_id] = mg.reason || "";
+      });
+      setMemberMarks(marks);
+      setMemberReasons(reasons);
+    }
+  }, [submission, isLecturer]);
 
   useEffect(() => {
     const groupId = workspace?.group?.id;
@@ -81,6 +107,59 @@ const SubmissionTab = ({ ctx }) => {
   const ownGrade = submission?.member_grades?.find(
     (mg) => mg.student_id === user?.id,
   );
+
+  const saveLecturerDraft = async () => {
+    if (!submission || !isLecturer) return;
+    const gm = groupMark ? parseFloat(groupMark) : null;
+    for (const [memberId, mark] of Object.entries(memberMarks)) {
+      const mm = mark ? parseFloat(mark) : null;
+      if (mm !== null && gm !== null && mm !== gm) {
+        if (!memberReasons[memberId] || memberReasons[memberId].trim() === "") {
+          setGradingError("A reason is required when a member's mark differs from the group mark.");
+          return;
+        }
+      }
+    }
+    try {
+      setGradingSaving(true);
+      setGradingError("");
+      const memberGrades = Object.entries(memberMarks).map(([memberId, mark]) => ({
+        student_id: parseInt(memberId, 10),
+        final_mark: mark ? parseFloat(mark) : null,
+        reason: memberReasons[memberId] || "",
+      }));
+      await axios.patch(
+        `${API_BASE}/api/accounts/submissions/${submission.id}/save-draft/`,
+        {
+          grade: gm,
+          feedback: feedback,
+          member_grades: memberGrades,
+        },
+        { headers: { Authorization: `Bearer ${window.localStorage.getItem('access_token')}` } }
+      );
+      setGradingSaving(false);
+    } catch (err) {
+      setGradingSaving(false);
+      setGradingError(err.response?.data?.error || "Unable to save draft.");
+    }
+  };
+
+  const releaseLecturerGrade = async () => {
+    if (!submission || !isLecturer || !groupMark) return;
+    try {
+      setGradingReleasing(true);
+      setGradingError("");
+      await axios.post(
+        `${API_BASE}/api/accounts/submissions/${submission.id}/release/`,
+        {},
+        { headers: { Authorization: `Bearer ${window.localStorage.getItem('access_token')}` } }
+      );
+      setGradingReleasing(false);
+    } catch (err) {
+      setGradingReleasing(false);
+      setGradingError(err.response?.data?.error || "Unable to release grade.");
+    }
+  };
 
   return (
     <section className="space-y-5">
@@ -139,6 +218,107 @@ const SubmissionTab = ({ ctx }) => {
               <p className="text-sm text-[#4F5F73]">Your submission is pending review by your lecturer.</p>
             </div>
           )}
+        </article>
+      )}
+
+      {isLecturer && submission && (
+        <article className="rounded-xl border border-[#CDD6E0] bg-white p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-bold text-[#1F2D3D]">Lecturer grading</h3>
+            <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${submission.status === 'graded' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+              {submission.status}
+            </span>
+          </div>
+
+          {gradingError && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{gradingError}</div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-bold text-[#4F5F73] uppercase tracking-wide mb-1">Group mark</label>
+              <input
+                type="number"
+                min="0"
+                max={submission.project_max_marks || 100}
+                value={groupMark}
+                onChange={(e) => setGroupMark(e.target.value)}
+                className="w-full border border-[#CDD6E0] rounded-lg px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
+                placeholder="Group mark"
+              />
+              <p className="mt-1 text-[11px] text-[#4F5F73]">Out of {submission.project_max_marks || 100}</p>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-[#4F5F73] uppercase tracking-wide mb-1">Feedback</label>
+              <textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                rows="3"
+                className="w-full border border-[#CDD6E0] rounded-lg px-3 py-2 text-[13px] focus:border-[#4A6079] outline-none"
+                placeholder="Feedback for the whole group…"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-[#4F5F73] uppercase tracking-wide mb-1">Per-member marks</label>
+              <p className="text-[11px] text-[#4F5F73] mb-2">A reason is required when a member's mark differs from the group mark.</p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {members.map((m) => {
+                  const gm = groupMark ? parseFloat(groupMark) : null;
+                  const mm = memberMarks[m.id] ? parseFloat(memberMarks[m.id]) : null;
+                  const differs = gm !== null && mm !== null && mm !== gm;
+                  return (
+                    <div key={m.id} className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-[11px] font-medium text-[#1F2D3D]">{m.name}</label>
+                        {differs && (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Differs</span>
+                        )}
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={submission.project_max_marks || 100}
+                        value={memberMarks[m.id] || ""}
+                        onChange={(e) => setMemberMarks({ ...memberMarks, [m.id]: e.target.value })}
+                        className="w-full border border-[#CDD6E0] rounded-lg px-3 py-1.5 text-[12px] focus:border-[#4A6079] outline-none"
+                        placeholder="Member mark"
+                      />
+                      {differs && (
+                        <input
+                          type="text"
+                          placeholder="Reason…"
+                          value={memberReasons[m.id] || ""}
+                          onChange={(e) => setMemberReasons({ ...memberReasons, [m.id]: e.target.value })}
+                          className="w-full border border-[#CDD6E0] rounded-lg px-3 py-1.5 text-[12px] focus:border-[#4A6079] outline-none"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <button
+                type="button"
+                disabled={gradingSaving}
+                onClick={saveLecturerDraft}
+                className={`w-full py-2.5 rounded-lg font-semibold text-[13px] transition-colors ${gradingSaving ? "opacity-50 cursor-not-allowed" : "bg-[#4A6079] text-white hover:bg-[#35475C]"}`}
+              >
+                {gradingSaving ? "Saving…" : "Save draft"}
+              </button>
+              <button
+                type="button"
+                disabled={gradingReleasing || !groupMark}
+                onClick={releaseLecturerGrade}
+                className={`w-full py-2.5 rounded-lg font-semibold text-[13px] transition-colors ${gradingReleasing || !groupMark ? "opacity-50 cursor-not-allowed border border-[#CDD6E0] text-[#4A6079] bg-white hover:bg-[#F4F7FC]" : "bg-[#4A6079] text-white hover:bg-[#35475C]"}`}
+              >
+                {gradingReleasing ? "Releasing…" : "Release to students"}
+              </button>
+            </div>
+          </div>
         </article>
       )}
 

@@ -11,7 +11,7 @@ const card = 'rounded-xl border border-[#D7DEE6] bg-white p-4';
 
 const roleLabel = (member) => (member.is_leader ? 'Leader' : member.role === 'admin' ? 'Admin' : 'Member');
 
-const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLeft, onLeaveError, setGroups, onReload }) => {
+const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLeft, onLeaveError, setGroups, onReload, readOnly }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
@@ -62,7 +62,7 @@ const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLe
             </li>
           ))}
         </ul>
-        {canManageGroup ? (
+        {!readOnly && canManageGroup ? (
           <div className="mt-4 border-t border-[#E3EAF2] pt-4">
             <label className="block text-[11px] font-bold text-[#4A6079] uppercase tracking-wider mb-2">Group size limit</label>
             <div className="flex gap-2">
@@ -72,11 +72,13 @@ const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLe
             </div>
           </div>
         ) : null}
-        <div className="mt-4 border-t border-[#E3EAF2] pt-4">
-          {isLeader ? <p className="text-sm text-[#4F5F73]">You lead this group, so you can't leave it. Delete it from the Groups page instead.</p> : (
-            <button type="button" onClick={() => setConfirmOpen(true)} className={btnSecondary}><LogOut size={16} aria-hidden="true" /> Leave group</button>
-          )}
-        </div>
+        {!readOnly && (
+          <div className="mt-4 border-t border-[#E3EAF2] pt-4">
+            {isLeader ? <p className="text-sm text-[#4F5F73]">You lead this group, so you can't leave it. Delete it from the Groups page instead.</p> : (
+              <button type="button" onClick={() => setConfirmOpen(true)} className={btnSecondary}><LogOut size={16} aria-hidden="true" /> Leave group</button>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="space-y-4">
@@ -88,8 +90,12 @@ const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLe
                 <li key={item.id} className="rounded-lg bg-[#EEF1F4] px-3 py-2">
                   <p className="text-sm text-[#1F2D3D]">{item.message || item.title}</p>
                   <div className="mt-2 flex gap-2">
-                    <button type="button" disabled={access.busyId === item.id} onClick={() => access.declineRequest(item)} className={btnSecondary}>Decline</button>
-                    <button type="button" disabled={access.busyId === item.id} onClick={() => access.approveRequest(item)} className="inline-flex h-10 items-center rounded-lg bg-[#35475C] px-4 text-sm font-semibold text-white hover:bg-[#435B76] disabled:opacity-60">Approve</button>
+                    {!readOnly && (
+                      <>
+                        <button type="button" disabled={access.busyId === item.id} onClick={() => access.declineRequest(item)} className={btnSecondary}>Decline</button>
+                        <button type="button" disabled={access.busyId === item.id} onClick={() => access.approveRequest(item)} className="inline-flex h-10 items-center rounded-lg bg-[#35475C] px-4 text-sm font-semibold text-white hover:bg-[#435B76] disabled:opacity-60">Approve</button>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}
@@ -98,10 +104,12 @@ const MembersTab = ({ user, group, members, isLeader, joinRequests, access, onLe
           {access.error ? <p role="alert" className="mt-2 text-sm font-medium text-red-700">{access.error}</p> : null}
         </section>
 
-        <section className={card} aria-labelledby="mem-invite">
-          <h3 id="mem-invite" className={`${heading} flex items-center gap-2`}><UserPlus size={18} aria-hidden="true" /> Invite classmates</h3>
-          {group.unit_id ? <FindClassmatesPanel unitId={group.unit_id} groupId={group.id} /> : <p className="text-sm text-[#4F5F73]">This group isn’t linked to a unit, so there are no classmates to search. Share the join code instead.</p>}
-        </section>
+        {!readOnly && (
+          <section className={card} aria-labelledby="mem-invite">
+            <h3 id="mem-invite" className={`${heading} flex items-center gap-2`}><UserPlus size={18} aria-hidden="true" /> Invite classmates</h3>
+            {group.unit_id ? <FindClassmatesPanel unitId={group.unit_id} groupId={group.id} /> : <p className="text-sm text-[#4F5F73]">This group isn’t linked to a unit, so there are no classmates to search. Share the join code instead.</p>}
+          </section>
+        )}
       </div>
 
       <ConfirmDialog open={confirmOpen} title="Leave this group?" message={`You will lose access to ${group.name}. Your tasks stay with the group.`} confirmLabel="Leave group" busy={leaving} onConfirm={leave} onCancel={() => setConfirmOpen(false)} />
