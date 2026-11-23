@@ -297,8 +297,9 @@ export default function LecturerDashboard() {
         submission.status === "submitted" ? "reviewed" : submission.status,
     });
 
-    if (submission.group) {
-      // Group view from SubmissionsOverview - keep Detail modal
+    const isTaskSubmission = submission.source === 'task' || String(submission.id || '').startsWith('ts-');
+    if (submission.group || isTaskSubmission) {
+      // Group view or task submission - keep Detail modal
       setDetail(submission);
       setReviewSubmission(null);
       setSubmissionSource(submission.source || 'submission');
@@ -2767,10 +2768,13 @@ function ReviewPage({ submissionId, onClose, setNotice, load }) {
   const [releasing, setReleasing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Task submissions carry ids like "ts-1"; strip the prefix for API calls.
+  const realId = submissionId ? String(submissionId).replace(/^ts-/, '') : null;
+
   useEffect(() => {
-    if (!submissionId) return;
-    fetchSubmission(submissionId);
-  }, [submissionId]);
+    if (!realId) return;
+    fetchSubmission(realId);
+  }, [realId]);
 
   const fetchSubmission = async (id) => {
     try {
@@ -2836,7 +2840,7 @@ function ReviewPage({ submissionId, onClose, setNotice, load }) {
       );
 
       await axios.patch(
-        `${API}/submissions/${submissionId}/save-draft/`,
+        `${API}/submissions/${realId}/save-draft/`,
         {
           grade: groupMark ? parseFloat(groupMark) : null,
           feedback: feedback,
@@ -2865,7 +2869,7 @@ function ReviewPage({ submissionId, onClose, setNotice, load }) {
       setReleasing(true);
       setError("");
       await axios.post(
-        `${API}/submissions/${submissionId}/release/`,
+        `${API}/submissions/${realId}/release/`,
         {},
         { headers: auth() }
       );
