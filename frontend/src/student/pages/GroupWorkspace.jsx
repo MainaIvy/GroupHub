@@ -54,7 +54,6 @@ const GroupWorkspace = ({ ctx, readOnly = false, groupId: propGroupId, onBack })
   const [copied, setCopied] = useState(false);
 
   const data = useGroupWorkspaceData(group ? groupId : null);
-  const extras = useWorkspaceExtras(group ? groupId : null, tab === 'files');
   const actions = useTaskActions(groupId, data.reload);
 
   useEffect(() => {
@@ -86,6 +85,7 @@ const GroupWorkspace = ({ ctx, readOnly = false, groupId: propGroupId, onBack })
   }, [searchParams, setSearchParams]);
 
   const workspace = data.workspace;
+  const extras = useWorkspaceExtras(group ? groupId : null, tab === 'files', workspace);
   const tasks = useMemo(() => workspace?.tasks || [], [workspace]);
   const members = useMemo(() => workspace?.members || [], [workspace]);
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) || null;
