@@ -2149,7 +2149,7 @@ function Messages({
           <>
             <div className="flex items-center gap-3 border-b border-[#D7DEE6] bg-white px-4 py-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#D7DEE6] text-[#35475C]"><UsersRound size={17} /></span>
-              <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-[#1F2D3D]">{room.name}</h3><p className="text-xs text-[#4F5F73]">{members.length} members · Group chat</p></div>
+              <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-[#1F2D3D]">{room.name}</h3><p className="text-xs text-[#4F5F73]">{members.length || 1} member{(members.length || 1) !== 1 ? 's' : ''} · Group chat</p></div>
               <span className="ml-auto text-xs text-[#4F5F73]">• Live</span>
             </div>
             <label className="relative mx-4 my-3 block">
